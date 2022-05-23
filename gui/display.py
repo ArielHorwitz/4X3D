@@ -6,6 +6,9 @@ from prompt_toolkit.formatted_text import HTML
 from gui import window_size, OBJECT_COLORS
 
 
+ASCII_ASPECT_RATIO = 29/64
+
+
 class Display(Window):
     def __init__(self, app):
         self.text_control = FormattedTextControl(text='Display')
@@ -15,10 +18,9 @@ class Display(Window):
     def update(self):
         self.width = int(window_size().columns * 0.7)
         self.height = int(window_size().lines - 4)
-        positions = self.app.universe.positions
         s = [[' ']*self.width for _ in range(self.height)]
-        pos = positions + (self.width//2, self.height//2)
         labels = []
+        pos = self.pos2pix(self.app.universe.positions)
         for i, (x, y) in enumerate(parse_positions(pos)):
             if any([
                 x < 0,
@@ -29,11 +31,17 @@ class Display(Window):
                 continue
             tag = OBJECT_COLORS[i%len(OBJECT_COLORS)]
             s[y][x] = f'<{tag}><bold>•</bold></{tag}>'
-            labels.append((x, y, f'Object #{i}'))
+            real_pos = self.app.universe.positions[i]
+            labels.append((x, y, f'#{i} ({real_pos[0]:.2f},{real_pos[1]:.2f})'))
         for x, y, label in labels:
             write_label(s, x, y, label)
         s = '<display>' + '\n'.join(''.join(_) for _ in s) + '</display>'
         self.text_control.text = HTML(s)
+
+    def pos2pix(self, pos):
+        pos = pos * (1, ASCII_ASPECT_RATIO)
+        pos += (self.width//2, self.height//2)
+        return pos
 
 
 def write_label(charmap, x, y, name):
