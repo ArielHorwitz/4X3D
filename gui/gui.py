@@ -27,6 +27,13 @@ class App(Application):
         prompt_toolkit.shortcuts.clear()
         prompt_toolkit.shortcuts.set_title('Space')
         self.universe = Universe()
+        self.auto_sim = -50
+        self.debug_str = ''
+        self.feedback_str = 'Loading...'
+        self.display_window = Display(self)
+        self.debug_window = Debug(self)
+        self.prompt_window = Prompt(self, self.handle_prompt_input)
+        self.root_layout = self.get_layout()
         self.commands = {
             'exit': self.exit,
             'quit': self.exit,
@@ -39,14 +46,10 @@ class App(Application):
             'flip': self.universe.flip_vel,
             'reset': self.universe.reset,
             'simrate': self.set_simrate,
+            'labels': self.display_window.toggle_labels,
+            'mvcam': self.display_window.move_camera,
+            'resetcam': self.display_window.reset_camera,
         }
-        self.auto_sim = -50
-        self.debug_str = ''
-        self.feedback_str = 'Loading...'
-        self.display_window = Display(self)
-        self.debug_window = Debug(self)
-        self.prompt_window = Prompt(self, self.handle_prompt_input)
-        self.root_layout = self.get_layout()
         kb = get_keybindings(
             global_keys={
                 '^ q': self.exit,
@@ -113,6 +116,9 @@ class App(Application):
             '^+ pageup': 'simrate +100 1',
             '^ pagedown': 'simrate -10 1',
             '^+ pagedown': 'simrate -100 1',
+            '^ l': 'labels',
+            '^ home': 'mvcam +1',
+            '^ end': 'mvcam -1',
         }
         if key in translate:
             prompt_input = translate[key]
