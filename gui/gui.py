@@ -38,8 +38,9 @@ class App(Application):
             'center': self.universe.center_vel,
             'flip': self.universe.flip_vel,
             'reset': self.universe.reset,
+            'simrate': self.set_simrate,
         }
-        self.auto_sim = False
+        self.auto_sim = -50
         self.debug_str = ''
         self.feedback_str = 'Loading...'
         self.display_window = Display(self)
@@ -80,11 +81,18 @@ class App(Application):
         self.defocus_prompt()
         if not text:
             return
-        self.feedback_str = f'Input: {text}'
-        command, *args = text.split(' ')
+        command, args = self.resolve_prompt_input(text)
         if command in self.commands:
+            self.feedback_str = f'Running command: {command} {args}'
             c = self.commands[command]
-            c(*(try_float(a) for a in args))
+            c(*args)
+        else:
+            self.feedback_str = f'Unkown command: {command} (>> {text})'
+
+    def resolve_prompt_input(self, s):
+        command, *args = s.split(' ')
+        args = [try_float(a) for a in args]
+        return command, args
 
     def defocus_prompt(self):
         self.root_layout.focus(self.debug_window)
@@ -101,23 +109,37 @@ class App(Application):
             '^ c': 'center',
             '^ f': 'flip',
             '^ r': 'reset',
+            '^ pageup': 'simrate +10 1',
+            '^+ pageup': 'simrate +100 1',
+            '^ pagedown': 'simrate -10 1',
+            '^+ pagedown': 'simrate -100 1',
         }
         if key in translate:
             prompt_input = translate[key]
-            c = self.commands[prompt_input]
-            c()
-            self.debug_str = escape_html(f'Hotkey <{key}> command <{c.__name__}>')
+            command, args = self.resolve_prompt_input(prompt_input)
+            f = self.commands[command]
+            f(*args)
+            self.debug_str = escape_html(f'Hotkey <{key}> command <{f.__name__}>')
         else:
             self.debug_str = escape_html(f'Hotkey <{key}>')
 
     def toggle_autosim(self, set_to=None):
-        self.auto_sim = not self.auto_sim if set_to is None else set_to
+        new = 50 if self.auto_sim == 0 else -self.auto_sim
+        self.auto_sim = new if set_to is None else set_to
         self.feedback_str = f'Simulation {"in progress" if self.auto_sim else "paused"}'
+
+    def set_simrate(self, value=None, delta=False):
+        if delta:
+            self.auto_sim = max(0, self.auto_sim + value)
+        elif value is None:
+            self.auto_sim = 1
+        else:
+            self.auto_sim = value
 
     async def logic_loop(self):
         while True:
-            if self.auto_sim:
-                self.universe.simulate()
+            if self.auto_sim > 0:
+                self.universe.simulate(self.auto_sim)
             await asyncio.sleep(0.02)
 
     async def refresh_window(self):

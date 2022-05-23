@@ -14,7 +14,7 @@ class Universe:
 
     def simulate(self, ticks=1):
         self.tick += int(ticks)
-        self.positions += self.velocities * ticks
+        self.positions += self.velocities * ticks / 1000
 
     def randomize_vel(self):
         self.velocities += (rng.random((self.entity_count, 2)) * 2 - 1)
