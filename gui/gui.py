@@ -18,7 +18,7 @@ from gui.display import Display
 from gui.debug import Debug
 from gui.prompt import Prompt
 from gui.keybinds import get_keybindings, encode_keyseq
-from logic import Universe
+from logic.logic import Universe
 
 
 class App(Application):
