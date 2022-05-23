@@ -5,7 +5,7 @@ from prompt_toolkit.widgets import TextArea
 from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.formatted_text import HTML
 
-from gui import window_size, tag
+from gui import window_size, tag, format_latlong
 
 
 class Prompt(HSplit):
@@ -28,6 +28,7 @@ class Prompt(HSplit):
         self.status_bar.text = HTML(tag('cyan', ' | ').join([
             tag('code', str(arrow.get().format('YY-MM-DD, hh:mm:ss'))),
             tag('code', size),
+            tag('code', format_latlong(self.app.display_window.camera_axes[0])),
             tag('code', f'>> {self.app.feedback_str}'),
             tag('white', f'{self.app.debug_str}'),
         ]))

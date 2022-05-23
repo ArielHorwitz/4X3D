@@ -1,0 +1,125 @@
+from loguru import logger
+import math
+import numpy as np
+
+
+RADIANS_IN_DEGREES = 57.296
+
+
+class Quaternion:
+    @classmethod
+    def multi(cls, q1, q2):
+        wr = q1[0]
+        ws = q2[0]
+        vr = q1[1:]
+        vs = q2[1:]
+        qw = wr * ws - np.dot(vr, vs)
+        qv = vr * ws + vs * wr + np.cross(vr, vs)
+        return np.asarray([qw, *qv])
+
+    @classmethod
+    def from_vector_angle(cls, rotation_axis_vector, rotation_angle_degrees):
+        """Produce a quaternion of rotation given a rotation axis and angle."""
+        assert rotation_axis_vector.shape == (3, )
+        roation_angle_radians = rotation_angle_degrees / RADIANS_IN_DEGREES
+        v = cls.normalize(rotation_axis_vector)
+        q = np.asarray([
+            np.cos(roation_angle_radians / 2),
+            *(v * np.sin(roation_angle_radians / 2)),
+        ])
+        return q
+
+    @classmethod
+    def rotate_vector(cls, v, q):
+        """Rotate a 3d vector using quaternion of rotation. Returns rotated 3d vector."""
+        assert v.shape == (3, )
+        assert q.shape == (4, )
+        v = cls.from_vector(v)
+        return cls.rotate_quaternion(v, q)[1:]
+
+    @classmethod
+    def rotate_quaternion(cls, p, q):
+        """Rotate a 4d quaternion p using a 4d quaternion of rotation q. Returns rotated 4d quaternion."""
+        assert p.shape == (4, )
+        assert q.shape == (4, )
+        qp = cls.multi(q, p)
+        p_ = cls.multi(qp, cls.inverse(q))
+        return p_
+
+    @classmethod
+    def rotate_about_axis(cls, v, rotation_axis_vector, rotation_angle_degrees):
+        """Rotate 3d vector about a given axis by a given angle. Returns rotated 3d vector."""
+        assert v.shape == (3, )
+        # p = quaternion of self: the point/vector to rotate
+        p = cls.from_vector(v)
+        # q = the quaternion of rotation
+        q = cls.give_quaternion_of_rotation(rotation_axis_vector, rotation_angle_degrees)
+        # rotate the quaternion (q * p * q_)
+        p_ = cls.rotate_quaternion(p, q)
+        # return the rotated 3d vector of resulting quaternion
+        return p_[1:]
+
+    @classmethod
+    def from_vector(cls, v):
+        return np.asarray([0, *v])
+
+    @classmethod
+    def normalize(cls, q):
+        return q / np.linalg.norm(q)
+
+    @classmethod
+    def norm_x(cls):
+        return np.asarray([1, 0, 0])
+
+    @classmethod
+    def norm_y(cls):
+        return np.asarray([0, 1, 0])
+
+    @classmethod
+    def norm_z(cls):
+        return np.asarray([0, 0, 1])
+
+    @classmethod
+    def inverse(cls, q):
+        return q * (1, -1, -1, -1)
+
+    @classmethod
+    def get_rotated_axes(cls, q):
+        q_ = cls.inverse(q)
+        return [
+            cls.rotate_vector(cls.norm_x(), q_),
+            cls.rotate_vector(cls.norm_y(), q_),
+            cls.rotate_vector(cls.norm_z(), q_),
+        ]
+
+
+def latlong(vector):
+    """
+    Given an observer at the origin, gives the longitude and latitude
+    of a vector projected onto a sphere around the origin/observer,
+    such that the 0°, 0° corresponds to a vector at (1, 0, 0) and 45°, 45°
+    corresponds to a vector at (1, -1, 1).
+
+    A simpler way of conceptualizing this is considering the observer at
+    the origin and using the right hand rule, looking straight at the x+
+    axis with the y+ axis to their left and the z+ axis atop them. We
+    find the angles to rotate clockwise and pitch up in order to look at
+    the vector.
+    """
+    def pad_plank_length(scalar):
+        if scalar < 0:
+            return min(scalar, 10**-20)
+        return max(scalar, 10**-20)
+
+    magnitude = np.linalg.norm(vector)
+    if magnitude == 0:
+        return 0, 0
+
+    theta = math.atan(vector[1] / pad_plank_length(vector[0]))
+    if vector[0] < 0:
+        theta += math.pi
+    long = (theta * RADIANS_IN_DEGREES) * -1
+
+    phi = math.asin(vector[2] / pad_plank_length(magnitude))
+    lat = (phi * RADIANS_IN_DEGREES)
+    return long, lat

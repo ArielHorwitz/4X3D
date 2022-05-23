@@ -49,6 +49,8 @@ class App(Application):
             'labels': self.display_window.toggle_labels,
             'mvcam': self.display_window.move_camera,
             'resetcam': self.display_window.reset_camera,
+            'resetpov': self.display_window.reset_pov,
+            'rot': self.display_window.rotate_camera,
         }
         kb = get_keybindings(
             global_keys={
@@ -118,7 +120,15 @@ class App(Application):
             '^+ pagedown': 'simrate -100 1',
             '^ l': 'labels',
             '^ home': 'mvcam +1',
+            '^+ home': 'mvcam +100',
             '^ end': 'mvcam -1',
+            '^+ end': 'mvcam -100',
+            'right': 'rot +5',
+            'left': 'rot -5',
+            'up': 'rot 0 +5',
+            'down': 'rot 0 -5',
+            '^ right': 'rot 0 0 +5',
+            '^ left': 'rot 0 0 -5',
         }
         if key in translate:
             prompt_input = translate[key]
