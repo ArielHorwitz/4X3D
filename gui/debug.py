@@ -19,22 +19,19 @@ class Debug(Window):
     def update(self):
         t = arrow.get().format('YY-MM-DD, hh:mm:ss')
         proj = self.app.display_window.get_projection(self.app.universe.positions)
-        camera_axes = self.app.display_window.camera_axes
+        camera_axis = self.app.display_window.camera_axes[0]
         object_summaries = []
         for i in range(50):
-            name = f'{CELESTIAL_NAMES[i][:14]:.<15}'
+            name = f'{CELESTIAL_NAMES[i][:9]:.<10}'
             ll = ''.join(f"{f'{_:.1f}':>6}°" for _ in proj[i])
             pos = ''.join(f"{f'{_:.1f}':>6}" for _ in self.app.universe.positions[i])
             vel = ''.join(f"{f'{_:.1f}':>4}" for _ in self.app.universe.velocities[i])
-            object_summaries.append(f'{name}: {ll}|{pos}|{vel}')
+            v = f'{np.linalg.norm(self.app.universe.velocities[i]):.1f}'
+            object_summaries.append(f'{name}: v:{v} | pos:{pos} | dir:{ll} | v:{vel}')
         self.text_control.text = HTML('\n'.join([
             f'<h1>Simulation</h1>',
             f'<red>Auto sim</red>: <code>{self.app.auto_sim}</code>',
             f'<red>Tick</red>: <code>{self.app.universe.tick}</code>',
-            f'<red>Camera pos</red>: <code>{format_vector(self.app.display_window.camera_pos)}</code>',
-            f'<red>Camera rot</red>: <code>{format_vector(self.app.display_window.camera_rot,2)} [{np.linalg.norm(self.app.display_window.camera_rot):.3f}]</code>',
-            *[f'<red>Camera {a}</red>: <code>{format_latlong(camera_axes[i])}</code>' for i, a in enumerate('xyz')],
-            *[f'<red>Camera {a} vector</red>: <code>{format_vector(camera_axes[i])} | {np.linalg.norm(camera_axes[i]):.3f}</code>' for i, a in enumerate('xyz')],
             f'<h2>Position / Velocity</h2>',
             '\n'.join(object_summaries),
         ]))

@@ -21,13 +21,54 @@ from gui.keybinds import get_keybindings, encode_keyseq
 from logic.logic import Universe
 
 
+HOTKEY_COMMANDS = {
+    'enter': 'focus',
+    'space': 'autosim',
+    '^ t': 'tick',
+    '^ v': 'random',
+    '^ c': 'center',
+    '^ f': 'flip',
+    '^ r': 'reset',
+    '^ pageup': 'simrate +10 1',
+    '^+ pageup': 'simrate +100 1',
+    '^ pagedown': 'simrate -10 1',
+    '^+ pagedown': 'simrate -100 1',
+    '^ l': 'labels',
+    # flight
+    '^ up': 'fly',
+    '^ down': 'break',
+    'up': 'move +1',
+    '+ up': 'move +10',
+    'down': 'move -1',
+    '+ down': 'move -10',
+    'left': 'strafe +1',
+    '+ left': 'strafe +10',
+    'right': 'strafe -1',
+    '+ right': 'strafe -10',
+    # pov
+    'd': 'rot +1',
+    'D': 'rot +30',
+    'a': 'rot -1',
+    'A': 'rot -30',
+    'w': 'rot 0 +1',
+    'W': 'rot 0 +30',
+    's': 'rot 0 -1',
+    'S': 'rot 0 -30',
+    'e': 'rot 0 0 -1',
+    'E': 'rot 0 0 -30',
+    'q': 'rot 0 0 +1',
+    'Q': 'rot 0 0 +30',
+    'x': 'flipcam',
+}
+
+
 class App(Application):
     def __init__(self):
         print(HTML('<i>Initializing app...</i>'))
         prompt_toolkit.shortcuts.clear()
         prompt_toolkit.shortcuts.set_title('Space')
         self.universe = Universe()
-        self.auto_sim = -50
+        self.auto_sim = 10
         self.debug_str = ''
         self.feedback_str = 'Loading...'
         self.display_window = Display(self)
@@ -47,10 +88,14 @@ class App(Application):
             'reset': self.universe.reset,
             'simrate': self.set_simrate,
             'labels': self.display_window.toggle_labels,
-            'mvcam': self.display_window.move_camera,
             'resetcam': self.display_window.reset_camera,
-            'resetpov': self.display_window.reset_pov,
+            'flipcam': self.display_window.flip_camera,
             'rot': self.display_window.rotate_camera,
+            'fly': self.display_window.fly,
+            'break': self.display_window.break_move,
+            'move': self.display_window.move,
+            'strafe': self.display_window.strafe,
+            'match': self.universe.match_velocities,
         }
         kb = get_keybindings(
             global_keys={
@@ -96,7 +141,7 @@ class App(Application):
 
     def resolve_prompt_input(self, s):
         command, *args = s.split(' ')
-        args = [try_float(a) for a in args]
+        args = [try_number(a) for a in args]
         return command, args
 
     def defocus_prompt(self):
@@ -106,32 +151,8 @@ class App(Application):
         self.prompt_window.focus()
 
     def handle_hotkey(self, key):
-        translate = {
-            'enter': 'focus',
-            'space': 'autosim',
-            '^ t': 'tick',
-            '^ v': 'random',
-            '^ c': 'center',
-            '^ f': 'flip',
-            '^ r': 'reset',
-            '^ pageup': 'simrate +10 1',
-            '^+ pageup': 'simrate +100 1',
-            '^ pagedown': 'simrate -10 1',
-            '^+ pagedown': 'simrate -100 1',
-            '^ l': 'labels',
-            '^ home': 'mvcam +1',
-            '^+ home': 'mvcam +100',
-            '^ end': 'mvcam -1',
-            '^+ end': 'mvcam -100',
-            'right': 'rot +5',
-            'left': 'rot -5',
-            'up': 'rot 0 +5',
-            'down': 'rot 0 -5',
-            '^ right': 'rot 0 0 +5',
-            '^ left': 'rot 0 0 -5',
-        }
-        if key in translate:
-            prompt_input = translate[key]
+        if key in HOTKEY_COMMANDS:
+            prompt_input = HOTKEY_COMMANDS[key]
             command, args = self.resolve_prompt_input(prompt_input)
             f = self.commands[command]
             f(*args)
@@ -175,9 +196,12 @@ class App(Application):
         self.defocus_prompt()
 
 
-def try_float(v):
+def try_number(v):
     try:
-        return float(v)
+        r = float(v)
+        if r == int(r):
+            r = int(r)
+        return r
     except ValueError as e:
         return v
 
