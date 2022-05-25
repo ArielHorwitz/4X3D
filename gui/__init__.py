@@ -1,7 +1,6 @@
 
 import os, sys
 from prompt_toolkit.styles import Style
-from logic.quaternion import latlong
 
 
 COLOR_HEXES = {
@@ -25,6 +24,7 @@ STYLE = Style.from_dict({
     'code': '#44ff00 italic',
     'h1': '#0044ff bold underline bg:#ffffff',
     'h2': '#ffffff bold underline bg:#000055',
+    'h3': f'#ffbb00 bold underline',
     # 'display': 'bg:#222222',
     'highlight': '#000000 bg:#ffffff',
     **COLOR_HEXES,
@@ -49,7 +49,7 @@ def window_size():
 
 
 def format_latlong(v, rounding=1):
-    return ', '.join(f"{f'{round(_, rounding)}°':>7}" for _ in latlong(v))
+    return ', '.join(f"{f'{round(_, rounding)}°':>7}" for _ in v)
 
 
 def format_vector(v, rounding=1):

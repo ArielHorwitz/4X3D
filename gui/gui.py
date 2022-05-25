@@ -22,6 +22,7 @@ from logic.logic import Universe
 
 
 HOTKEY_COMMANDS = {
+    '^ f12': 'debug',
     'enter': 'focus',
     'space': 'autosim',
     '^ t': 'tick',
@@ -79,6 +80,7 @@ class App(Application):
             'exit': self.exit,
             'quit': self.exit,
             'restart': restart_script,
+            'debug': self.debug,
             'focus': self.focus_prompt,
             'autosim': self.toggle_autosim,
             'tick': self.universe.simulate,
@@ -96,6 +98,7 @@ class App(Application):
             'move': self.display_window.move,
             'strafe': self.display_window.strafe,
             'match': self.universe.match_velocities,
+            'meet': self.universe.match_positions,
         }
         kb = get_keybindings(
             global_keys={
@@ -112,6 +115,9 @@ class App(Application):
             key_bindings=kb,
         )
         self.feedback_str = 'Welcome to space.'
+
+    def debug(self, *a):
+        self.debug_str += f' | debug args: {a}'
 
     def hotkeys_enabled(self):
         return not self.root_layout.buffer_has_focus

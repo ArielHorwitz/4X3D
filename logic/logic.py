@@ -1,3 +1,4 @@
+from loguru import logger
 import numpy as np
 from prompt_toolkit import print_formatted_text as print
 
@@ -7,7 +8,7 @@ CELESTIAL_NAMES = ['Me', 'Alkurhah', 'Alterf', 'Wezn', 'Aldhibah', 'Anser', 'Tyl
 
 
 class Universe:
-    def __init__(self, entity_count=50):
+    def __init__(self, entity_count=10):
         self.tick = 0
         self.entity_count = entity_count
         self.positions = np.zeros((entity_count, 3), dtype=np.float64)
@@ -34,7 +35,11 @@ class Universe:
     def match_velocities(self, a, b):
         self.velocities[a] = self.velocities[b]
 
+    def match_positions(self, a, b):
+        self.positions[a] = self.positions[b]
+
     def simulate(self, ticks=1):
+        assert self.positions.dtype == self.velocities.dtype == np.float64
         self.tick += int(ticks)
         self.positions += self.velocities * ticks / 1000
 

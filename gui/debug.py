@@ -18,14 +18,13 @@ class Debug(Window):
 
     def update(self):
         t = arrow.get().format('YY-MM-DD, hh:mm:ss')
-        proj = self.app.display_window.get_projection(self.app.universe.positions)
-        camera_axis = self.app.display_window.camera_axes[0]
+        proj = self.app.display_window.get_projected_coords(self.app.universe.positions)
         object_summaries = []
-        for i in range(50):
-            name = f'{CELESTIAL_NAMES[i][:9]:.<10}'
-            ll = ''.join(f"{f'{_:.1f}':>6}°" for _ in proj[i])
-            pos = ''.join(f"{f'{_:.1f}':>6}" for _ in self.app.universe.positions[i])
-            vel = ''.join(f"{f'{_:.1f}':>4}" for _ in self.app.universe.velocities[i])
+        for i in range(min(30, self.app.universe.entity_count)):
+            name = f'<h3>{CELESTIAL_NAMES[i][:9]:<10}</h3>'
+            ll = ''.join(format_latlong(proj[i]))
+            pos = ''.join(format_vector(self.app.universe.positions[i]))
+            vel = ''.join(format_vector(self.app.universe.velocities[i]))
             v = f'{np.linalg.norm(self.app.universe.velocities[i]):.1f}'
             object_summaries.append(f'{name}: v:{v} | pos:{pos} | dir:{ll} | v:{vel}')
         self.text_control.text = HTML('\n'.join([

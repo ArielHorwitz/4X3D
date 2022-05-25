@@ -5,7 +5,7 @@ from prompt_toolkit.layout.containers import Window
 from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.formatted_text import HTML
 
-from gui import window_size, OBJECT_COLORS, format_latlong
+from gui import window_size, OBJECT_COLORS
 from logic.logic import CELESTIAL_NAMES
 from logic.quaternion import Quaternion as Quat, latlong
 
@@ -22,6 +22,7 @@ class Display(Window):
         self.camera_rot = np.asarray([1, 0, 0, 0])
         self.show_labels = False
 
+    # Flight controls
     def move(self, d=1):
         self.app.universe.move(self.camera_axes[0] * d)
 
@@ -34,6 +35,7 @@ class Display(Window):
     def break_move(self):
         self.app.universe.break_move()
 
+    # Camera control
     @property
     def camera_pos(self):
         return self.app.universe.my_pos
@@ -63,25 +65,21 @@ class Display(Window):
     def flip_camera(self):
         self.rotate_camera(yaw=180)
 
-    def toggle_labels(self, set_to=None):
-        set_to = not self.show_labels if set_to is None else set_to
-        self.show_labels = set_to
-        self.app.feedback_str = f'Showing labels: {set_to}'
-
+    # Display
     def update(self):
         self.width = int(window_size().columns * 0.7)
         self.height = int(window_size().lines - 4)
         charmap = [[' ']*self.width for _ in range(self.height)]
-        labels = []
         self.add_projection_axes(charmap)
-        latlongs = self.get_projection(self.app.universe.positions)
-        pix_pos = self.latlong2pix(latlongs)
-        for i, (x, y) in enumerate(pix_pos):
-            if i == 0:
-                continue
-            x, y = round(x), round(self.height-y)
-            if any([x < 0, y < 0, x >= self.width, y >= self.height]):
-                continue
+        self.add_objects(charmap)
+        self.add_crosshair(charmap, horizontal=True, diagonal=True)
+        s = '<display>' + '\n'.join(''.join(_) for _ in charmap) + '</display>'
+        self.text_control.text = HTML(s)
+
+    def add_objects(self, charmap):
+        pix_pos = self.get_projected_pixels(self.app.universe.positions)
+        labels = []
+        for i, x, y in pix_pos:
             tag = OBJECT_COLORS[i%len(OBJECT_COLORS)]
             charmap[y][x] = f'<{tag}><bold>•</bold></{tag}>'
             lbl = ''
@@ -91,9 +89,6 @@ class Display(Window):
             labels.append((x, y, f'#{i}.{CELESTIAL_NAMES[i]}{lbl}'))
         for x, y, label in labels:
             write_label(charmap, x, y, label)
-        self.add_crosshair(charmap, horizontal=True, diagonal=True)
-        s = '<display>' + '\n'.join(''.join(_) for _ in charmap) + '</display>'
-        self.text_control.text = HTML(s)
 
     def add_projection_axes(self, charmap):
         inf = 10**100
@@ -104,19 +99,15 @@ class Display(Window):
             [0, -inf, 0],
             [0, 0, inf],
             [0, 0, -inf],
-        ])
+        ], dtype=np.float64)
         labels = ['X+', 'X-', 'Y+', 'Y-', 'Z+', 'Z-']
-        latlongs = self.get_projection(coords)
-        pix_pos = self.latlong2pix(latlongs)
-        for i, (x, y) in enumerate(pix_pos):
-            x, y = round(x), round(self.height-y)
-            if any([x < 0, y < 0, x >= self.width, y >= self.height]):
-                continue
+        pix_pos = self.get_projected_pixels(coords)
+        for i, x, y in pix_pos:
             charmap[y][x] = f'<bold>╬</bold>'
             write_label(charmap, x, y, labels[i])
 
     def add_crosshair(self, charmap, horizontal=True, diagonal=False):
-        cx, cy = self.width//2, self.height//2
+        cx, cy = round(self.width/2), round(self.height/2)
         if horizontal:
             write_char(charmap, cx, cy-1, '│')
             write_char(charmap, cx, cy+1, '│')
@@ -128,17 +119,31 @@ class Display(Window):
             write_char(charmap, cx-1, cy+1, '/')
             write_char(charmap, cx+1, cy-1, '/')
 
-    def get_projection(self, pos):
-        # Convert 3d position to mercator projection
+    def get_projected_coords(self, pos):
         pos = pos - self.camera_pos
-        r = np.asarray([latlong(Quat.rotate_vector(c, self.camera_rot)) for c in pos])
+        rv = Quat.rotate_vectors(pos, self.camera_rot)
+        ll_coords = latlong(rv)
+        return ll_coords
+
+    def get_projected_pixels(self, pos):
+        # Convert 3d position to mercator projection
+        ll_coords = self.get_projected_coords(pos)
+        pix = ll_coords * [1, ASCII_ASPECT_RATIO]
+        pix += [self.width/2, self.height/2]
+        pix[:, 1] = self.height - pix[:, 1]
+        above_botleft = (pix[:, 0] >= 0) & (pix[:, 1] >= 0)
+        below_topright = (pix[:, 0] < self.width-1) & (pix[:, 1] < self.height-1)
+        not_on_camera_pos = (pos != self.camera_pos).sum(axis=-1) > 0
+        valid = above_botleft & below_topright & not_on_camera_pos
+        pix = pix[valid]
+        r = np.concatenate((np.flatnonzero(valid)[:, None], pix), axis=-1)
+        r = np.asarray(np.round(r), dtype=np.int32)
         return r
 
-    def latlong2pix(self, pos):
-        # Aspect ration and offset
-        pix = pos * (1, ASCII_ASPECT_RATIO)
-        pix += (self.width//2, self.height//2)
-        return tuple(tuple(round(x) for x in _) for _ in pix)
+    def toggle_labels(self, set_to=None):
+        set_to = not self.show_labels if set_to is None else set_to
+        self.show_labels = set_to
+        self.app.feedback_str = f'Showing labels: {set_to}'
 
 
 def write_char(charmap, x, y, char, overwrite=False):
