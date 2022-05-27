@@ -49,14 +49,17 @@ class Display(Window):
         self.camera_rot = np.asarray([1,0,0,0], dtype=np.float64)
         self.camera_zoom = 1
 
-    def rotate_camera(self, yaw=0, pitch=0, roll=0):
+    def rotate_camera(self, yaw=0, pitch=0, roll=0, consider_zoom=True):
         axes = self.camera_axes
+        if consider_zoom:
+            yaw /= self.camera_zoom
+            pitch /= self.camera_zoom
         if yaw:
-            yaw_qrot = Quat.from_vector_angle(axes[2], yaw/self.camera_zoom)
+            yaw_qrot = Quat.from_vector_angle(axes[2], yaw)
             logger.debug(f'Rotating: {yaw}° yaw')
             self.camera_rot = Quat.multi(self.camera_rot, yaw_qrot)
         elif pitch:
-            pitch_qrot = Quat.from_vector_angle(axes[1], pitch/self.camera_zoom)
+            pitch_qrot = Quat.from_vector_angle(axes[1], pitch)
             logger.debug(f'Rotating: {pitch}° pitch')
             self.camera_rot = Quat.multi(self.camera_rot, pitch_qrot)
         elif roll:
@@ -65,8 +68,7 @@ class Display(Window):
             self.camera_rot = Quat.multi(self.camera_rot, roll_qrot)
 
     def flip_camera(self):
-        qrot = Quat.from_vector_angle(self.camera_axes[2], 180)
-        self.camera_rot = Quat.multi(self.camera_rot, qrot)
+        self.rotate_camera(yaw=180, consider_zoom=False)
 
     def zoom_camera(self, zoom_multiplier):
         self.camera_zoom = max(0.5, self.camera_zoom * zoom_multiplier)

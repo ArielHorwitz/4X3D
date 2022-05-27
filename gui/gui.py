@@ -64,6 +64,7 @@ HOTKEY_COMMANDS = {
     'q': 'rot 0 0 +1',
     'Q': 'rot 0 0 +30',
     'x': 'flipcam',
+    'X': 'flipcam',
 }
 
 
