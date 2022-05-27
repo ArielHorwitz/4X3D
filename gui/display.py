@@ -6,7 +6,7 @@ from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.formatted_text import HTML
 
 from gui import window_size, OBJECT_COLORS
-from logic.logic import CELESTIAL_NAMES
+from logic.universe import CELESTIAL_NAMES
 from logic.quaternion import Quaternion as Quat, latlong
 
 
