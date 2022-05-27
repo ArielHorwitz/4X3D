@@ -21,6 +21,9 @@ from gui.keybinds import get_keybindings, encode_keyseq
 from logic.universe import Universe
 
 
+FPS = 20
+FRAME_TIME = 1 / FPS
+logger.info(f'Running at {FPS} FPS ({FRAME_TIME*1000:.1f} ms)')
 HOTKEY_COMMANDS = {
     '^ f12': 'debug',
     'enter': 'focus',
@@ -191,7 +194,7 @@ class App(Application):
         while True:
             if self.auto_sim > 0:
                 self.universe.simulate(self.auto_sim)
-            await asyncio.sleep(0.02)
+            await asyncio.sleep(FRAME_TIME)
 
     async def refresh_window(self):
         while True:
@@ -199,7 +202,7 @@ class App(Application):
             self.debug_window.update()
             self.prompt_window.update()
             self.invalidate()
-            await asyncio.sleep(0.02)
+            await asyncio.sleep(FRAME_TIME)
 
     def run(self):
         self.create_background_task(self.logic_loop())
