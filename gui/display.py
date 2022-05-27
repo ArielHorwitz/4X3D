@@ -20,6 +20,7 @@ class Display(Window):
         super().__init__(content=self.text_control)
         self.app = app
         self.camera_rot = np.asarray([1, 0, 0, 0])
+        self.camera_zoom = 1
         self.show_labels = 1
 
     # Flight controls
@@ -46,15 +47,16 @@ class Display(Window):
 
     def reset_camera(self):
         self.camera_rot = np.asarray([1,0,0,0], dtype=np.float64)
+        self.camera_zoom = 1
 
     def rotate_camera(self, yaw=0, pitch=0, roll=0):
         axes = self.camera_axes
         if yaw:
-            yaw_qrot = Quat.from_vector_angle(axes[2], yaw)
+            yaw_qrot = Quat.from_vector_angle(axes[2], yaw/self.camera_zoom)
             logger.debug(f'Rotating: {yaw}° yaw')
             self.camera_rot = Quat.multi(self.camera_rot, yaw_qrot)
         elif pitch:
-            pitch_qrot = Quat.from_vector_angle(axes[1], pitch)
+            pitch_qrot = Quat.from_vector_angle(axes[1], pitch/self.camera_zoom)
             logger.debug(f'Rotating: {pitch}° pitch')
             self.camera_rot = Quat.multi(self.camera_rot, pitch_qrot)
         elif roll:
@@ -63,7 +65,11 @@ class Display(Window):
             self.camera_rot = Quat.multi(self.camera_rot, roll_qrot)
 
     def flip_camera(self):
-        self.rotate_camera(yaw=180)
+        qrot = Quat.from_vector_angle(self.camera_axes[2], 180)
+        self.camera_rot = Quat.multi(self.camera_rot, qrot)
+
+    def zoom_camera(self, zoom_multiplier):
+        self.camera_zoom = max(0.5, self.camera_zoom * zoom_multiplier)
 
     # Display
     def update(self):
@@ -133,7 +139,7 @@ class Display(Window):
     def get_projected_pixels(self, pos):
         # Convert 3d position to mercator projection
         ll_coords = self.get_projected_coords(pos)
-        pix = ll_coords * [1, ASCII_ASPECT_RATIO]
+        pix = ll_coords * [1, ASCII_ASPECT_RATIO] * self.camera_zoom
         pix += [self.width/2, self.height/2]
         pix[:, 1] = self.height - pix[:, 1]
         above_botleft = (pix[:, 0] >= 0) & (pix[:, 1] >= 0)

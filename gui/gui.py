@@ -47,6 +47,10 @@ HOTKEY_COMMANDS = {
     'right': 'strafe -1',
     '+ right': 'strafe -10',
     # pov
+    'home': 'zoom 1.25',
+    'end': 'zoom 0.8',
+    '+ home': 'zoom 2',
+    '+ end': 'zoom 0.5',
     'd': 'rot +1',
     'D': 'rot +30',
     'a': 'rot -1',
@@ -93,6 +97,7 @@ class App(Application):
             'labels': self.display_window.toggle_labels,
             'resetcam': self.display_window.reset_camera,
             'flipcam': self.display_window.flip_camera,
+            'zoom': self.display_window.zoom_camera,
             'rot': self.display_window.rotate_camera,
             'fly': self.display_window.fly,
             'break': self.display_window.break_move,

@@ -30,6 +30,7 @@ class Prompt(HSplit):
             tag('code', str(arrow.get().format('YY-MM-DD, hh:mm:ss'))),
             tag('code', size),
             tag('code', format_latlong(latlong_single(self.app.display_window.camera_axes[0]))),
+            tag('code', f'x{self.app.display_window.camera_zoom:.2f}'),
             tag('code', f'>> {self.app.feedback_str}'),
             tag('white', f'{self.app.debug_str}'),
         ]))
