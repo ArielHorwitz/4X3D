@@ -8,11 +8,17 @@ CELESTIAL_NAMES = ['Me', 'Alkurhah', 'Alterf', 'Wezn', 'Aldhibah', 'Anser', 'Tyl
 
 
 class Universe:
-    def __init__(self, entity_count=10):
+    def __init__(self, entity_count=20):
         self.tick = 0
         self.entity_count = entity_count
+        self.gravity_constant = 10**-8
         self.positions = np.zeros((entity_count, 3), dtype=np.float64)
         self.velocities = np.zeros((entity_count, 3), dtype=np.float64)
+        graviton_count = np.round(entity_count*0.1)
+        graviton_count = 2
+        self.gravitons = np.asarray(np.arange(graviton_count) + 1, dtype=np.int32)
+        self.graviton_mass = np.arange(len(self.gravitons)) * 10 + 100
+        self.randomize_pos()
         self.randomize_vel()
 
     @property
@@ -41,7 +47,31 @@ class Universe:
     def simulate(self, ticks=1):
         assert self.positions.dtype == self.velocities.dtype == np.float64
         self.tick += int(ticks)
+        self.apply_gravity(ticks)
         self.positions += self.velocities * ticks / 1000
+
+    def apply_gravity(self, ticks):
+        # Find gravity vectors (between objects and gravity sources)
+        graviton_pos = self.positions[self.gravitons]
+        grav_vectors = graviton_pos - self.positions[:, None, :]
+        # Consider the square root of their distance
+        grav_vector_dist = np.linalg.norm(grav_vectors, axis=-1)[:, :, None]
+        inverse_square_dist = np.sqrt(grav_vector_dist)
+        # Get the unit vector of the gravity vectors
+        grav_vectors_normalized = grav_vectors / grav_vector_dist
+        np.nan_to_num(grav_vectors_normalized, copy=False)
+        # The delta V should consider the inverse square law and the mass of the gravitation source
+        force_vectors = grav_vectors_normalized * inverse_square_dist * self.graviton_mass[None, :, None]
+        # Combine forces from all gravity sources to one vector per object
+        force_vectors = force_vectors.sum(axis=1)
+        # Multiply by the gravity constant and number of ticks to simulate
+        force_vectors *= self.gravity_constant * ticks
+        # Apply the gravitational force
+        self.velocities[1:] += force_vectors[1:]
+
+    def randomize_pos(self):
+        self.positions += (rng.random((self.entity_count, 3)) * 20 - 10)
+        self.positions[0] = 0
 
     def randomize_vel(self):
         self.velocities += (rng.random((self.entity_count, 3)) * 2 - 1)

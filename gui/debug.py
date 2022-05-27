@@ -21,7 +21,8 @@ class Debug(Window):
         proj = self.app.display_window.get_projected_coords(self.app.universe.positions)
         object_summaries = []
         for i in range(min(30, self.app.universe.entity_count)):
-            name = f'<h3>{CELESTIAL_NAMES[i][:9]:<10}</h3>'
+            is_graviton = '*' if i in self.app.universe.gravitons else ''
+            name = f'<h3>{is_graviton+CELESTIAL_NAMES[i][:9]:<10}</h3>'
             ll = ''.join(format_latlong(proj[i]))
             pos = ''.join(format_vector(self.app.universe.positions[i]))
             vel = ''.join(format_vector(self.app.universe.velocities[i]))

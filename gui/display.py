@@ -20,7 +20,7 @@ class Display(Window):
         super().__init__(content=self.text_control)
         self.app = app
         self.camera_rot = np.asarray([1, 0, 0, 0])
-        self.show_labels = False
+        self.show_labels = 1
 
     # Flight controls
     def move(self, d=1):
@@ -82,11 +82,16 @@ class Display(Window):
         for i, x, y in pix_pos:
             tag = OBJECT_COLORS[i%len(OBJECT_COLORS)]
             charmap[y][x] = f'<{tag}><bold>•</bold></{tag}>'
-            lbl = ''
             if self.show_labels:
+                is_graviton = '*' if i in self.app.universe.gravitons else ''
+                lbl = f'{is_graviton}{CELESTIAL_NAMES[i]}'
+            if self.show_labels > 1:
+                lbl = f'#{i}.{lbl}'
+            if self.show_labels > 2:
                 dist = np.linalg.norm(self.camera_pos - self.app.universe.positions[i])
-                lbl = f' ({dist:.1f})'
-            labels.append((x, y, f'#{i}.{CELESTIAL_NAMES[i]}{lbl}'))
+                lbl = f'{lbl} ({dist:.1f})'
+            if self.show_labels:
+                labels.append((x, y, lbl))
         for x, y, label in labels:
             write_label(charmap, x, y, label)
 
@@ -140,10 +145,9 @@ class Display(Window):
         r = np.asarray(np.round(r), dtype=np.int32)
         return r
 
-    def toggle_labels(self, set_to=None):
-        set_to = not self.show_labels if set_to is None else set_to
-        self.show_labels = set_to
-        self.app.feedback_str = f'Showing labels: {set_to}'
+    def toggle_labels(self):
+        self.show_labels = (self.show_labels + 1) % 4
+        self.app.feedback_str = f'Showing labels: {self.show_labels}'
 
 
 def write_char(charmap, x, y, char, overwrite=False):

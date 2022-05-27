@@ -85,6 +85,7 @@ class App(Application):
             'autosim': self.toggle_autosim,
             'tick': self.universe.simulate,
             'random': self.universe.randomize_vel,
+            'randpos': self.universe.randomize_pos,
             'center': self.universe.center_vel,
             'flip': self.universe.flip_vel,
             'reset': self.universe.reset,
