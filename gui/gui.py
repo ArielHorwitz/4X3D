@@ -106,6 +106,7 @@ class App(Application):
             'strafe': self.display_window.strafe,
             'match': self.universe.match_velocities,
             'meet': self.universe.match_positions,
+            'look': self.display_window.camera_look,
         }
         kb = get_keybindings(
             global_keys={

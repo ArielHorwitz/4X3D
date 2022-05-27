@@ -7,7 +7,7 @@ from prompt_toolkit.formatted_text import HTML
 
 from gui import window_size, OBJECT_COLORS
 from logic.universe import CELESTIAL_NAMES
-from logic.quaternion import Quaternion as Quat, latlong
+from logic.quaternion import Quaternion as Quat, latlong, latlong_single
 
 
 ASCII_ASPECT_RATIO = 29/64
@@ -72,6 +72,13 @@ class Display(Window):
 
     def zoom_camera(self, zoom_multiplier):
         self.camera_zoom = max(0.5, self.camera_zoom * zoom_multiplier)
+
+    def camera_look(self, object_index):
+        look_vector = self.app.universe.positions[object_index] - self.camera_pos
+        rotated = Quat.rotate_vector(look_vector, self.camera_rot)
+        lat, long = latlong_single(rotated)
+        self.rotate_camera(yaw=lat, consider_zoom=False)
+        self.rotate_camera(pitch=long, consider_zoom=False)
 
     # Display
     def update(self):
