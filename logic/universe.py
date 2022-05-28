@@ -58,7 +58,10 @@ class Universe:
         grav_vector_dist = np.linalg.norm(grav_vectors, axis=-1)[:, :, None]
         inverse_square_dist = np.sqrt(grav_vector_dist)
         # Get the unit vector of the gravity vectors
-        grav_vectors_normalized = grav_vectors / grav_vector_dist
+        grav_vectors_normalized = np.zeros(grav_vectors.shape)
+        has_mag = (grav_vector_dist > 0)
+        has_mag = has_mag.reshape(has_mag.shape[:-1])
+        grav_vectors_normalized[has_mag] = grav_vectors[has_mag] / grav_vector_dist[has_mag]
         np.nan_to_num(grav_vectors_normalized, copy=False)
         # The delta V should consider the inverse square law and the mass of the gravitation source
         force_vectors = grav_vectors_normalized * inverse_square_dist * self.graviton_mass[None, :, None]
