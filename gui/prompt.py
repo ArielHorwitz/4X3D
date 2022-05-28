@@ -20,9 +20,10 @@ class Prompt(HSplit):
         super().__init__([prompt, status], height=2)
 
     def update(self):
-        s = tag('cyan', f'{tag("orange", "dev")} @ {tag("brown", "Space")} $ ')
+        s = tag('cyan', f'{tag("orange", "dev")} @ {tag("brown", "Space")} $')
         if not self.app.hotkeys_enabled():
-            s = tag('bold', s)
+            s = tag('darkbg', tag('bold', s))
+        s = f'{s} '
         self.prompt_text.content.text = HTML(s)
         self.prompt_text.width = self.prompt_text.content.preferred_width(30)
         size = f'{window_size().columns}×{window_size().lines} ({self.app.display_window.width}×{self.app.display_window.height})'

@@ -27,6 +27,7 @@ STYLE = Style.from_dict({
     'h3': f'#ffbb00 bold underline',
     # 'display': 'bg:#222222',
     'highlight': '#000000 bg:#ffffff',
+    'darkbg': 'bg:#000055',
     **COLOR_HEXES,
 })
 
