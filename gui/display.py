@@ -98,8 +98,7 @@ class Display(Window):
             tag = OBJECT_COLORS[i%len(OBJECT_COLORS)]
             charmap[y][x] = f'<{tag}><bold>•</bold></{tag}>'
             if self.show_labels:
-                is_graviton = '*' if i in self.app.universe.gravitons else ''
-                lbl = f'{is_graviton}{CELESTIAL_NAMES[i]}'
+                lbl = CELESTIAL_NAMES[i]
             if self.show_labels > 1:
                 lbl = f'#{i}.{lbl}'
             if self.show_labels > 2:
