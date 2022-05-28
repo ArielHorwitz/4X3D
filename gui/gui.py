@@ -180,7 +180,9 @@ class App(Application):
     def toggle_autosim(self, set_to=None):
         new = 50 if self.auto_sim == 0 else -self.auto_sim
         self.auto_sim = new if set_to is None else set_to
-        self.feedback_str = f'Simulation {"in progress" if self.auto_sim else "paused"}'
+        s = 'in progress' if self.auto_sim > 0 else 'paused'
+        tag = 'blank' if self.auto_sim > 0 else 'orange'
+        self.feedback_str = f'<{tag}>Simulation {s}</{tag}>'
 
     def set_simrate(self, value=None, delta=False):
         if delta:
