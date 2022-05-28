@@ -195,16 +195,22 @@ def latlong(vectors):
     the vector.
     """
     magnitude = np.linalg.norm(vectors, axis=-1)
+    has_mag = magnitude > 0
+    has_x = vectors[:, 0] != 0  # Avoid dividing by zero
+    has_y = vectors[:, 1] != 0
+    fix_theta = ~has_x & has_y  # Compensate for vectors with y component but no x
 
-    theta = np.arctan(vectors[:, 1] / vectors[:, 0])
-    theta[vectors[:, 0] < 0] += math.pi
-    long = theta * RADIANS_IN_DEGREES * -1
+    long = np.zeros(len(vectors), dtype=np.float64)
+    theta = np.arctan(vectors[has_x, 1] / vectors[has_x, 0])
+    theta[vectors[has_x, 0] < 0] += math.pi
+    long[has_x] = theta * RADIANS_IN_DEGREES * -1
+    long[fix_theta] = vectors[fix_theta, 1] / np.abs(vectors[fix_theta, 1]) * 90
 
-    phi = np.arcsin(vectors[:, 2] / magnitude)
-    lat = phi * RADIANS_IN_DEGREES
+    lat = np.zeros(len(vectors), dtype=np.float64)
+    phi = np.arcsin(vectors[has_mag, 2] / magnitude[has_mag])
+    lat[has_mag] = phi * RADIANS_IN_DEGREES
 
     r = np.stack((long, lat), axis=1)
-    np.nan_to_num(r, copy=False)
     return r
 
 
