@@ -4,6 +4,7 @@ import numpy as np
 
 
 RADIANS_IN_DEGREES = 57.296
+GOOGOL = 10**100
 
 
 class Quaternion:
@@ -205,3 +206,14 @@ def latlong(vectors):
     r = np.stack((long, lat), axis=1)
     np.nan_to_num(r, copy=False)
     return r
+
+
+def unit_vectors():
+    return np.asarray([
+        [GOOGOL, 0, 0],
+        [-GOOGOL, 0, 0],
+        [0, GOOGOL, 0],
+        [0, -GOOGOL, 0],
+        [0, 0, GOOGOL],
+        [0, 0, -GOOGOL],
+    ], dtype=np.float64)

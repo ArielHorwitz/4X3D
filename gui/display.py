@@ -7,7 +7,7 @@ from prompt_toolkit.formatted_text import HTML
 
 from gui import window_size, OBJECT_COLORS
 from logic.universe import CELESTIAL_NAMES
-from logic.quaternion import Quaternion as Quat, latlong, latlong_single
+from logic.quaternion import Quaternion as Quat, latlong, latlong_single, unit_vectors
 
 
 ASCII_ASPECT_RATIO = 29/64
@@ -111,15 +111,7 @@ class Display(Window):
             write_label(charmap, x, y, label)
 
     def add_projection_axes(self, charmap):
-        inf = 10**100
-        coords = np.asarray([
-            [inf, 0, 0],
-            [-inf, 0, 0],
-            [0, inf, 0],
-            [0, -inf, 0],
-            [0, 0, inf],
-            [0, 0, -inf],
-        ], dtype=np.float64)
+        coords = unit_vectors()
         labels = ['X+', 'X-', 'Y+', 'Y-', 'Z+', 'Z-']
         pix_pos = self.get_projected_pixels(coords)
         for i, x, y in pix_pos:
