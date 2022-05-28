@@ -5,7 +5,7 @@ from prompt_toolkit.widgets import TextArea
 from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.formatted_text import HTML
 
-from gui import window_size, tag, format_latlong
+from gui import window_size, tag, format_latlong, format_vector
 from logic.quaternion import latlong_single
 
 
@@ -27,11 +27,16 @@ class Prompt(HSplit):
         self.prompt_text.content.text = HTML(s)
         self.prompt_text.width = self.prompt_text.content.preferred_width(30)
         size = f'{window_size().columns}×{window_size().lines} ({self.app.display_window.width}×{self.app.display_window.height})'
+        camera = self.app.display_window.camera
+        lls = format_latlong(latlong_single(camera.current_axes[0]))
+        following = 'FLW' if camera.following is None else tag('h2', 'FLW')
+        tracking = 'TRK' if camera.tracking is None else tag('h2', 'TRK')
+        camera_str = f'{following} {tracking}{lls}'
         self.status_bar.text = HTML(tag('cyan', ' | ').join([
             tag('code', str(arrow.get().format('YY-MM-DD, hh:mm:ss'))),
             tag('code', size),
-            tag('code', format_latlong(latlong_single(self.app.display_window.camera_axes[0]))),
-            tag('code', f'x{self.app.display_window.camera_zoom:.2f}'),
+            tag('code', camera_str),
+            tag('code', f'x{self.app.display_window.camera.zoom:.2f}'),
             tag('code', f'>> {self.app.feedback_str}'),
             tag('white', f'{self.app.debug_str}'),
         ]))

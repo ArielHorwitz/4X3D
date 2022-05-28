@@ -1,13 +1,15 @@
 from loguru import logger
 import math
 import numpy as np
+from functools import partial
 from prompt_toolkit.layout.containers import Window
 from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.formatted_text import HTML
 
 from gui import window_size, OBJECT_COLORS
 from logic.universe import CELESTIAL_NAMES
-from logic.quaternion import Quaternion as Quat, latlong, latlong_single, unit_vectors
+from logic.camera import Camera
+from logic.quaternion import Quaternion as Quat, latlong, unit_vectors
 
 
 ASCII_ASPECT_RATIO = 29/64
@@ -19,69 +21,24 @@ class Display(Window):
         self.text_control = FormattedTextControl(text='Display')
         super().__init__(content=self.text_control)
         self.app = app
-        self.camera_rot = np.asarray([1, 0, 0, 0])
-        self.camera_zoom = 1
+        self.camera = Camera()
         self.show_labels = 1
+        self.camera_following = None
+        self.camera_tracking = None
 
-    # Flight controls
-    def move(self, d=1):
-        self.app.universe.move(self.camera_axes[0] * d)
+    def camera_follow(self, index=None):
+        def get_pos(index):
+            return self.app.universe.positions[index]
+        self.camera.follow(partial(get_pos, index) if index is not None else None)
 
-    def strafe(self, d=1):
-        self.app.universe.move(self.camera_axes[1] * d)
-
-    def fly(self, dv=1):
-        self.app.universe.fly(self.camera_axes[0] * dv)
-
-    def break_move(self):
-        self.app.universe.break_move()
-
-    # Camera control
-    @property
-    def camera_pos(self):
-        return self.app.universe.my_pos
-
-    @property
-    def camera_axes(self):
-        return Quat.get_rotated_axes(self.camera_rot)
-
-    def reset_camera(self):
-        self.camera_rot = np.asarray([1,0,0,0], dtype=np.float64)
-        self.camera_zoom = 1
-
-    def rotate_camera(self, yaw=0, pitch=0, roll=0, consider_zoom=True):
-        axes = self.camera_axes
-        if consider_zoom:
-            yaw /= self.camera_zoom
-            pitch /= self.camera_zoom
-        if yaw:
-            yaw_qrot = Quat.from_vector_angle(axes[2], yaw)
-            logger.debug(f'Rotating: {yaw}° yaw')
-            self.camera_rot = Quat.multi(self.camera_rot, yaw_qrot)
-        elif pitch:
-            pitch_qrot = Quat.from_vector_angle(axes[1], pitch)
-            logger.debug(f'Rotating: {pitch}° pitch')
-            self.camera_rot = Quat.multi(self.camera_rot, pitch_qrot)
-        elif roll:
-            roll_qrot = Quat.from_vector_angle(axes[0], roll)
-            logger.debug(f'Rotating: {roll}° roll')
-            self.camera_rot = Quat.multi(self.camera_rot, roll_qrot)
-
-    def flip_camera(self):
-        self.rotate_camera(yaw=180, consider_zoom=False)
-
-    def zoom_camera(self, zoom_multiplier):
-        self.camera_zoom = max(0.5, self.camera_zoom * zoom_multiplier)
-
-    def camera_look(self, object_index):
-        look_vector = self.app.universe.positions[object_index] - self.camera_pos
-        rotated = Quat.rotate_vector(look_vector, self.camera_rot)
-        lat, long = latlong_single(rotated)
-        self.rotate_camera(yaw=lat, consider_zoom=False)
-        self.rotate_camera(pitch=long, consider_zoom=False)
+    def camera_track(self, index=None):
+        def get_pos(index):
+            return self.app.universe.positions[index]
+        self.camera.track(partial(get_pos, index) if index is not None else None)
 
     # Display
     def update(self):
+        self.camera.update()
         self.width = int(window_size().columns * 0.7)
         self.height = int(window_size().lines - 4)
         charmap = [[' ']*self.width for _ in range(self.height)]
@@ -102,7 +59,7 @@ class Display(Window):
             if self.show_labels > 1:
                 lbl = f'#{i}.{lbl}'
             if self.show_labels > 2:
-                dist = np.linalg.norm(self.camera_pos - self.app.universe.positions[i])
+                dist = np.linalg.norm(self.camera.pos - self.app.universe.positions[i])
                 lbl = f'{lbl} ({dist:.1f})'
             if self.show_labels:
                 labels.append((x, y, lbl))
@@ -131,20 +88,20 @@ class Display(Window):
             write_char(charmap, cx+1, cy-1, '/')
 
     def get_projected_coords(self, pos):
-        pos = pos - self.camera_pos
-        rv = Quat.rotate_vectors(pos, self.camera_rot)
+        pos = pos - self.camera.pos
+        rv = Quat.rotate_vectors(pos, self.camera.rotation)
         ll_coords = latlong(rv)
         return ll_coords
 
     def get_projected_pixels(self, pos):
         # Convert 3d position to mercator projection
         ll_coords = self.get_projected_coords(pos)
-        pix = ll_coords * [1, ASCII_ASPECT_RATIO] * self.camera_zoom
+        pix = ll_coords * [1, ASCII_ASPECT_RATIO] * self.camera.zoom
         pix += [self.width/2, self.height/2]
         pix[:, 1] = self.height - pix[:, 1]
         above_botleft = (pix[:, 0] >= 0) & (pix[:, 1] >= 0)
         below_topright = (pix[:, 0] < self.width-1) & (pix[:, 1] < self.height-1)
-        not_on_camera_pos = (pos != self.camera_pos).sum(axis=-1) > 0
+        not_on_camera_pos = (pos != self.camera.pos).sum(axis=-1) > 0
         valid = above_botleft & below_topright & not_on_camera_pos
         pix = pix[valid]
         r = np.concatenate((np.flatnonzero(valid)[:, None], pix), axis=-1)
