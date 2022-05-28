@@ -41,31 +41,31 @@ HOTKEY_COMMANDS = {
     # flight
     '^ up': 'fly',
     '^ down': 'break',
-    'up': 'move +1',
-    '+ up': 'move +10',
-    'down': 'move -1',
-    '+ down': 'move -10',
-    'left': 'strafe +1',
-    '+ left': 'strafe +10',
-    'right': 'strafe -1',
-    '+ right': 'strafe -10',
+    'up': 'move +100',
+    '+ up': 'move +1',
+    'down': 'move -100',
+    '+ down': 'move -1',
+    'left': 'strafe +100',
+    '+ left': 'strafe +1',
+    'right': 'strafe -100',
+    '+ right': 'strafe -1',
     # pov
-    'home': 'zoom 1.25',
-    'end': 'zoom 0.8',
-    '+ home': 'zoom 2',
-    '+ end': 'zoom 0.5',
-    'd': 'rot +1',
-    'D': 'rot +30',
-    'a': 'rot -1',
-    'A': 'rot -30',
-    'w': 'rot 0 +1',
-    'W': 'rot 0 +30',
-    's': 'rot 0 -1',
-    'S': 'rot 0 -30',
-    'e': 'rot 0 0 -1',
-    'E': 'rot 0 0 -30',
-    'q': 'rot 0 0 +1',
-    'Q': 'rot 0 0 +30',
+    'home': 'zoom 2',
+    'end': 'zoom 0.5',
+    '+ home': 'zoom 1.25',
+    '+ end': 'zoom 0.8',
+    'd': 'rot +30',
+    'D': 'rot +1',
+    'a': 'rot -30',
+    'A': 'rot -1',
+    'w': 'rot 0 +30',
+    'W': 'rot 0 +1',
+    's': 'rot 0 -30',
+    'S': 'rot 0 -1',
+    'e': 'rot 0 0 -30',
+    'E': 'rot 0 0 -1',
+    'q': 'rot 0 0 +30',
+    'Q': 'rot 0 0 +1',
     'x': 'flipcam',
     'X': 'flipcam',
 }
@@ -77,7 +77,7 @@ class App(Application):
         prompt_toolkit.shortcuts.clear()
         prompt_toolkit.shortcuts.set_title('Space')
         self.universe = Universe()
-        self.auto_sim = 10
+        self.auto_sim = 100
         self.debug_str = ''
         self.feedback_str = 'Loading...'
         self.display_window = Display(self)
