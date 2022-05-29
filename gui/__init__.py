@@ -54,4 +54,4 @@ def format_latlong(v, rounding=1):
 
 
 def format_vector(v, rounding=1):
-    return ','.join(f'{round(_, rounding):>5}' for _ in v)
+    return ','.join(f'{f"{_:.3e}":>10}' for _ in v)
