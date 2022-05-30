@@ -129,7 +129,7 @@ class App(Application):
         self.feedback_str = 'Welcome to space.'
 
     def debug(self, *a):
-        self.debug_str += f' | debug args: {a}'
+        logger.debug(f'Debug action called: {a}')
 
     def hotkeys_enabled(self):
         return not self.root_layout.buffer_has_focus

@@ -5,7 +5,8 @@ import arrow
 logger.remove()
 logfile = Path.cwd() / 'debug.log'
 logfile.unlink()
-logger.add(f'debug.log', format='{name} | {message}', rotation='1 MB', retention=5)
+logger.add(logfile, rotation='5 MB', retention=2,
+    format='{level};{name}:{line}:: {message}')
 logger.info(f'Logging at {arrow.get()}')
 
 
