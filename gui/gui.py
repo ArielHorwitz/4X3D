@@ -3,6 +3,7 @@ import sys
 import traceback
 import asyncio
 import prompt_toolkit
+import arrow
 from prompt_toolkit import Application
 from prompt_toolkit import print_formatted_text as print
 from prompt_toolkit.formatted_text import HTML
@@ -143,8 +144,9 @@ class App(Application):
         self.debug_window = Debug(self)
         self.prompt_window = Prompt(self, self.handle_prompt_input)
         self.screen_switcher = ScreenSwitcher(app=self, screens={
-            'display': self.display_window,
-            'debug': self.debug_window,
+            'display': ['display'],
+            'debug': ['debug'],
+            'multi': ['display', 'debug'],
         })
         root_container = HSplit([
             self.screen_switcher,
@@ -169,6 +171,11 @@ class App(Application):
         command, *args = s.split(' ')
         args = [try_number(a) for a in args]
         return command, args
+
+    def get_window_content(self, name, size=None):
+        size = self.screen_size if size is None else size
+        content = self.universe.get_window_content(name, size)
+        return HTML(content)
 
     def defocus_prompt(self):
         self.prompt_window.defocus()
@@ -209,7 +216,7 @@ class App(Application):
 
     async def refresh_window(self):
         while True:
-            self.screen_switcher.current_screen.update()
+            self.screen_switcher.update()
             self.prompt_window.update()
             self.invalidate()
             await asyncio.sleep(FRAME_TIME)
