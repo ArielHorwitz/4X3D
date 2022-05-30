@@ -14,6 +14,7 @@ from prompt_toolkit.layout.layout import Layout
 import prompt_toolkit.shortcuts
 
 from gui import STYLE, restart_script, escape_html, window_size
+from gui.screenswitch import ScreenSwitcher
 from gui.display import Display
 from gui.debug import Debug
 from gui.prompt import Prompt
@@ -26,6 +27,9 @@ FRAME_TIME = 1 / FPS
 logger.info(f'Running at {FPS} FPS ({FRAME_TIME*1000:.1f} ms)')
 HOTKEY_COMMANDS = {
     '^ f12': 'debug',
+    '^ f1': 'screen 0',
+    '^ f2': 'screen 1',
+    'tab': 'nextscreen',
     'enter': 'focus',
     'space': 'autosim',
     '^ t': 'tick',
@@ -80,16 +84,37 @@ class App(Application):
         self.auto_sim = 100
         self.debug_str = ''
         self.feedback_str = 'Loading...'
-        self.display_window = Display(self)
-        self.debug_window = Debug(self)
-        self.prompt_window = Prompt(self, self.handle_prompt_input)
         self.root_layout = self.get_layout()
-        self.commands = {
+        self.commands = self.get_commands()
+        kb = get_keybindings(
+            global_keys={'^ q': self.exit, '^ w': restart_script},
+            condition=self.hotkeys_enabled,
+            handler=self.handle_hotkey,
+        )
+
+        super().__init__(
+            layout=self.root_layout,
+            style=STYLE,
+            full_screen=True,
+            key_bindings=kb,
+        )
+        self.feedback_str = 'Welcome to space.'
+
+    def debug(self, *a):
+        logger.debug(f'Debug action called: {a}')
+
+    def hotkeys_enabled(self):
+        return not self.root_layout.buffer_has_focus
+
+    def get_commands(self):
+        return {
             'exit': self.exit,
             'quit': self.exit,
             'restart': restart_script,
             'debug': self.debug,
             'focus': self.focus_prompt,
+            'screen': self.screen_switcher.switch_to,
+            'nextscreen': self.screen_switcher.next_screen,
             'autosim': self.toggle_autosim,
             'tick': self.universe.simulate,
             'random': self.universe.randomize_vel,
@@ -112,34 +137,17 @@ class App(Application):
             'follow': self.display_window.camera_follow,
             'track': self.display_window.camera_track,
         }
-        kb = get_keybindings(
-            global_keys={
-                '^ q': self.exit,
-                '^ w': restart_script,
-            },
-            condition=self.hotkeys_enabled,
-            handler=self.handle_hotkey,
-        )
-        super().__init__(
-            layout=self.root_layout,
-            style=STYLE,
-            full_screen=True,
-            key_bindings=kb,
-        )
-        self.feedback_str = 'Welcome to space.'
-
-    def debug(self, *a):
-        logger.debug(f'Debug action called: {a}')
-
-    def hotkeys_enabled(self):
-        return not self.root_layout.buffer_has_focus
 
     def get_layout(self):
+        self.display_window = Display(self)
+        self.debug_window = Debug(self)
+        self.prompt_window = Prompt(self, self.handle_prompt_input)
+        self.screen_switcher = ScreenSwitcher(app=self, screens={
+            'display': self.display_window,
+            'debug': self.debug_window,
+        })
         root_container = HSplit([
-            VSplit([
-                Frame(title='Universe', body=self.display_window),
-                Frame(title='Debug', body=self.debug_window),
-            ]),
+            self.screen_switcher,
             self.prompt_window,
         ])
         return Layout(root_container)
@@ -151,11 +159,11 @@ class App(Application):
             return
         command, args = self.resolve_prompt_input(text)
         if command in self.commands:
-            self.feedback_str = f'Running command: {command} {args}'
+            logger.debug(f'Running command: {command} {args}')
             c = self.commands[command]
             c(*args)
         else:
-            self.feedback_str = f'Unkown command: {command} (>> {text})'
+            logger.debug(f'Unkown command: {command} (>> {text})')
 
     def resolve_prompt_input(self, s):
         command, *args = s.split(' ')
@@ -163,7 +171,7 @@ class App(Application):
         return command, args
 
     def defocus_prompt(self):
-        self.root_layout.focus(self.debug_window)
+        self.prompt_window.defocus()
 
     def focus_prompt(self):
         self.prompt_window.focus()
@@ -174,9 +182,9 @@ class App(Application):
             command, args = self.resolve_prompt_input(prompt_input)
             f = self.commands[command]
             f(*args)
-            self.debug_str = escape_html(f'Hotkey <{key}> command <{f.__name__}>')
+            logger.debug(f'Hotkey <{key}> command <{f.__name__}>')
         else:
-            self.debug_str = escape_html(f'Hotkey <{key}>')
+            logger.debug(f'Hotkey <{key}>')
 
     def toggle_autosim(self, set_to=None):
         new = 50 if self.auto_sim == 0 else -self.auto_sim
@@ -201,8 +209,7 @@ class App(Application):
 
     async def refresh_window(self):
         while True:
-            self.display_window.update()
-            self.debug_window.update()
+            self.screen_switcher.current_screen.update()
             self.prompt_window.update()
             self.invalidate()
             await asyncio.sleep(FRAME_TIME)
@@ -215,6 +222,11 @@ class App(Application):
     def prerun(self):
         self.defocus_prompt()
 
+    @property
+    def screen_size(self):
+        width = window_size().columns - 2
+        height = window_size().lines - 4
+        return width, height
 
 def try_number(v):
     try:

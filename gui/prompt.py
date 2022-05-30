@@ -12,7 +12,7 @@ from logic.quaternion import latlong_single
 class Prompt(HSplit):
     def __init__(self, app, handler):
         self.app = app
-        self.prompt_text = Window(content=FormattedTextControl())
+        self.prompt_text = Window(content=FormattedTextControl(), always_hide_cursor=True)
         self.prompt_input = TextArea(multiline=False, accept_handler=handler)
         prompt = VSplit([self.prompt_text, self.prompt_input], height=1)
         self.status_bar = FormattedTextControl(text='Loading...')
@@ -40,6 +40,9 @@ class Prompt(HSplit):
             tag('code', f'>> {self.app.feedback_str}'),
             tag('white', f'{self.app.debug_str}'),
         ]))
+
+    def defocus(self):
+        self.app.root_layout.focus(self.prompt_text)
 
     def focus(self):
         self.app.root_layout.focus(self.prompt_input)

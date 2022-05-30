@@ -39,8 +39,7 @@ class Display(Window):
     # Display
     def update(self):
         self.camera.update()
-        self.width = int(window_size().columns * 0.7)
-        self.height = int(window_size().lines - 4)
+        self.width, self.height = self.app.screen_size
         charmap = [[' ']*self.width for _ in range(self.height)]
         self.add_projection_axes(charmap)
         self.add_objects(charmap)
