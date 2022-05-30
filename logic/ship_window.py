@@ -1,54 +1,65 @@
 from loguru import logger
-import math
 import numpy as np
 from functools import partial
-from prompt_toolkit.layout.containers import Window
-from prompt_toolkit.layout.controls import FormattedTextControl
-from prompt_toolkit.formatted_text import HTML
 
-from gui import window_size, OBJECT_COLORS
-from logic.universe import CELESTIAL_NAMES
+from gui import OBJECT_COLORS
+from logic import CELESTIAL_NAMES
 from logic.camera import Camera
 from logic.quaternion import Quaternion as Quat, latlong, unit_vectors
 
 
 ASCII_ASPECT_RATIO = 29/64
-RADIANS_IN_DEGREES = 57.296
 
 
-class Display(Window):
-    def __init__(self, app):
-        self.text_control = FormattedTextControl(text='Display')
-        super().__init__(content=self.text_control)
-        self.app = app
+class ShipWindow:
+    def __init__(self, universe):
+        self.universe = universe
         self.camera = Camera()
         self.show_labels = 1
         self.camera_following = None
         self.camera_tracking = None
 
-    def camera_follow(self, index=None):
+    def handle_command(self, command, args):
+        if hasattr(self, f'command_{command}'):
+            f = getattr(self, f'command_{command}')
+            return f(*args)
+        try:
+            return self.camera.handle_command(command, args)
+        except KeyError as e:
+            logger.warning(f'ShipWindow requested to handle unknown command: {command} {args}')
+
+    def command_follow(self, index=None):
         def get_pos(index):
-            return self.app.universe.positions[index]
+            return self.universe.positions[index]
         self.camera.follow(partial(get_pos, index) if index is not None else None)
 
-    def camera_track(self, index=None):
+    def command_track(self, index=None):
         def get_pos(index):
-            return self.app.universe.positions[index]
+            return self.universe.positions[index]
         self.camera.track(partial(get_pos, index) if index is not None else None)
 
+    def command_look(self, index):
+        self.camera.look_at_vector(self.universe.positions[index])
+
+    def command_labels(self):
+        self.show_labels = (self.show_labels + 1) % 4
+        logger.info(f'Showing labels: {self.show_labels}')
+
     # Display
-    def update(self):
+    def get_charmap(self, size):
         self.camera.update()
-        self.width, self.height = self.app.screen_size
+        self.width, self.height = size
+        self.height -= 1
         charmap = [[' ']*self.width for _ in range(self.height)]
         self.add_projection_axes(charmap)
         self.add_objects(charmap)
         self.add_crosshair(charmap, horizontal=True, diagonal=True)
         s = '<display>' + '\n'.join(''.join(_) for _ in charmap) + '</display>'
-        self.text_control.text = HTML(s)
+        s = f'{s}\n{self.camera.get_bar()}'
+        return s
 
     def add_objects(self, charmap):
-        pix_pos = self.get_projected_pixels(self.app.universe.positions)
+        pix_pos = self.get_projected_pixels(self.universe.positions)
         labels = []
         for i, x, y in pix_pos:
             tag = OBJECT_COLORS[i%len(OBJECT_COLORS)]
@@ -58,7 +69,7 @@ class Display(Window):
             if self.show_labels > 1:
                 lbl = f'#{i}.{lbl}'
             if self.show_labels > 2:
-                dist = np.linalg.norm(self.camera.pos - self.app.universe.positions[i])
+                dist = np.linalg.norm(self.camera.pos - self.universe.positions[i])
                 lbl = f'{lbl} ({dist:.1f})'
             if self.show_labels:
                 labels.append((x, y, lbl))
@@ -106,10 +117,6 @@ class Display(Window):
         r = np.concatenate((np.flatnonzero(valid)[:, None], pix), axis=-1)
         r = np.asarray(np.round(r), dtype=np.int32)
         return r
-
-    def toggle_labels(self):
-        self.show_labels = (self.show_labels + 1) % 4
-        self.app.feedback_str = f'Showing labels: {self.show_labels}'
 
 
 def write_char(charmap, x, y, char, overwrite=False):

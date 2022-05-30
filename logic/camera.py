@@ -1,6 +1,7 @@
 from loguru import logger
 import numpy as np
 from logic.quaternion import Quaternion as Quat, latlong_single
+from gui import format_latlong, format_vector
 
 
 class Camera:
@@ -10,6 +11,19 @@ class Camera:
         self.reset_rotation()
         self.following = None
         self.tracking = None
+        self.commands = {
+            'move': self.move,
+            'strafe': self.strafe,
+            'reset_rotation': self.reset_rotation,
+            'reset_zoom': self.reset_zoom,
+            'flip': self.flip,
+            'zoom': self.adjust_zoom,
+            'rotate': self.rotate,
+            'look': self.look_at_vector,
+        }
+
+    def handle_command(self, command, args):
+        return self.commands[command](*args)
 
     def follow(self, callback=None):
         self.following = callback
@@ -21,7 +35,7 @@ class Camera:
         if self.following is not None:
             self.pos = np.copy(self.following())
         if self.tracking is not None:
-            self.look_at_vector(self.tracking() - self.pos, disable_track=False)
+            self.look_at_vector(self.tracking(), disable_track=False)
 
     def move(self, d=1, disable_follow=True):
         self.pos += self.current_axes[0] * d
@@ -76,7 +90,22 @@ class Camera:
     def look_at_vector(self, vector, reset_axes=True, disable_track=True):
         if reset_axes:
             self.reset_rotation(disable_track=disable_track)
-        rotated = Quat.rotate_vector(vector, self.rotation)
+        rotated = Quat.rotate_vector(vector - self.pos, self.rotation)
         lat, long = latlong_single(rotated)
         self.rotate(yaw=lat, consider_zoom=False, disable_track=disable_track)
         self.rotate(pitch=long, consider_zoom=False, disable_track=disable_track)
+
+    @property
+    def lat_long(self):
+        return latlong_single(self.current_axes[0])
+
+    def get_bar(self):
+        following = '<grey>FLW</grey>' if self.following is None else '<h2>FLW</h2>'
+        tracking = '<grey>TRK</grey>' if self.tracking is None else '<h2>TRK</h2>'
+        camera_str = f'{following} {tracking}'
+        return ' | '.join([
+            f'<code>{camera_str}</code>',
+            f'<code>{format_latlong(self.lat_long)}</code>',
+            f'<code>x{self.zoom:.2f}</code>',
+            f'<code>[{format_vector(self.pos)}]</code>',
+        ])

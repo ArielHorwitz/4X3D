@@ -14,10 +14,8 @@ from prompt_toolkit.layout.controls import BufferControl, FormattedTextControl
 from prompt_toolkit.layout.layout import Layout
 import prompt_toolkit.shortcuts
 
-from gui import STYLE, restart_script, escape_html, window_size
+from gui import STYLE, restart_script, window_size
 from gui.screenswitch import ScreenSwitcher
-from gui.display import Display
-from gui.debug import Debug
 from gui.prompt import Prompt
 from gui.keybinds import get_keybindings, encode_keyseq
 from logic.universe import Universe
@@ -33,46 +31,43 @@ HOTKEY_COMMANDS = {
     'tab': 'nextscreen',
     'enter': 'focus',
     'space': 'autosim',
-    '^ t': 'tick',
-    '^ v': 'random',
-    '^ c': 'center',
-    '^ f': 'flip',
-    '^ r': 'reset',
-    '^ pageup': 'simrate +10 1',
-    '^+ pageup': 'simrate +100 1',
-    '^ pagedown': 'simrate -10 1',
-    '^+ pagedown': 'simrate -100 1',
-    '^ l': 'labels',
-    # flight
-    '^ up': 'fly',
-    '^ down': 'break',
-    'up': 'move +100',
-    '+ up': 'move +1',
-    'down': 'move -100',
-    '+ down': 'move -1',
-    'left': 'strafe +100',
-    '+ left': 'strafe +1',
-    'right': 'strafe -100',
-    '+ right': 'strafe -1',
-    # pov
-    'home': 'zoom 2',
-    'end': 'zoom 0.5',
-    '+ home': 'zoom 1.25',
-    '+ end': 'zoom 0.8',
-    'd': 'rot +15',
-    'D': 'rot +1',
-    'a': 'rot -15',
-    'A': 'rot -1',
-    'w': 'rot 0 +15',
-    'W': 'rot 0 +1',
-    's': 'rot 0 -15',
-    'S': 'rot 0 -1',
-    'e': 'rot 0 0 -15',
-    'E': 'rot 0 0 -1',
-    'q': 'rot 0 0 +15',
-    'Q': 'rot 0 0 +1',
-    'x': 'flipcam',
-    'X': 'flipcam',
+    # universe simulation
+    '^ t': 'sim tick',
+    '^ v': 'sim randomize_vel',
+    '^ f': 'sim flip',
+    '^ pageup': 'sim rate +10 1',
+    '^+ pageup': 'sim rate +100 1',
+    '^ pagedown': 'sim rate -10 1',
+    '^+ pagedown': 'sim rate -100 1',
+    # ship window controls
+    '^ l': 'ship labels',
+    'up': 'ship move +100',
+    '+ up': 'ship move +1',
+    'down': 'ship move -100',
+    '+ down': 'ship move -1',
+    'left': 'ship strafe +100',
+    '+ left': 'ship strafe +1',
+    'right': 'ship strafe -100',
+    '+ right': 'ship strafe -1',
+    # ship window pov
+    'home': 'ship zoom 2',
+    'end': 'ship zoom 0.5',
+    '+ home': 'ship zoom 1.25',
+    '+ end': 'ship zoom 0.8',
+    'd': 'ship rotate +15',
+    'D': 'ship rotate +1',
+    'a': 'ship rotate -15',
+    'A': 'ship rotate -1',
+    'w': 'ship rotate 0 +15',
+    'W': 'ship rotate 0 +1',
+    's': 'ship rotate 0 -15',
+    'S': 'ship rotate 0 -1',
+    'e': 'ship rotate 0 0 -15',
+    'E': 'ship rotate 0 0 -1',
+    'q': 'ship rotate 0 0 +15',
+    'Q': 'ship rotate 0 0 +1',
+    'x': 'ship flip',
+    'X': 'ship flip',
 }
 
 
@@ -116,32 +111,11 @@ class App(Application):
             'focus': self.focus_prompt,
             'screen': self.screen_switcher.switch_to,
             'nextscreen': self.screen_switcher.next_screen,
-            'autosim': self.toggle_autosim,
-            'tick': self.universe.simulate,
-            'random': self.universe.randomize_vel,
-            'randpos': self.universe.randomize_pos,
-            'center': self.universe.center_vel,
-            'flip': self.universe.flip_vel,
-            'reset': self.universe.reset,
             'simrate': self.set_simrate,
-            'labels': self.display_window.toggle_labels,
-            'resetcam': self.display_window.camera.reset_rotation,
-            'resetzoom': self.display_window.camera.reset_zoom,
-            'flipcam': self.display_window.camera.flip,
-            'zoom': self.display_window.camera.adjust_zoom,
-            'rot': self.display_window.camera.rotate,
-            'move': self.display_window.camera.move,
-            'strafe': self.display_window.camera.strafe,
-            'match': self.universe.match_velocities,
-            'meet': self.universe.match_positions,
-            'look': self.display_window.camera.look_at_vector,
-            'follow': self.display_window.camera_follow,
-            'track': self.display_window.camera_track,
+            'autosim': self.toggle_autosim,
         }
 
     def get_layout(self):
-        self.display_window = Display(self)
-        self.debug_window = Debug(self)
         self.prompt_window = Prompt(self, self.handle_prompt_input)
         self.screen_switcher = ScreenSwitcher(app=self, screens={
             'display': ['display'],
@@ -154,8 +128,7 @@ class App(Application):
         ])
         return Layout(root_container)
 
-    def handle_prompt_input(self, buffer):
-        text = escape_html(buffer.text)
+    def handle_prompt_input(self, text):
         self.defocus_prompt()
         if not text:
             return
@@ -165,7 +138,7 @@ class App(Application):
             c = self.commands[command]
             c(*args)
         else:
-            logger.debug(f'Unkown command: {command} (>> {text})')
+            self.universe.handle_command(command, args)
 
     def resolve_prompt_input(self, s):
         command, *args = s.split(' ')
@@ -186,12 +159,10 @@ class App(Application):
     def handle_hotkey(self, key):
         if key in HOTKEY_COMMANDS:
             prompt_input = HOTKEY_COMMANDS[key]
-            command, args = self.resolve_prompt_input(prompt_input)
-            f = self.commands[command]
-            f(*args)
-            logger.debug(f'Hotkey <{key}> command <{f.__name__}>')
+            logger.debug(f'Hotkey <{key}> resolved to: {prompt_input}')
+            self.handle_prompt_input(prompt_input)
         else:
-            logger.debug(f'Hotkey <{key}>')
+            logger.debug(f'Unknown hotkey <{key}>')
 
     def toggle_autosim(self, set_to=None):
         new = 50 if self.auto_sim == 0 else -self.auto_sim
