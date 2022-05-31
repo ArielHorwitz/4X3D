@@ -3,7 +3,7 @@ from loguru import logger
 from prompt_toolkit.layout.containers import Window, VSplit, HSplit, ConditionalContainer
 from prompt_toolkit.widgets import Frame
 from prompt_toolkit.filters import Condition
-from prompt_toolkit.layout.controls import FormattedTextControl
+from gui import SizeAwareFormattedTextControl
 
 
 class ScreenSwitcher(VSplit):
@@ -54,11 +54,12 @@ class Screen(VSplit):
         self.windows = {}
         frames = []
         for name in window_names:
-            tc = self.text_controls[name] = FormattedTextControl()
+            tc = self.text_controls[name] = SizeAwareFormattedTextControl()
             win = self.windows[name] = Window(content=tc)
             frames.append(Frame(title=f'Window: {name}', body=win))
         super().__init__(frames)
 
     def update(self):
         for name in self.window_names:
-            self.text_controls[name].text = self.app.get_window_content(name)
+            size = self.text_controls[name].last_size
+            self.text_controls[name].text = self.app.get_window_content(name, size)

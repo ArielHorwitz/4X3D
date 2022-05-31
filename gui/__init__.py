@@ -1,6 +1,17 @@
 
 import os, sys
 from prompt_toolkit.styles import Style
+from prompt_toolkit.layout.controls import FormattedTextControl
+
+
+class SizeAwareFormattedTextControl(FormattedTextControl):
+    def __init__(self, *a, **k):
+        super().__init__(*a, **k)
+        self.last_size = 1, 1
+
+    def create_content(self, width, height):
+        self.last_size = width, height
+        return super().create_content(width, height)
 
 
 COLOR_HEXES = {

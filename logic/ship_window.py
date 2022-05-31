@@ -49,6 +49,8 @@ class ShipWindow:
     def get_charmap(self, size):
         self.camera.update()
         self.width, self.height = size
+        if self.width < 2 or self.height < 2:
+            return '??'
         self.height -= 1
         charmap = [[' ']*self.width for _ in range(self.height)]
         self.add_projection_axes(charmap)

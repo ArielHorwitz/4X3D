@@ -118,9 +118,9 @@ class App(Application):
     def get_layout(self):
         self.prompt_window = Prompt(self, self.handle_prompt_input)
         self.screen_switcher = ScreenSwitcher(app=self, screens={
+            'multi': ['display', 'debug'],
             'display': ['display'],
             'debug': ['debug'],
-            'multi': ['display', 'debug'],
         })
         root_container = HSplit([
             self.screen_switcher,
