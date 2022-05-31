@@ -30,9 +30,9 @@ HOTKEY_COMMANDS = {
     '^ f2': 'screen 1',
     'tab': 'nextscreen',
     'enter': 'focus',
-    'space': 'autosim',
     # universe simulation
-    '^ t': 'sim tick',
+    'space': 'sim toggle',
+    '^ t': 'sim ticks 1',
     '^ v': 'sim randomize_vel',
     '^ f': 'sim flip',
     '^ pageup': 'sim rate +10 1',
@@ -77,9 +77,6 @@ class App(Application):
         prompt_toolkit.shortcuts.clear()
         prompt_toolkit.shortcuts.set_title('Space')
         self.universe = Universe()
-        self.auto_sim = 100
-        self.debug_str = ''
-        self.feedback_str = 'Loading...'
         self.root_layout = self.get_layout()
         self.commands = self.get_commands()
         kb = get_keybindings(
@@ -94,7 +91,6 @@ class App(Application):
             full_screen=True,
             key_bindings=kb,
         )
-        self.feedback_str = 'Welcome to space.'
 
     def debug(self, *a):
         logger.debug(f'Debug action called: {a}')
@@ -111,8 +107,6 @@ class App(Application):
             'focus': self.focus_prompt,
             'screen': self.screen_switcher.switch_to,
             'nextscreen': self.screen_switcher.next_screen,
-            'simrate': self.set_simrate,
-            'autosim': self.toggle_autosim,
         }
 
     def get_layout(self):
@@ -164,25 +158,9 @@ class App(Application):
         else:
             logger.debug(f'Unknown hotkey <{key}>')
 
-    def toggle_autosim(self, set_to=None):
-        new = 50 if self.auto_sim == 0 else -self.auto_sim
-        self.auto_sim = new if set_to is None else set_to
-        s = 'in progress' if self.auto_sim > 0 else 'paused'
-        tag = 'blank' if self.auto_sim > 0 else 'orange'
-        self.feedback_str = f'<{tag}>Simulation {s}</{tag}>'
-
-    def set_simrate(self, value=None, delta=False):
-        if delta:
-            self.auto_sim = max(0, self.auto_sim + value)
-        elif value is None:
-            self.auto_sim = 1
-        else:
-            self.auto_sim = value
-
     async def logic_loop(self):
         while True:
-            if self.auto_sim > 0:
-                self.universe.simulate(self.auto_sim)
+            self.universe.update()
             await asyncio.sleep(FRAME_TIME)
 
     async def refresh_window(self):

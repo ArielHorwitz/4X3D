@@ -36,8 +36,7 @@ class Prompt(HSplit):
         self.status_bar.text = HTML(tag('cyan', ' | ').join([
             tag('code', str(arrow.get().format('YY-MM-DD, hh:mm:ss'))),
             tag('code', size),
-            tag('code', f'>> {self.app.feedback_str}'),
-            tag('white', f'{self.app.debug_str}'),
+            tag('code', f'>> {self.app.universe.feedback_str}'),
         ]))
 
     def defocus(self):
