@@ -4,7 +4,7 @@ import numpy as np
 
 from gui import format_vector, format_latlong
 from logic import CELESTIAL_NAMES, RNG
-from logic.ship_window import ShipWindow
+from logic.ship.window import ShipWindow
 
 
 DEFAULT_SIMRATE = 5
