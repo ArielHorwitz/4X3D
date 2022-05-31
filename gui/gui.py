@@ -14,7 +14,7 @@ from prompt_toolkit.layout.controls import BufferControl, FormattedTextControl
 from prompt_toolkit.layout.layout import Layout
 import prompt_toolkit.shortcuts
 
-from gui import STYLE, restart_script, window_size
+from gui import STYLE, restart_script, window_size, resolve_prompt_input
 from gui.screenswitch import ScreenSwitcher
 from gui.prompt import Prompt
 from gui.keybinds import get_keybindings, encode_keyseq
@@ -128,18 +128,13 @@ class App(Application):
         self.defocus_prompt()
         if not text:
             return
-        command, args = self.resolve_prompt_input(text)
+        command, args = resolve_prompt_input(text)
         if command in self.commands:
             logger.debug(f'Running command: {command} {args}')
             c = self.commands[command]
             c(*args)
         else:
             self.universe.handle_command(command, args)
-
-    def resolve_prompt_input(self, s):
-        command, *args = s.split(' ')
-        args = [try_number(a) for a in args]
-        return command, args
 
     def get_window_content(self, name, size=None):
         size = self.screen_size if size is None else size
@@ -185,19 +180,3 @@ class App(Application):
         width = window_size().columns - 2
         height = window_size().lines - 4
         return width, height
-
-def try_number(v):
-    try:
-        r = float(v)
-        if r == int(r):
-            r = int(r)
-        return r
-    except ValueError as e:
-        return v
-
-
-def format_exc(e):
-    strs = []
-    for line in traceback.format_exception(*sys.exc_info()):
-        strs.append(str(line))
-    return ''.join(strs)

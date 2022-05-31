@@ -1,5 +1,5 @@
 
-import os, sys
+import os, sys, traceback
 from prompt_toolkit.styles import Style
 from prompt_toolkit.layout.controls import FormattedTextControl
 
@@ -65,5 +65,28 @@ def format_latlong(v, rounding=1):
     return ', '.join(f"{f'{round(_, rounding)}°':>7}" for _ in v)
 
 
-def format_vector(v, rounding=1):
+def format_vector(v):
     return ','.join(f'{f"{_:.3e}":>10}' for _ in v)
+
+
+def resolve_prompt_input(s):
+    command, *args = s.split(' ')
+    args = [try_number(a) for a in args]
+    return command, args
+
+
+def try_number(v):
+    try:
+        r = float(v)
+        if r == int(r):
+            r = int(r)
+        return r
+    except ValueError as e:
+        return v
+
+
+def format_exc(e):
+    strs = []
+    for line in traceback.format_exception(*sys.exc_info()):
+        strs.append(str(line))
+    return ''.join(strs)
