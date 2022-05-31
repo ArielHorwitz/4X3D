@@ -30,6 +30,7 @@ HOTKEY_COMMANDS = {
     '^ f2': 'screen 1',
     'tab': 'nextscreen',
     'enter': 'focus',
+    'escape': 'defocus',
     # universe simulation
     'space': 'sim toggle',
     '^ t': 'sim ticks 1',
@@ -80,7 +81,7 @@ class App(Application):
         self.root_layout = self.get_layout()
         self.commands = self.get_commands()
         kb = get_keybindings(
-            global_keys={'^ q': self.exit, '^ w': restart_script},
+            global_keys={'^ q': self.exit, '^ w': restart_script, 'f2': self.defocus_prompt},
             condition=self.hotkeys_enabled,
             handler=self.handle_hotkey,
         )
@@ -105,6 +106,7 @@ class App(Application):
             'restart': restart_script,
             'debug': self.debug,
             'focus': self.focus_prompt,
+            'defocus': self.defocus_prompt,
             'screen': self.screen_switcher.switch_to,
             'nextscreen': self.screen_switcher.next_screen,
         }
