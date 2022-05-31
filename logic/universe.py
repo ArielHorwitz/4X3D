@@ -101,7 +101,7 @@ class Universe:
 
     def get_content_debug(self, size):
         t = arrow.get().format('YY-MM-DD, hh:mm:ss')
-        proj = self.ship_window.get_projected_coords(self.positions)
+        proj = self.ship_window.camera.get_projected_coords(self.positions)
         object_summaries = []
         for i in range(min(30, self.entity_count)):
             object_summaries.append('\n'.join([
