@@ -8,34 +8,41 @@ from logic.camera import Camera
 
 
 
-class ShipWindow:
-    def __init__(self, universe, controller):
-        self.universe = universe
+class Cockpit:
+    def __init__(self, ship, controller=None):
+        self.ship = ship
         self.camera = Camera()
         self.show_labels = 2
         self.camera_following = None
         self.camera_tracking = None
-        self.register_commands(controller)
+        if controller:
+            self.register_commands(controller)
+
+    @property
+    def universe(self):
+        return self.ship.universe
 
     def register_commands(self, controller):
         # Ship controls
         d = {
-            'ship.follow': self.follow,
-            'ship.track': self.track,
-            'ship.look': self.look,
-            'ship.labels': self.toggle_labels,
+            'cockpit.follow': self.follow,
+            'cockpit.track': self.track,
+            'cockpit.look': self.look,
+            'cockpit.labels': self.toggle_labels,
         }
         for command, callback in d.items():
             controller.register_command(command, callback)
         # Camera controls
         # We build seperate dicts so that camera commands don't overwrite ours
-        d = {f'ship.{k}': v for k, v in self.camera.commands.items()}
+        d = {f'cockpit.{k}': v for k, v in self.camera.commands.items()}
         for command, callback in d.items():
             controller.register_command(command, callback)
 
     def follow(self, index=None):
         def get_pos(index):
             return self.universe.positions[index]
+        if index is None:
+            index = self.ship.oid
         self.camera.follow(partial(get_pos, index) if index is not None else None)
 
     def track(self, index=None):

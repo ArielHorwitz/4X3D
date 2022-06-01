@@ -4,7 +4,7 @@ import numpy as np
 
 from gui import format_vector, format_latlong
 from logic import CELESTIAL_NAMES, RNG
-from logic.ship.window import ShipWindow
+from logic.ship.ship import Ship
 
 
 DEFAULT_SIMRATE = 5
@@ -15,12 +15,11 @@ class Universe:
         self.feedback_str = 'Welcome to space.'
         self.tick = 0
         self.auto_simrate = 100
-        self.ship_window = ShipWindow(universe=self, controller=controller)
+        self.dev_ship = Ship(universe=self, oid=0, name='dev', controller=controller)
         self.entity_count = entity_count
         self.positions = np.zeros((entity_count, 3), dtype=np.float64)
         self.velocities = np.zeros((entity_count, 3), dtype=np.float64)
         self.randomize_positions()
-        self.randomize_velocities()
         self.register_commands(controller)
 
     def update(self):
@@ -41,9 +40,6 @@ class Universe:
         }
         for command, callback in d.items():
             controller.register_command(command, callback)
-
-    def command_ship(self, *args):
-        return self.ship_window.handle_command(args[0], args[1:])
 
     def do_ticks(self, ticks=1):
         self.tick += int(ticks)
@@ -97,11 +93,11 @@ class Universe:
             ])
 
     def get_content_display(self, size):
-        return self.ship_window.get_charmap(size)
+        return self.dev_ship.cockpit.get_charmap(size)
 
     def get_content_debug(self, size):
         t = arrow.get().format('YY-MM-DD, hh:mm:ss')
-        proj = self.ship_window.camera.get_projected_coords(self.positions)
+        proj = self.dev_ship.cockpit.camera.get_projected_coords(self.positions)
         object_summaries = []
         for i in range(min(30, self.entity_count)):
             object_summaries.append('\n'.join([
