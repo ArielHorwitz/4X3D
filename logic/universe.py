@@ -2,16 +2,21 @@ from loguru import logger
 import arrow
 import numpy as np
 
-from gui import format_vector, format_latlong, OBJECT_COLORS
+from gui import format_vector, format_latlong, OBJECT_COLORS, escape_html
 from usr.config import DEFAULT_SIMRATE
 from logic import CELESTIAL_NAMES, RNG
+from logic.events import EventQueue
 from logic.dso.ship import Ship
 from logic.dso.dso import DeepSpaceObject
+
+
+UNIVERSE_INTERVAL = 1000
 
 
 class Universe:
     def __init__(self, controller):
         self.feedback_str = 'Welcome to space.'
+        self.events = EventQueue()
         self.controller = controller
         self.tick = 0
         self.auto_simrate = DEFAULT_SIMRATE
@@ -22,6 +27,7 @@ class Universe:
         self.make_objects(rocks=5, ships=3)
         self.randomize_positions()
         self.register_commands(controller)
+        self.interval_event()
 
     def update(self):
         if self.auto_simrate > 0:
@@ -42,8 +48,26 @@ class Universe:
         for command, callback in d.items():
             controller.register_command(command, callback)
 
+    def debug(self, *args, **kwargs):
+        logger.debug(f'Universe debug() called: {args} {kwargs}')
+
+    def interval_event(self):
+        self.events.add(tick=self.tick+UNIVERSE_INTERVAL, callback=self.interval_event)
+
     # Simulation
     def do_ticks(self, ticks=1):
+        last_tick = self.tick + ticks
+        next_event = self.events.pop_next(tick=last_tick)
+        while next_event:
+            intermediate_ticks = next_event.tick - self.tick
+            self.__do_ticks(intermediate_ticks)
+            logger.debug(f'Handling event @{self.tick}: {next_event.callback}')
+            next_event.callback()
+            next_event = self.events.pop_next(tick=last_tick)
+        intermediate_ticks = last_tick - self.tick
+        self.__do_ticks(intermediate_ticks)
+
+    def __do_ticks(self, ticks=1):
         self.tick += int(ticks)
         assert self.positions.dtype == self.velocities.dtype == np.float64
         self.positions += self.velocities * ticks
@@ -145,10 +169,31 @@ class Universe:
                 f'<red>Pos</red>: <code>{format_latlong(proj[oid])}</code> [{format_vector(self.positions[oid])}]',
                 f'<red>Vel</red>: <code>{np.linalg.norm(self.velocities[oid]):.4f}</code> [{format_vector(self.velocities[oid])}]',
             ]))
+        event_str = ''
+        if len(self.events) > 0:
+            ev = self.events.next
+            event_str = f' (next: @{ev.tick} {escape_html(ev.callback.__name__)})'
         return '\n'.join([
             f'<h1>Simulation</h1>',
             f'<red>Simrate</red>: <code>{self.auto_simrate}</code>',
             f'<red>Tick</red>: <code>{self.tick}</code>',
+            f'<red>Events</red>: <code>{len(self.events)}</code>{event_str}',
             f'<h2>Celestial Objects</h2>',
             '\n'.join(object_summaries),
+        ])
+
+    def get_content_events(self, size):
+        proj = self.dev_ship.cockpit.camera.get_projected_coords(self.positions)
+        event_count = len(self.events)
+        event_summaries = []
+        for i in range(event_count):
+            event = self.events.queue[i]
+            event_summaries.append('\n'.join([
+                f'<orange><bold>{i:>2}</bold></orange> <h3>@{event.tick} ({self.tick-event.tick}) : {event.callback.__name__}</h3>',
+                f'<red>Callback</red>: <code>{escape_html(event.callback)}</code>',
+            ]))
+        return '\n'.join([
+            f'<h1>Events</h1>',
+            f'<red>Total</red>: <code>{len(self.events)}</code>',
+            '\n'.join(event_summaries),
         ])
