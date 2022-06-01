@@ -19,7 +19,7 @@ from gui.controller import Controller
 from gui.screenswitch import ScreenSwitcher
 from gui.prompt import Prompt
 from gui.keybinds import get_keybindings, encode_keyseq
-from usr.config import FPS, HOTKEY_COMMANDS
+from usr.config import FPS, HOTKEY_COMMANDS, LAYOUT_SCREENS
 from logic.universe import Universe
 
 FRAME_TIME = 1 / FPS
@@ -65,11 +65,7 @@ class App(Application):
 
     def get_layout(self):
         self.prompt_window = Prompt(self, self.handle_prompt_input)
-        self.screen_switcher = ScreenSwitcher(app=self, screens={
-            'multi': ['display', 'debug'],
-            'display': ['display'],
-            'debug': ['debug'],
-        })
+        self.screen_switcher = ScreenSwitcher(app=self, screens=LAYOUT_SCREENS)
         root_container = HSplit([
             self.screen_switcher,
             self.prompt_window,
