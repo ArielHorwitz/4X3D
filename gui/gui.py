@@ -36,7 +36,7 @@ class App(Application):
         self.root_layout = self.get_layout()
         self.register_commands()
         kb = get_keybindings(
-            global_keys={'^ q': self.exit, '^ w': restart_script, 'f2': self.defocus_prompt},
+            global_keys={'^ q': self.exit, '^ w': restart_script, 'escape': self.defocus_prompt},
             condition=self.hotkeys_enabled,
             handler=self.handle_hotkey,
         )
@@ -51,12 +51,12 @@ class App(Application):
     # Setup
     def register_commands(self):
         d = {
-            'exit': self.exit,
             'quit': self.exit,
-            'restart': restart_script,
+            'quit.restart': restart_script,
             'debug': self.debug,
-            'focus': self.focus_prompt,
-            'defocus': self.defocus_prompt,
+            'prompt.focus': self.focus_prompt,
+            'prompt.defocus': self.defocus_prompt,
+            'prompt.clear': self.prompt_window.clear,
             'layout.screen': self.screen_switcher.switch_to,
             'layout.screen.next': self.screen_switcher.next_screen,
         }

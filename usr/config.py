@@ -7,8 +7,8 @@ HOTKEY_COMMANDS = {
     '^ f3': 'layout.screen 2',
     '^ f4': 'layout.screen 3',
     'tab': 'layout.screen.next',
-    'enter': 'focus',
-    'escape': 'defocus',
+    'enter': 'prompt.focus',
+    '^ c': 'prompt.clear',
     # universe simulation
     'space': 'sim.toggle',
     '^ t': 'sim.tick 1',

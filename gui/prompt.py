@@ -44,3 +44,6 @@ class Prompt(HSplit):
 
     def focus(self):
         self.app.root_layout.focus(self.prompt_input)
+
+    def clear(self):
+        self.prompt_input.buffer.text = ''
