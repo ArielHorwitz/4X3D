@@ -5,16 +5,14 @@ import numpy as np
 from gui import format_vector, format_latlong
 from logic import CELESTIAL_NAMES, RNG
 from logic.ship.ship import Ship
-
-
-DEFAULT_SIMRATE = 5
+from usr.config import DEFAULT_SIMRATE
 
 
 class Universe:
     def __init__(self, controller, entity_count=20):
         self.feedback_str = 'Welcome to space.'
         self.tick = 0
-        self.auto_simrate = 100
+        self.auto_simrate = DEFAULT_SIMRATE
         self.dev_ship = Ship(universe=self, oid=0, name='dev', controller=controller)
         self.entity_count = entity_count
         self.positions = np.zeros((entity_count, 3), dtype=np.float64)
@@ -44,7 +42,7 @@ class Universe:
     def do_ticks(self, ticks=1):
         self.tick += int(ticks)
         assert self.positions.dtype == self.velocities.dtype == np.float64
-        self.positions += self.velocities * ticks / 1000
+        self.positions += self.velocities * ticks
 
     def toggle_autosim(self, set_to=None):
         new = DEFAULT_SIMRATE if self.auto_simrate == 0 else -self.auto_simrate
@@ -71,7 +69,7 @@ class Universe:
         self.positions[a] = self.positions[b]
 
     def randomize_positions(self):
-        self.positions = RNG.random((self.entity_count, 3)) * 20 - 10
+        self.positions = RNG.random((self.entity_count, 3)) * 1000 - 500
 
     def randomize_velocities(self):
         self.velocities += RNG.random((self.entity_count, 3)) * 2 - 1

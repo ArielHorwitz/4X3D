@@ -1,4 +1,5 @@
 FPS = 20
+DEFAULT_SIMRATE = 1
 HOTKEY_COMMANDS = {
     '^ f12': 'debug',
     '^ f1': 'layout.screen 0',
