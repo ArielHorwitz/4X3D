@@ -19,16 +19,16 @@ class Camera:
             'flip': self.flip,
             'zoom': self.adjust_zoom,
             'rotate': self.rotate,
-            'look': self.look_at_vector,
         }
 
-    def handle_command(self, command, args):
-        return self.commands[command](*args)
-
     def follow(self, callback=None):
+        if callback is not None:
+            assert callable(callback)
         self.following = callback
 
     def track(self, callback=None):
+        if callback is not None:
+            assert callable(callback)
         self.tracking = callback
 
     def update(self):

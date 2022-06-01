@@ -15,6 +15,7 @@ from prompt_toolkit.layout.layout import Layout
 import prompt_toolkit.shortcuts
 
 from gui import STYLE, restart_script, window_size, resolve_prompt_input
+from gui.controller import Controller
 from gui.screenswitch import ScreenSwitcher
 from gui.prompt import Prompt
 from gui.keybinds import get_keybindings, encode_keyseq
@@ -26,49 +27,51 @@ FRAME_TIME = 1 / FPS
 logger.info(f'Running at {FPS} FPS ({FRAME_TIME*1000:.1f} ms)')
 HOTKEY_COMMANDS = {
     '^ f12': 'debug',
-    '^ f1': 'screen 0',
-    '^ f2': 'screen 1',
-    'tab': 'nextscreen',
+    '^ f1': 'layout.screen 0',
+    '^ f2': 'layout.screen 1',
+    '^ f3': 'layout.screen 2',
+    '^ f4': 'layout.screen 3',
+    'tab': 'layout.screen.next',
     'enter': 'focus',
     'escape': 'defocus',
     # universe simulation
-    'space': 'sim toggle',
-    '^ t': 'sim ticks 1',
-    '^ v': 'sim randomize_vel',
-    '^ f': 'sim flip',
-    '^ pageup': 'sim rate +10 1',
-    '^+ pageup': 'sim rate +100 1',
-    '^ pagedown': 'sim rate -10 1',
-    '^+ pagedown': 'sim rate -100 1',
+    'space': 'sim.toggle',
+    '^ t': 'sim.tick 1',
+    '^ v': 'sim.randv',
+    '^ f': 'sim.flipv',
+    '^ pageup': 'sim.rate +10 1',
+    '^+ pageup': 'sim.rate +100 1',
+    '^ pagedown': 'sim.rate -10 1',
+    '^+ pagedown': 'sim.rate -100 1',
     # ship window controls
-    '^ l': 'ship labels',
-    'up': 'ship move +100',
-    '+ up': 'ship move +1',
-    'down': 'ship move -100',
-    '+ down': 'ship move -1',
-    'left': 'ship strafe +100',
-    '+ left': 'ship strafe +1',
-    'right': 'ship strafe -100',
-    '+ right': 'ship strafe -1',
+    '^ l': 'ship.labels',
+    'up': 'ship.move +100',
+    '+ up': 'ship.move +1',
+    'down': 'ship.move -100',
+    '+ down': 'ship.move -1',
+    'left': 'ship.strafe +100',
+    '+ left': 'ship.strafe +1',
+    'right': 'ship.strafe -100',
+    '+ right': 'ship.strafe -1',
     # ship window pov
-    'home': 'ship zoom 2',
-    'end': 'ship zoom 0.5',
-    '+ home': 'ship zoom 1.25',
-    '+ end': 'ship zoom 0.8',
-    'd': 'ship rotate +15',
-    'D': 'ship rotate +1',
-    'a': 'ship rotate -15',
-    'A': 'ship rotate -1',
-    'w': 'ship rotate 0 +15',
-    'W': 'ship rotate 0 +1',
-    's': 'ship rotate 0 -15',
-    'S': 'ship rotate 0 -1',
-    'e': 'ship rotate 0 0 -15',
-    'E': 'ship rotate 0 0 -1',
-    'q': 'ship rotate 0 0 +15',
-    'Q': 'ship rotate 0 0 +1',
-    'x': 'ship flip',
-    'X': 'ship flip',
+    'home': 'ship.zoom 2',
+    'end': 'ship.zoom 0.5',
+    '+ home': 'ship.zoom 1.25',
+    '+ end': 'ship.zoom 0.8',
+    'd': 'ship.rotate +15',
+    'D': 'ship.rotate +1',
+    'a': 'ship.rotate -15',
+    'A': 'ship.rotate -1',
+    'w': 'ship.rotate 0 +15',
+    'W': 'ship.rotate 0 +1',
+    's': 'ship.rotate 0 -15',
+    'S': 'ship.rotate 0 -1',
+    'e': 'ship.rotate 0 0 -15',
+    'E': 'ship.rotate 0 0 -1',
+    'q': 'ship.rotate 0 0 +15',
+    'Q': 'ship.rotate 0 0 +1',
+    'x': 'ship.flip',
+    'X': 'ship.flip',
 }
 
 
@@ -77,9 +80,10 @@ class App(Application):
         print(HTML('<i>Initializing app...</i>'))
         prompt_toolkit.shortcuts.clear()
         prompt_toolkit.shortcuts.set_title('Space')
-        self.universe = Universe()
+        self.controller = Controller('App')
+        self.universe = Universe(self.controller)
         self.root_layout = self.get_layout()
-        self.commands = self.get_commands()
+        self.register_commands()
         kb = get_keybindings(
             global_keys={'^ q': self.exit, '^ w': restart_script, 'f2': self.defocus_prompt},
             condition=self.hotkeys_enabled,
@@ -93,23 +97,20 @@ class App(Application):
             key_bindings=kb,
         )
 
-    def debug(self, *a):
-        logger.debug(f'Debug action called: {a}')
-
-    def hotkeys_enabled(self):
-        return not self.root_layout.buffer_has_focus
-
-    def get_commands(self):
-        return {
+    # Setup
+    def register_commands(self):
+        d = {
             'exit': self.exit,
             'quit': self.exit,
             'restart': restart_script,
             'debug': self.debug,
             'focus': self.focus_prompt,
             'defocus': self.defocus_prompt,
-            'screen': self.screen_switcher.switch_to,
-            'nextscreen': self.screen_switcher.next_screen,
+            'layout.screen': self.screen_switcher.switch_to,
+            'layout.screen.next': self.screen_switcher.next_screen,
         }
+        for command, callback in d.items():
+            self.controller.register_command(command, callback)
 
     def get_layout(self):
         self.prompt_window = Prompt(self, self.handle_prompt_input)
@@ -124,28 +125,14 @@ class App(Application):
         ])
         return Layout(root_container)
 
+    # Handlers
     def handle_prompt_input(self, text):
         self.defocus_prompt()
         if not text:
             return
         command, args = resolve_prompt_input(text)
-        if command in self.commands:
-            logger.debug(f'Running command: {command} {args}')
-            c = self.commands[command]
-            c(*args)
-        else:
-            self.universe.handle_command(command, args)
-
-    def get_window_content(self, name, size=None):
-        size = self.screen_size if size is None else size
-        content = self.universe.get_window_content(name, size)
-        return HTML(content)
-
-    def defocus_prompt(self):
-        self.prompt_window.defocus()
-
-    def focus_prompt(self):
-        self.prompt_window.focus()
+        logger.debug(f'Resolved prompt input: {command} {args}')
+        self.controller.do_command(command, *args)
 
     def handle_hotkey(self, key):
         if key in HOTKEY_COMMANDS:
@@ -155,6 +142,31 @@ class App(Application):
         else:
             logger.debug(f'Unknown hotkey <{key}>')
 
+    def get_window_content(self, name, size=None):
+        size = self.screen_size if size is None else size
+        content = self.universe.get_window_content(name, size)
+        return HTML(content)
+
+    # Miscallaneous
+    def defocus_prompt(self):
+        self.prompt_window.defocus()
+
+    def focus_prompt(self):
+        self.prompt_window.focus()
+
+    def hotkeys_enabled(self):
+        return not self.root_layout.buffer_has_focus
+
+    @property
+    def screen_size(self):
+        width = window_size().columns - 2
+        height = window_size().lines - 4
+        return width, height
+
+    def debug(self, *a):
+        logger.debug(f'Debug action called: {a}')
+
+    # Runtime
     async def logic_loop(self):
         while True:
             self.universe.update()
@@ -174,9 +186,3 @@ class App(Application):
 
     def prerun(self):
         self.defocus_prompt()
-
-    @property
-    def screen_size(self):
-        width = window_size().columns - 2
-        height = window_size().lines - 4
-        return width, height

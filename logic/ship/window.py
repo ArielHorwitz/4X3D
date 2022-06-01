@@ -9,36 +9,44 @@ from logic.camera import Camera
 
 
 class ShipWindow:
-    def __init__(self, universe):
+    def __init__(self, universe, controller):
         self.universe = universe
         self.camera = Camera()
         self.show_labels = 2
         self.camera_following = None
         self.camera_tracking = None
+        self.register_commands(controller)
 
-    def handle_command(self, command, args):
-        if hasattr(self, f'command_{command}'):
-            f = getattr(self, f'command_{command}')
-            return f(*args)
-        try:
-            return self.camera.handle_command(command, args)
-        except KeyError as e:
-            logger.warning(f'ShipWindow requested to handle unknown command: {command} {args}')
+    def register_commands(self, controller):
+        # Ship controls
+        d = {
+            'ship.follow': self.follow,
+            'ship.track': self.track,
+            'ship.look': self.look,
+            'ship.labels': self.toggle_labels,
+        }
+        for command, callback in d.items():
+            controller.register_command(command, callback)
+        # Camera controls
+        # We build seperate dicts so that camera commands don't overwrite ours
+        d = {f'ship.{k}': v for k, v in self.camera.commands.items()}
+        for command, callback in d.items():
+            controller.register_command(command, callback)
 
-    def command_follow(self, index=None):
+    def follow(self, index=None):
         def get_pos(index):
             return self.universe.positions[index]
         self.camera.follow(partial(get_pos, index) if index is not None else None)
 
-    def command_track(self, index=None):
+    def track(self, index=None):
         def get_pos(index):
             return self.universe.positions[index]
         self.camera.track(partial(get_pos, index) if index is not None else None)
 
-    def command_look(self, index):
+    def look(self, index):
         self.camera.look_at_vector(self.universe.positions[index])
 
-    def command_labels(self):
+    def toggle_labels(self):
         self.show_labels = (self.show_labels + 1) % 4
         logger.info(f'Showing labels: {self.show_labels}')
 
