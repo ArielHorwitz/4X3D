@@ -19,60 +19,11 @@ from gui.controller import Controller
 from gui.screenswitch import ScreenSwitcher
 from gui.prompt import Prompt
 from gui.keybinds import get_keybindings, encode_keyseq
+from usr.config import FPS, HOTKEY_COMMANDS
 from logic.universe import Universe
 
-
-FPS = 20
 FRAME_TIME = 1 / FPS
 logger.info(f'Running at {FPS} FPS ({FRAME_TIME*1000:.1f} ms)')
-HOTKEY_COMMANDS = {
-    '^ f12': 'debug',
-    '^ f1': 'layout.screen 0',
-    '^ f2': 'layout.screen 1',
-    '^ f3': 'layout.screen 2',
-    '^ f4': 'layout.screen 3',
-    'tab': 'layout.screen.next',
-    'enter': 'focus',
-    'escape': 'defocus',
-    # universe simulation
-    'space': 'sim.toggle',
-    '^ t': 'sim.tick 1',
-    '^ v': 'sim.randv',
-    '^ f': 'sim.flipv',
-    '^ pageup': 'sim.rate +10 1',
-    '^+ pageup': 'sim.rate +100 1',
-    '^ pagedown': 'sim.rate -10 1',
-    '^+ pagedown': 'sim.rate -100 1',
-    # ship window controls
-    '^ l': 'ship.labels',
-    'up': 'ship.move +100',
-    '+ up': 'ship.move +1',
-    'down': 'ship.move -100',
-    '+ down': 'ship.move -1',
-    'left': 'ship.strafe +100',
-    '+ left': 'ship.strafe +1',
-    'right': 'ship.strafe -100',
-    '+ right': 'ship.strafe -1',
-    # ship window pov
-    'home': 'ship.zoom 2',
-    'end': 'ship.zoom 0.5',
-    '+ home': 'ship.zoom 1.25',
-    '+ end': 'ship.zoom 0.8',
-    'd': 'ship.rotate +15',
-    'D': 'ship.rotate +1',
-    'a': 'ship.rotate -15',
-    'A': 'ship.rotate -1',
-    'w': 'ship.rotate 0 +15',
-    'W': 'ship.rotate 0 +1',
-    's': 'ship.rotate 0 -15',
-    'S': 'ship.rotate 0 -1',
-    'e': 'ship.rotate 0 0 -15',
-    'E': 'ship.rotate 0 0 -1',
-    'q': 'ship.rotate 0 0 +15',
-    'Q': 'ship.rotate 0 0 +1',
-    'x': 'ship.flip',
-    'X': 'ship.flip',
-}
 
 
 class App(Application):
