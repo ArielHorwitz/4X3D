@@ -2,21 +2,24 @@ from loguru import logger
 import arrow
 import numpy as np
 
-from gui import format_vector, format_latlong
-from logic import CELESTIAL_NAMES, RNG
-from logic.ship.ship import Ship
+from gui import format_vector, format_latlong, OBJECT_COLORS
 from usr.config import DEFAULT_SIMRATE
+from logic import CELESTIAL_NAMES, RNG
+from logic.dso.ship import Ship
+from logic.dso.dso import DeepSpaceObject
 
 
 class Universe:
-    def __init__(self, controller, entity_count=20):
+    def __init__(self, controller):
         self.feedback_str = 'Welcome to space.'
+        self.controller = controller
         self.tick = 0
         self.auto_simrate = DEFAULT_SIMRATE
-        self.dev_ship = Ship(universe=self, oid=0, name='dev', controller=controller)
-        self.entity_count = entity_count
-        self.positions = np.zeros((entity_count, 3), dtype=np.float64)
-        self.velocities = np.zeros((entity_count, 3), dtype=np.float64)
+        self.ds_objects = []
+        self.positions = np.zeros((0, 3), dtype=np.float64)
+        self.velocities = np.zeros((0, 3), dtype=np.float64)
+        self.make_devship()
+        self.make_objects(rocks=5, ships=3)
         self.randomize_positions()
         self.register_commands(controller)
 
@@ -39,6 +42,7 @@ class Universe:
         for command, callback in d.items():
             controller.register_command(command, callback)
 
+    # Simulation
     def do_ticks(self, ticks=1):
         self.tick += int(ticks)
         assert self.positions.dtype == self.velocities.dtype == np.float64
@@ -69,15 +73,52 @@ class Universe:
         self.positions[a] = self.positions[b]
 
     def randomize_positions(self):
-        self.positions = RNG.random((self.entity_count, 3)) * 1000 - 500
+        self.positions = RNG.random((self.object_count, 3)) * 1000 - 500
 
     def randomize_velocities(self):
-        self.velocities += RNG.random((self.entity_count, 3)) * 2 - 1
+        self.velocities += RNG.random((self.object_count, 3)) * 2 - 1
 
     def flip_velocities(self):
         self.velocities = -self.velocities
 
-    # Content for GUI
+    # Deep space objects
+    def add_object(self, ds_object):
+        new_oid = len(self.ds_objects)
+        new_position = np.asarray([[0,0,0]])
+        new_velocity = np.asarray([[0,0,0]])
+        self.positions = np.concatenate((self.positions, new_position))
+        self.velocities = np.concatenate((self.velocities, new_velocity))
+        self.ds_objects.append(ds_object)
+        assert self.object_count == len(self.ds_objects) == len(self.positions) == len(self.velocities)
+        return new_oid
+
+    def make_devship(self):
+        self.dev_ship = Ship()
+        self.dev_ship_oid = self.add_object(self.dev_ship)
+        self.dev_ship.setup(
+            universe=self, oid=self.dev_ship_oid,
+            name='dev', controller=self.controller,
+        )
+
+    def make_objects(self, rocks, ships):
+        for i in range(rocks):
+            new_rock = DeepSpaceObject()
+            new_oid = self.add_object(new_rock)
+            new_rock.setup(universe=self, oid=new_oid, name=CELESTIAL_NAMES[i])
+        for j in range(ships):
+            new_ship = Ship()
+            new_oid = self.add_object(new_ship)
+            new_ship.setup(
+                universe=self, oid=new_oid,
+                name=f'XSS. {CELESTIAL_NAMES[i+j+1]}',
+                color=RNG.integers(low=0, high=len(OBJECT_COLORS)-1, size=1)[0],
+            )
+
+    @property
+    def object_count(self):
+        return len(self.ds_objects)
+
+    # GUI content
     def get_window_content(self, name, size):
         if hasattr(self, f'get_content_{name}'):
             f = getattr(self, f'get_content_{name}')
@@ -97,11 +138,12 @@ class Universe:
         t = arrow.get().format('YY-MM-DD, hh:mm:ss')
         proj = self.dev_ship.cockpit.camera.get_projected_coords(self.positions)
         object_summaries = []
-        for i in range(min(30, self.entity_count)):
+        for oid in range(min(30, self.object_count)):
+            ob = self.ds_objects[oid]
             object_summaries.append('\n'.join([
-                f'<h3>{i:>2}.{CELESTIAL_NAMES[i]}</h3>',
-                f'<red>Pos</red>: <code>{format_latlong(proj[i])}</code> [{format_vector(self.positions[i])}]',
-                f'<red>Vel</red>: <code>{np.linalg.norm(self.velocities[i]):.4f}</code> [{format_vector(self.velocities[i])}]',
+                f'<orange><bold>{oid:>3}</bold></orange> <h3>{ob.name}</h3>',
+                f'<red>Pos</red>: <code>{format_latlong(proj[oid])}</code> [{format_vector(self.positions[oid])}]',
+                f'<red>Vel</red>: <code>{np.linalg.norm(self.velocities[oid]):.4f}</code> [{format_vector(self.velocities[oid])}]',
             ]))
         return '\n'.join([
             f'<h1>Simulation</h1>',

@@ -70,18 +70,18 @@ class Cockpit:
         return charmap
 
     def get_tags(self):
-        return [OBJECT_COLORS[i % len(OBJECT_COLORS)] for i in range(self.universe.entity_count)]
+        return [OBJECT_COLORS[dso.color] for dso in self.universe.ds_objects]
 
     def get_labels(self):
         labels = []
-        for i, pos in enumerate(self.universe.positions):
+        for oid, ob in enumerate(self.universe.ds_objects):
             lbl = ''
             if self.show_labels:
-                lbl = CELESTIAL_NAMES[i]
+                lbl = ob.name
             if self.show_labels > 1:
-                lbl = f'#{i}.{lbl}'
+                lbl = f'#{oid} {lbl}'
             if self.show_labels > 2:
-                dist = np.linalg.norm(self.camera.pos - pos)
+                dist = np.linalg.norm(self.camera.pos - ob.position)
                 lbl = f'{lbl} ({dist:.1f})'
             labels.append(lbl)
         return labels

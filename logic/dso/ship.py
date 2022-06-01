@@ -1,12 +1,14 @@
 from collections import defaultdict
-from logic.ship.cockpit import Cockpit
+from logic.dso.cockpit import Cockpit
+from logic.dso.dso import DeepSpaceObject
 
 
-class Ship:
-    def __init__(self, universe, oid, name, controller=None):
-        self.universe = universe
-        self.oid = oid
-        self.name = name
+class Ship(DeepSpaceObject):
+    def __init__(self):
+        pass
+
+    def setup(self, universe, oid, name, color=1, controller=None):
+        super().setup(universe, oid, name, color)
         self.cockpit = Cockpit(ship=self, controller=controller)
         self.cockpit.follow(self.oid)
         self.stats = defaultdict(lambda: 0)
