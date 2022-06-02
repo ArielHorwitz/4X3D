@@ -31,6 +31,7 @@ class App(Application):
         print(HTML('<i>Initializing app...</i>'))
         prompt_toolkit.shortcuts.clear()
         prompt_toolkit.shortcuts.set_title('Space')
+        self._last_key = ''
         self.controller = Controller('App')
         self.universe = Universe(self.controller)
         self.root_layout = self.get_layout()
@@ -78,16 +79,17 @@ class App(Application):
         if not text:
             return
         command, args = resolve_prompt_input(text)
-        logger.debug(f'Resolved prompt input: {command} {args}')
+        # logger.debug(f'Resolved prompt input: {command} {args}')
         self.controller.do_command(command, *args)
 
     def handle_hotkey(self, key):
+        self._last_key = key
         if key in HOTKEY_COMMANDS:
             prompt_input = HOTKEY_COMMANDS[key]
-            logger.debug(f'Hotkey <{key}> resolved to: {prompt_input}')
+            # logger.debug(f'Hotkey <{key}> resolved to: {prompt_input}')
             self.handle_prompt_input(prompt_input)
-        else:
-            logger.debug(f'Unknown hotkey <{key}>')
+        # else:
+        #     logger.debug(f'Unknown hotkey <{key}>')
 
     def get_window_content(self, name, size=None):
         size = self.screen_size if size is None else size

@@ -11,7 +11,7 @@ class Controller:
         if command not in self.__commands:
             raise KeyError(f'Command {command} not found in {self}')
         callback = self.__commands[command]
-        logger.debug(f'{self} do_command: {command} resolved to: {callback.__name__} ({callback})')
+        # logger.debug(f'{self} do_command: {command} resolved to: {callback.__name__} ({callback})')
         r = callback(*args, **kwargs)
         return r
 

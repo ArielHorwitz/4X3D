@@ -36,6 +36,7 @@ class Prompt(HSplit):
         self.status_bar.text = HTML(tag('cyan', ' | ').join([
             tag('code', str(arrow.get().format('YY-MM-DD, hh:mm:ss'))),
             tag('code', size),
+            tag('code', escape_html(f'<{self.app._last_key}>')),
             tag('code', f'>> {self.app.universe.feedback_str}'),
         ]))
 
