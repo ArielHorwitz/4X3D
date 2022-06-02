@@ -6,7 +6,7 @@ from gui import format_vector, format_latlong, OBJECT_COLORS, escape_html
 from usr.config import DEFAULT_SIMRATE
 from logic import CELESTIAL_NAMES, RNG
 from logic.events import EventQueue
-from logic.admiral import Admiral, Player
+from logic.admiral import Player, Agent
 from logic.dso.ship import Ship
 from logic.dso.dso import DeepSpaceObject
 
@@ -25,10 +25,10 @@ class Universe:
         self.ds_objects = []
         self.positions = np.zeros((0, 3), dtype=np.float64)
         self.velocities = np.zeros((0, 3), dtype=np.float64)
-        self.make_rocks(10)
-        self.add_player(name='dev')
-        for name in ['foo', 'bar', 'baz']:
-            self.add_admiral(name=name)
+        self.make_rocks(5)
+        self.add_player(name='Dev')
+        for i in range(10):
+            self.add_agent(name=f'Admiral #{i+1}')
         self.randomize_positions()
         self.register_commands(controller)
         self.interval_event()
@@ -138,8 +138,8 @@ class Universe:
         self.admirals.append(admiral)
         admiral.setup()
 
-    def add_admiral(self, name):
-        admiral = Admiral(universe=self, fid=len(self.admirals), name=name)
+    def add_agent(self, name):
+        admiral = Agent(universe=self, fid=len(self.admirals), name=name)
         self.admirals.append(admiral)
         admiral.setup()
 

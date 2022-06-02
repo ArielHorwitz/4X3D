@@ -23,9 +23,19 @@ class Ship(DeepSpaceObject):
         for command, callback in d.items():
             controller.register_command(command, callback)
 
-    def engine_burn(self, dv):
-        vector = self.cockpit.camera.current_axes[0] * dv
+    def fly_at(self, point, dv):
+        self.cockpit.camera.set_position(self.position)
+        self.cockpit.camera.look_at_vector(point)
+        self.engine_burn(dv)
+
+    def engine_burn(self, dv, vector=None):
+        if vector is None:
+            self.cockpit.camera.update()
+            vector = self.cockpit.camera.current_axes[0] * dv
         self.universe.velocities[self.oid] += vector
 
     def engine_break_burn(self):
         self.universe.velocities[self.oid] = 0
+
+    def __repr__(self):
+        return f'<Ship #{self.oid} {self.name}>'

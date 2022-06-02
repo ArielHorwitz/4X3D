@@ -19,3 +19,6 @@ class DeepSpaceObject:
     @property
     def velocity(self):
         return self.universe.velocities[self.oid]
+
+    def __repr__(self):
+        return f'<DeepSpaceObject #{self.oid} {self.name}>'

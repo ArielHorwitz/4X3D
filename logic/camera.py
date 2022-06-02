@@ -37,6 +37,9 @@ class Camera:
         if self.tracking is not None:
             self.look_at_vector(self.tracking(), disable_track=False)
 
+    def set_position(self, point):
+        self.pos = np.asarray(point, dtype=np.float64)
+
     def move(self, d=1, disable_follow=True):
         self.pos += self.current_axes[0] * d
         if disable_follow:
