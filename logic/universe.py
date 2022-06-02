@@ -25,7 +25,7 @@ class Universe:
         self.ds_objects = []
         self.positions = np.zeros((0, 3), dtype=np.float64)
         self.velocities = np.zeros((0, 3), dtype=np.float64)
-        self.make_objects(rocks=5)
+        self.make_rocks(10)
         self.add_player(name='dev')
         for name in ['foo', 'bar', 'baz']:
             self.add_admiral(name=name)
@@ -111,6 +111,7 @@ class Universe:
 
     # Deep space objects
     def add_object(self, ds_object):
+        assert isinstance(ds_object, DeepSpaceObject)
         new_oid = len(self.ds_objects)
         new_position = np.asarray([[0,0,0]])
         new_velocity = np.asarray([[0,0,0]])
@@ -120,19 +121,11 @@ class Universe:
         assert self.object_count == len(self.ds_objects) == len(self.positions) == len(self.velocities)
         return new_oid
 
-    def make_objects(self, rocks=0, ships=0):
-        for i in range(rocks):
+    def make_rocks(self, count=1):
+        for i in range(count):
             new_rock = DeepSpaceObject()
             new_oid = self.add_object(new_rock)
             new_rock.setup(universe=self, oid=new_oid, name=CELESTIAL_NAMES[i])
-        for j in range(ships):
-            new_ship = Ship()
-            new_oid = self.add_object(new_ship)
-            new_ship.setup(
-                universe=self, oid=new_oid,
-                name=f'XSS. {CELESTIAL_NAMES[i+j+1]}',
-                color=RNG.integers(low=0, high=len(OBJECT_COLORS)-1, size=1)[0],
-            )
 
     @property
     def object_count(self):
