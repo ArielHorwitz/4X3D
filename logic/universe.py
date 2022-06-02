@@ -6,6 +6,7 @@ from gui import format_vector, format_latlong, OBJECT_COLORS, escape_html
 from usr.config import DEFAULT_SIMRATE
 from logic import CELESTIAL_NAMES, RNG
 from logic.events import EventQueue
+from logic.admiral import Admiral, Player
 from logic.dso.ship import Ship
 from logic.dso.dso import DeepSpaceObject
 
@@ -20,11 +21,14 @@ class Universe:
         self.controller = controller
         self.tick = 0
         self.auto_simrate = DEFAULT_SIMRATE
+        self.admirals = []
         self.ds_objects = []
         self.positions = np.zeros((0, 3), dtype=np.float64)
         self.velocities = np.zeros((0, 3), dtype=np.float64)
-        self.make_devship()
-        self.make_objects(rocks=5, ships=3)
+        self.make_objects(rocks=5)
+        self.add_player(name='dev')
+        for name in ['foo', 'bar', 'baz']:
+            self.add_admiral(name=name)
         self.randomize_positions()
         self.register_commands(controller)
         self.interval_event()
@@ -116,15 +120,7 @@ class Universe:
         assert self.object_count == len(self.ds_objects) == len(self.positions) == len(self.velocities)
         return new_oid
 
-    def make_devship(self):
-        self.dev_ship = Ship()
-        self.dev_ship_oid = self.add_object(self.dev_ship)
-        self.dev_ship.setup(
-            universe=self, oid=self.dev_ship_oid,
-            name='dev', controller=self.controller,
-        )
-
-    def make_objects(self, rocks, ships):
+    def make_objects(self, rocks=0, ships=0):
         for i in range(rocks):
             new_rock = DeepSpaceObject()
             new_oid = self.add_object(new_rock)
@@ -142,6 +138,18 @@ class Universe:
     def object_count(self):
         return len(self.ds_objects)
 
+    # Admirals
+    def add_player(self, name):
+        assert len(self.admirals) == 0
+        admiral = Player(universe=self, fid=0, name=name)
+        self.admirals.append(admiral)
+        admiral.setup()
+
+    def add_admiral(self, name):
+        admiral = Admiral(universe=self, fid=len(self.admirals), name=name)
+        self.admirals.append(admiral)
+        admiral.setup()
+
     # GUI content
     def get_window_content(self, name, size):
         if hasattr(self, f'get_content_{name}'):
@@ -156,11 +164,11 @@ class Universe:
             ])
 
     def get_content_display(self, size):
-        return self.dev_ship.cockpit.get_charmap(size)
+        return self.player_ship.cockpit.get_charmap(size)
 
     def get_content_debug(self, size):
         t = arrow.get().format('YY-MM-DD, hh:mm:ss')
-        proj = self.dev_ship.cockpit.camera.get_projected_coords(self.positions)
+        proj = self.player_ship.cockpit.camera.get_projected_coords(self.positions)
         object_summaries = []
         for oid in range(min(30, self.object_count)):
             ob = self.ds_objects[oid]
@@ -183,7 +191,7 @@ class Universe:
         ])
 
     def get_content_events(self, size):
-        proj = self.dev_ship.cockpit.camera.get_projected_coords(self.positions)
+        proj = self.player_ship.cockpit.camera.get_projected_coords(self.positions)
         event_count = len(self.events)
         event_summaries = []
         for i in range(event_count):
@@ -197,3 +205,11 @@ class Universe:
             f'<red>Total</red>: <code>{len(self.events)}</code>',
             '\n'.join(event_summaries),
         ])
+
+    @property
+    def player(self):
+        return self.admirals[0]
+
+    @property
+    def player_ship(self):
+        return self.ds_objects[self.player.ship_oid]
