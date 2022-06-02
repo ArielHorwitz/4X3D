@@ -165,8 +165,9 @@ class Universe:
         object_summaries = []
         for oid in range(min(30, self.object_count)):
             ob = self.ds_objects[oid]
+            color = OBJECT_COLORS[ob.color]
             object_summaries.append('\n'.join([
-                f'<orange><bold>{oid:>3}</bold></orange> <h3>{ob.name}</h3>',
+                f'<h3>{oid:>3}</h3> <{color}>{ob.name}</{color}>',
                 f'<red>Pos</red>: <code>{format_latlong(proj[oid])}</code> [{format_vector(self.positions[oid])}]',
                 f'<red>Vel</red>: <code>{np.linalg.norm(self.velocities[oid]):.4f}</code> [{format_vector(self.velocities[oid])}]',
             ]))
