@@ -4,7 +4,7 @@ import numpy as np
 from inspect import signature
 
 from gui import format_vector, format_latlong, OBJECT_COLORS, escape_html
-from usr.config import DEFAULT_SIMRATE
+from usr.config import DEFAULT_SIMRATE, HOTKEY_COMMANDS
 from logic import CELESTIAL_NAMES, RNG
 from logic.events import EventQueue
 from logic.admiral import Player, Agent
@@ -54,6 +54,7 @@ class Universe:
             'sim.flipv': self.flip_velocities,
             'inspect': self.inspect,
             'help': self.help,
+            'hotkeys': self.help_hotkeys,
         }
         for command, callback in d.items():
             controller.register_command(command, callback)
@@ -253,3 +254,7 @@ class Universe:
         return '\n'.join([
             f'{k:.<20}: {v.__name__} {signature(v)}'
         for k, v in self.controller.commands.items()])
+
+    def help_hotkeys(self):
+        r = '\n'.join([f'{k:>11}: {v}' for k, v in HOTKEY_COMMANDS.items()])
+        self.browse_content_callback = lambda *a: r
