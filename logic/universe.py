@@ -14,7 +14,10 @@ from logic.quaternion import latlong_single
 from logic.engine import Engine
 
 
-UNIVERSE_INTERVAL = 1000
+UNIVERSE_INTERVAL = 1_000_000
+CELESTIAL_BODIES = 50
+COMPUTER_PLAYERS = 5
+UNIVERSE_SIZE = 10**6
 
 
 class Universe:
@@ -28,9 +31,9 @@ class Universe:
         self.auto_simrate = DEFAULT_SIMRATE
         self.admirals = []
         self.ds_objects = []
-        self.make_rocks(5)
+        self.make_rocks(CELESTIAL_BODIES)
         self.add_player(name='Dev')
-        for i in range(10):
+        for i in range(COMPUTER_PLAYERS):
             self.add_agent(name=f'Admiral #{i+1}')
         self.randomize_positions()
         self.register_commands(controller)
@@ -59,7 +62,7 @@ class Universe:
         logger.debug(f'Universe debug() called: {args} {kwargs}')
 
     def interval_event(self):
-        self.events.add(tick=self.tick+UNIVERSE_INTERVAL, callback=self.interval_event)
+        self.add_event(tick=self.tick+UNIVERSE_INTERVAL, callback=self.interval_event)
 
     # Simulation
     def do_ticks(self, ticks=1):
@@ -97,8 +100,17 @@ class Universe:
         elif value != 0:
             self.auto_simrate = value
 
+    def add_event(self, tick, callback):
+        if tick < self.tick:
+            m = f'Cannot add to universe events at past tick {tick} (currently: {self.tick})'
+            logger.error(m)
+            raise ValueError(m)
+        self.events.add(tick, callback)
+
     def randomize_positions(self):
-        new_pos = RNG.random((self.engine.object_count, 3)) * 1000 - 500
+        offset = UNIVERSE_SIZE
+        half_offset = offset / 2
+        new_pos = RNG.random((self.engine.object_count, 3)) * offset - half_offset
         self.positions[:] = new_pos
 
     @property

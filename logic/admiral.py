@@ -60,7 +60,7 @@ class Player(Admiral):
 class Agent(Admiral):
     def setup(self, *a, **k):
         super().setup(*a, **k)
-        self.universe.events.add(tick=self.universe.tick+1, callback=self.new_order)
+        self.universe.add_event(tick=self.universe.tick+1, callback=self.new_order)
 
     def get_new_destination(self):
         oid = random.randint(0, self.universe.object_count-1)
@@ -70,18 +70,8 @@ class Agent(Admiral):
 
     def new_order(self):
         dest_oid = self.get_new_destination()
-        arrival = self.fly_to(dest_oid)
-        dock_time = random.randint(200, 2000)
-        self.universe.events.add(tick=arrival, callback=self.arrival_break)
-        self.universe.events.add(tick=arrival+dock_time, callback=self.new_order)
-
-    def fly_to(self, oid, dv=1):
-        target = self.universe.ds_objects[oid]
-        travel_vector = target.position - self.my_ship.position
-        travel_dist = np.linalg.norm(travel_vector)
-        travel_time = math.ceil(travel_dist / dv)
-        self.my_ship.fly_at(target.position, dv=1)
-        return self.universe.tick + travel_time
-
-    def arrival_break(self):
-        self.my_ship.engine_break_burn()
+        speed = (1 + 9 * random.random())**random.randint(2, 4)
+        dock_time = random.randint(2000, 4000)
+        plan = self.my_ship.fly_to(dest_oid, cruise_speed=speed)
+        next_order = plan.arrival + dock_time
+        self.universe.add_event(tick=next_order, callback=self.new_order)

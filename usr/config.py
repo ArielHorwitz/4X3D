@@ -1,5 +1,5 @@
 FPS = 20
-DEFAULT_SIMRATE = 1
+DEFAULT_SIMRATE = -5
 LAYOUT_SCREENS = {
     'multi': ['display', 'browser'],
     'debug': ['debug', 'events'],
@@ -24,8 +24,8 @@ HOTKEY_COMMANDS = {
     '^ pagedown': 'sim.rate -10 1',
     '^+ pagedown': 'sim.rate -100 1',
     # ship window controls
-    'I': 'ship.burn 0.1',
-    'K': 'ship.break',
+    'I': 'ship.burn',
+    'K': 'ship.cut',
     '^ l': 'cockpit.labels',
     'up': 'cockpit.move +100',
     '+ up': 'cockpit.move +1',
