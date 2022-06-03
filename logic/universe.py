@@ -9,6 +9,7 @@ from logic.events import EventQueue
 from logic.admiral import Player, Agent
 from logic.dso.ship import Ship
 from logic.dso.dso import DeepSpaceObject
+from logic.quaternion import latlong_single
 
 
 UNIVERSE_INTERVAL = 1000
@@ -17,6 +18,7 @@ UNIVERSE_INTERVAL = 1000
 class Universe:
     def __init__(self, controller):
         self.feedback_str = 'Welcome to space.'
+        self.browse_content_callback = lambda *a: ''
         self.events = EventQueue()
         self.controller = controller
         self.tick = 0
@@ -32,6 +34,7 @@ class Universe:
         self.randomize_positions()
         self.register_commands(controller)
         self.interval_event()
+        self.inspect(None)
 
     def update(self):
         if self.auto_simrate > 0:
@@ -48,6 +51,7 @@ class Universe:
             'sim.randp': self.randomize_positions,
             'sim.randv': self.randomize_velocities,
             'sim.flipv': self.flip_velocities,
+            'inspect': self.inspect,
         }
         for command, callback in d.items():
             controller.register_command(command, callback)
@@ -143,6 +147,14 @@ class Universe:
         self.admirals.append(admiral)
         admiral.setup()
 
+    @property
+    def player(self):
+        return self.admirals[0]
+
+    @property
+    def player_ship(self):
+        return self.ds_objects[self.player.ship_oid]
+
     # GUI content
     def get_window_content(self, name, size):
         if hasattr(self, f'get_content_{name}'):
@@ -200,10 +212,34 @@ class Universe:
             '\n'.join(event_summaries),
         ])
 
-    @property
-    def player(self):
-        return self.admirals[0]
+    def get_content_browser(self, size):
+        return self.browse_content_callback(size)
 
-    @property
-    def player_ship(self):
-        return self.ds_objects[self.player.ship_oid]
+    def inspection_content(self, oid, size):
+        ob = self.ds_objects[oid]
+        ob_type = 'Deep space object'
+        color = OBJECT_COLORS[ob.color]
+        dir = latlong_single(ob.position - self.player_ship.position)
+        extra_lines = []
+        if isinstance(ob, Ship):
+            ob_type = 'Ship'
+            look = ob.cockpit.camera.current_axes[0]
+            extra_lines.extend([
+                '<h2>Cockpit</h2>',
+                f'<red>Looking</red>: <code>{format_vector(look)}</code>',
+                f'<red>Looking</red>: <code>{format_latlong(latlong_single(look))}</code>',
+            ])
+        return '\n'.join([
+            f'<h1>#{ob.oid} {escape_html(ob.name)}</h1>',
+            f'<bold><underline><{color}>{escape_html(ob_type)}</{color}></underline></bold>',
+            f'<red>Dir</red>: <code>{format_latlong(dir)}</code>',
+            f'<red>Vel</red>: <code>{format_vector(ob.velocity)}</code>',
+            f'<red>Pos</red>: <code>{format_vector(ob.position)}</code>',
+            *extra_lines,
+        ])
+
+    def inspect(self, oid=None):
+        if oid is None:
+            self.browse_content_callback = lambda *a: self.get_content_debug(*a)
+            return
+        self.browse_content_callback = lambda size, oid=int(oid): self.inspection_content(oid, size)

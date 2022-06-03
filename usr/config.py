@@ -1,7 +1,7 @@
 FPS = 20
 DEFAULT_SIMRATE = 1
 LAYOUT_SCREENS = {
-    'multi': ['display', 'debug'],
+    'multi': ['display', 'browser'],
     'debug': ['debug', 'events'],
     'display': ['display'],
 }
