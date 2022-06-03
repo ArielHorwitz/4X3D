@@ -1,6 +1,7 @@
 from loguru import logger
 import arrow
 import numpy as np
+from inspect import signature
 
 from gui import format_vector, format_latlong, OBJECT_COLORS, escape_html
 from usr.config import DEFAULT_SIMRATE
@@ -52,6 +53,7 @@ class Universe:
             'sim.randv': self.randomize_velocities,
             'sim.flipv': self.flip_velocities,
             'inspect': self.inspect,
+            'help': self.help,
         }
         for command, callback in d.items():
             controller.register_command(command, callback)
@@ -243,3 +245,11 @@ class Universe:
             self.browse_content_callback = lambda *a: self.get_content_debug(*a)
             return
         self.browse_content_callback = lambda size, oid=int(oid): self.inspection_content(oid, size)
+
+    def help(self):
+        self.browse_content_callback = self.help_content
+
+    def help_content(self, size):
+        return '\n'.join([
+            f'{k:.<20}: {v.__name__} {signature(v)}'
+        for k, v in self.controller.commands.items()])

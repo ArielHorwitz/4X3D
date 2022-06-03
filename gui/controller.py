@@ -24,7 +24,7 @@ class Controller:
 
     @property
     def commands(self):
-        return tuple(self.__commands.keys())
+        return self.__commands
 
     def __repr__(self):
         return f'<{self.name} Controller: {len(self.__commands)} commands>'
