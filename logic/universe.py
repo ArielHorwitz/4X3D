@@ -196,7 +196,7 @@ class Universe:
         proj = self.player_ship.cockpit.camera.get_projected_coords(self.positions)
         event_count = len(self.events)
         event_summaries = []
-        for i in range(event_count):
+        for i in range(min(20, event_count)):
             event = self.events.queue[i]
             event_summaries.append('\n'.join([
                 f'<orange><bold>{i:>2}</bold></orange> <h3>@{event.tick} ({self.tick-event.tick}) : {event.callback.__name__}</h3>',
