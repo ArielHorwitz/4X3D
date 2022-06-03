@@ -11,6 +11,7 @@ from logic.admiral import Player, Agent
 from logic.dso.ship import Ship
 from logic.dso.dso import DeepSpaceObject
 from logic.quaternion import latlong_single
+from logic.engine import Engine
 
 
 UNIVERSE_INTERVAL = 1000
@@ -20,14 +21,13 @@ class Universe:
     def __init__(self, controller):
         self.feedback_str = 'Welcome to space.'
         self.browse_content_callback = lambda *a: ''
+        self.engine = Engine({'position': 3})
         self.events = EventQueue()
         self.controller = controller
         self.tick = 0
         self.auto_simrate = DEFAULT_SIMRATE
         self.admirals = []
         self.ds_objects = []
-        self.positions = np.zeros((0, 3), dtype=np.float64)
-        self.velocities = np.zeros((0, 3), dtype=np.float64)
         self.make_rocks(5)
         self.add_player(name='Dev')
         for i in range(10):
@@ -47,11 +47,7 @@ class Universe:
             'sim.toggle': self.toggle_autosim,
             'sim.tick': self.do_ticks,
             'sim.rate': self.set_simrate,
-            'sim.matchv': self.match_velocities,
-            'sim.matchp': self.match_positions,
-            'sim.randp': self.randomize_positions,
-            'sim.randv': self.randomize_velocities,
-            'sim.flipv': self.flip_velocities,
+            'uni.debug': self.debug,
             'inspect': self.inspect,
             'help': self.help,
             'hotkeys': self.help_hotkeys,
@@ -67,6 +63,7 @@ class Universe:
 
     # Simulation
     def do_ticks(self, ticks=1):
+        ticks = int(ticks)
         last_tick = self.tick + ticks
         next_event = self.events.pop_next(tick=last_tick)
         while next_event:
@@ -78,10 +75,9 @@ class Universe:
         intermediate_ticks = last_tick - self.tick
         self.__do_ticks(intermediate_ticks)
 
-    def __do_ticks(self, ticks=1):
-        self.tick += int(ticks)
-        assert self.positions.dtype == self.velocities.dtype == np.float64
-        self.positions += self.velocities * ticks
+    def __do_ticks(self, ticks: int):
+        self.tick += ticks
+        self.engine.tick(ticks)
 
     def toggle_autosim(self, set_to=None):
         new = DEFAULT_SIMRATE if self.auto_simrate == 0 else -self.auto_simrate
@@ -101,31 +97,25 @@ class Universe:
         elif value != 0:
             self.auto_simrate = value
 
-    def match_velocities(self, a, b):
-        self.velocities[a] = self.velocities[b]
-
-    def match_positions(self, a, b):
-        self.positions[a] = self.positions[b]
-
     def randomize_positions(self):
-        self.positions = RNG.random((self.object_count, 3)) * 1000 - 500
+        new_pos = RNG.random((self.engine.object_count, 3)) * 1000 - 500
+        self.positions[:] = new_pos
 
-    def randomize_velocities(self):
-        self.velocities += RNG.random((self.object_count, 3)) * 2 - 1
+    @property
+    def positions(self):
+        return self.engine.get_stat('position')
 
-    def flip_velocities(self):
-        self.velocities = -self.velocities
+    @property
+    def velocities(self):
+        return self.engine.get_derivative('position')
 
     # Deep space objects
     def add_object(self, ds_object):
         assert isinstance(ds_object, DeepSpaceObject)
         new_oid = len(self.ds_objects)
-        new_position = np.asarray([[0,0,0]])
-        new_velocity = np.asarray([[0,0,0]])
-        self.positions = np.concatenate((self.positions, new_position))
-        self.velocities = np.concatenate((self.velocities, new_velocity))
+        self.engine.add_objects(1)
         self.ds_objects.append(ds_object)
-        assert self.object_count == len(self.ds_objects) == len(self.positions) == len(self.velocities)
+        assert self.object_count == len(self.ds_objects)
         return new_oid
 
     def make_rocks(self, count=1):
@@ -136,7 +126,7 @@ class Universe:
 
     @property
     def object_count(self):
-        return len(self.ds_objects)
+        return self.engine.object_count
 
     # Admirals
     def add_player(self, name):
@@ -176,25 +166,18 @@ class Universe:
 
     def get_content_debug(self, size):
         t = arrow.get().format('YY-MM-DD, hh:mm:ss')
-        proj = self.player_ship.cockpit.camera.get_projected_coords(self.positions)
         object_summaries = []
         for oid in range(min(30, self.object_count)):
-            ob = self.ds_objects[oid]
-            color = OBJECT_COLORS[ob.color]
-            object_summaries.append('\n'.join([
-                f'<h3>{oid:>3}</h3> <{color}>{ob.name}</{color}>',
-                f'<red>Pos</red>: <code>{format_latlong(proj[oid])}</code> [{format_vector(self.positions[oid])}]',
-                f'<red>Vel</red>: <code>{np.linalg.norm(self.velocities[oid]):.4f}</code> [{format_vector(self.velocities[oid])}]',
-            ]))
+            object_summaries.append(self.inspection_content(oid, size, verbose=False))
         event_str = ''
         if len(self.events) > 0:
             ev = self.events.next
-            event_str = f' (next: @{ev.tick} {escape_html(ev.callback.__name__)})'
+            event_str = f'Next: @{ev.tick} {escape_html(ev.callback.__name__)}'
         return '\n'.join([
             f'<h1>Simulation</h1>',
             f'<red>Simrate</red>: <code>{self.auto_simrate}</code>',
             f'<red>Tick</red>: <code>{self.tick}</code>',
-            f'<red>Events</red>: <code>{len(self.events)}</code>{event_str}',
+            f'<red>Events</red>: <code>{len(self.events)}</code>\n{event_str}',
             f'<h2>Celestial Objects</h2>',
             '\n'.join(object_summaries),
         ])
@@ -218,26 +201,37 @@ class Universe:
     def get_content_browser(self, size):
         return self.browse_content_callback(size)
 
-    def inspection_content(self, oid, size):
+    def inspection_content(self, oid, size, verbose=True):
         ob = self.ds_objects[oid]
         ob_type = 'Deep space object'
         color = OBJECT_COLORS[ob.color]
-        dir = latlong_single(ob.position - self.player_ship.position)
+        ob_rel_vector = ob.position - self.player_ship.position
+        dir = latlong_single(ob_rel_vector)
+        player_dist = np.linalg.norm(ob_rel_vector)
+        p = f'\n{format_vector(ob.position)}' if verbose else ''
+        v = f'\n{format_vector(ob.velocity)}' if verbose else ''
+        a = f'\n{format_vector(ob.acceleration)}' if verbose else ''
+        vmag = np.linalg.norm(ob.velocity)
+        vdir = format_latlong(latlong_single(ob.velocity))
+        amag = np.linalg.norm(ob.acceleration)
+        adir = format_latlong(latlong_single(ob.acceleration))
+
         extra_lines = []
         if isinstance(ob, Ship):
             ob_type = 'Ship'
-            look = ob.cockpit.camera.current_axes[0]
-            extra_lines.extend([
-                '<h2>Cockpit</h2>',
-                f'<red>Looking</red>: <code>{format_vector(look)}</code>',
-                f'<red>Looking</red>: <code>{format_latlong(latlong_single(look))}</code>',
-            ])
+            if verbose:
+                look = latlong_single(ob.cockpit.camera.current_axes[0])
+                extra_lines.extend([
+                    '<h2>Cockpit</h2>',
+                    f'<red>Looking</red>: <code>{format_latlong(look)}</code>',
+                ])
+        title_name = f'<white>#{ob.oid:>3} {escape_html(ob.name)}</white>'
+        title_type = f' <{color}>({escape_html(ob_type)})</{color}>'
         return '\n'.join([
-            f'<h1>#{ob.oid} {escape_html(ob.name)}</h1>',
-            f'<bold><underline><{color}>{escape_html(ob_type)}</{color}></underline></bold>',
-            f'<red>Dir</red>: <code>{format_latlong(dir)}</code>',
-            f'<red>Vel</red>: <code>{format_vector(ob.velocity)}</code>',
-            f'<red>Pos</red>: <code>{format_vector(ob.position)}</code>',
+            f'<bold><underline>{title_name}{title_type}</underline></bold>',
+            f'<red>Pos</red>: <code>{player_dist:.1f} [{format_latlong(dir)}]</code>{p}',
+            f'<red>Vel</red>: <code>{vmag:.4f} [{vdir}]</code>{v}',
+            f'<red>Acc</red>: <code>{amag:.4f} [{adir}]</code>{a}',
             *extra_lines,
         ])
 
