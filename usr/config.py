@@ -1,7 +1,7 @@
 FPS = 20
 DEFAULT_SIMRATE = -5
 
-CELESTIAL_BODIES = 100
+CELESTIAL_BODIES = 5
 COMPUTER_PLAYERS = 100
 
 LAYOUT_SCREENS = {
@@ -31,6 +31,7 @@ HOTKEY_COMMANDS = {
     # ship window controls
     'I': 'ship.burn',
     'K': 'ship.cut',
+    'J': 'ship.break 1',
     '^ l': 'cockpit.labels',
     'up': 'cockpit.move +100',
     '+ up': 'cockpit.move +1',

@@ -40,14 +40,24 @@ class Ship(DeepSpaceObject):
         if mag == 0:
             m = f'{self} trying to engine burn without direction: {vector}'
             logger.warning(m)
+            return
         vector *= self.thrust * throttle / mag
-        self.universe.engine.get_derivative_second('position')[self.oid] += vector
-
-    def engine_break_burn(self):
-        self.engine_burn(-self.universe.velocities[self.oid])
+        self.universe.engine.get_derivative_second('position')[self.oid] = vector
 
     def engine_cut_burn(self):
         self.universe.engine.get_derivative_second('position')[self.oid] = 0
+
+    def engine_break_burn(self, auto_cutoff=False):
+        v = self.universe.velocities[self.oid]
+        mag = np.linalg.norm(v)
+        if mag == 0:
+            m = f'{self} trying to engine burn without direction: {vector}'
+            logger.warning(m)
+            return
+        self.engine_burn(-v)
+        if auto_cutoff:
+            cutoff = self.universe.tick + round(mag / self.thrust)
+            self.universe.add_event(tick=cutoff, callback=self.engine_cut_burn)
 
     def fly_to(self, oid, cruise_speed):
         target = self.universe.ds_objects[oid]
