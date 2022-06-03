@@ -4,7 +4,7 @@ import numpy as np
 from inspect import signature
 
 from gui import format_vector, format_latlong, OBJECT_COLORS, escape_html
-from usr.config import DEFAULT_SIMRATE, HOTKEY_COMMANDS
+from usr.config import DEFAULT_SIMRATE, HOTKEY_COMMANDS, CELESTIAL_BODIES, COMPUTER_PLAYERS
 from logic import CELESTIAL_NAMES, RNG
 from logic.events import EventQueue
 from logic.admiral import Player, Agent
@@ -15,8 +15,6 @@ from logic.engine import Engine
 
 
 UNIVERSE_INTERVAL = 1_000_000
-CELESTIAL_BODIES = 50
-COMPUTER_PLAYERS = 5
 UNIVERSE_SIZE = 10**6
 
 

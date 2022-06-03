@@ -1,10 +1,15 @@
 FPS = 20
 DEFAULT_SIMRATE = -5
+
+CELESTIAL_BODIES = 100
+COMPUTER_PLAYERS = 100
+
 LAYOUT_SCREENS = {
     'multi': ['display', 'browser'],
     'debug': ['debug', 'events'],
     'display': ['display'],
 }
+
 HOTKEY_COMMANDS = {
     '^ f12': 'debug',
     '^ f1': 'layout.screen 0',

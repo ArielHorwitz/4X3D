@@ -8,7 +8,7 @@ from logic import CELESTIAL_NAMES
 from logic.dso.ship import Ship
 
 
-PREFIXES = ['XSS'] + ['KRS', 'ISS', 'JTS', 'VSS'] * 5
+PREFIXES = ['XSS', 'KRS', 'ISS', 'JTS', 'VSS']
 ADMIRAL_POLL_INTERVAL = 1000
 
 
@@ -17,7 +17,7 @@ class Admiral:
         self.universe = universe
         self.fid = fid
         self.name = name
-        self.ship_prefix = PREFIXES[self.fid]
+        self.ship_prefix = random.choice(PREFIXES)
         self.my_ships = []
 
     def setup(self):

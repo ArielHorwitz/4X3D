@@ -39,7 +39,6 @@ class Engine:
             new_shape[1] = 1
             new_entry = np.zeros(new_shape, dtype=stat_table.dtype)
             new_table = np.concatenate((stat_table, new_entry), dtype=stat_table.dtype, axis=1)
-            logger.debug(f'add_objects {new_table.shape} ?= {self.object_count}')
             assert new_table.shape[1] == self.object_count
             new_stats[stat_name] = new_table
         self.stats = new_stats
