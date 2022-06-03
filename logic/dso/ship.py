@@ -10,6 +10,7 @@ from logic.dso.dso import DeepSpaceObject
 class Ship(DeepSpaceObject):
     def __init__(self):
         self.thrust = 1
+        self.current_flight = None
 
     def setup(self, universe, oid, name, color=1, controller=None):
         super().setup(universe, oid, name, color)
@@ -62,8 +63,13 @@ class Ship(DeepSpaceObject):
         self.engine_burn(travel_vector)
         self.universe.add_event(tick=plan.cutoff, callback=self.engine_cut_burn)
         self.universe.add_event(tick=plan.break_burn, callback=self.engine_break_burn)
-        self.universe.add_event(tick=plan.arrival, callback=self.engine_cut_burn)
+        self.universe.add_event(tick=plan.arrival, callback=self.end_flight)
+        self.current_flight = plan
         return plan
+
+    def end_flight(self):
+        self.engine_cut_burn()
+        self.current_flight = None
 
     @staticmethod
     def _simple_flight_plan(travel_dist, cruise_speed, thrust, tick_offset=0):
@@ -85,6 +91,20 @@ class Ship(DeepSpaceObject):
 
     def __repr__(self):
         return f'<Ship #{self.oid} {self.name}>'
+
+    @property
+    def current_orders(self):
+        if self.current_flight:
+            return self.format_fp(self.current_flight)
+        return 'Idle.'
+
+    def format_fp(self, fp):
+        remaining = self.universe.tick - fp.arrival
+        if self.universe.tick < fp.cutoff:
+            return f'Cruise burn: {self.universe.tick - fp.cutoff} ({remaining})'
+        elif self.universe.tick < fp.break_burn:
+            return f'Cruising: {self.universe.tick - fp.break_burn} ({remaining})'
+        return f'Break burn: {self.universe.tick - fp.arrival}'
 
 
 FlightPlan = namedtuple('FlightPlan', ['cutoff', 'break_burn', 'arrival', 'total'])

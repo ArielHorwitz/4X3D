@@ -229,12 +229,14 @@ class Universe:
         extra_lines = []
         if isinstance(ob, Ship):
             ob_type = 'Ship'
+            extra_lines.extend([
+                '<h2>Cockpit</h2>',
+                f'<red>Current orders</red>:',
+                f'<italic>{ob.current_orders}</italic>',
+            ])
             if verbose:
                 look = latlong_single(ob.cockpit.camera.current_axes[0])
-                extra_lines.extend([
-                    '<h2>Cockpit</h2>',
-                    f'<red>Looking</red>: <code>{format_latlong(look)}</code>',
-                ])
+                extra_lines.append(f'<red>Looking</red>: <code>{format_latlong(look)}</code>')
         title_name = f'<white>#{ob.oid:>3} {escape_html(ob.name)}</white>'
         title_type = f' <{color}>({escape_html(ob_type)})</{color}>'
         return '\n'.join([
