@@ -56,7 +56,7 @@ class Ship(DeepSpaceObject):
             return
         self.engine_burn(-v)
         if auto_cutoff:
-            cutoff = self.universe.tick + round(mag / self.thrust)
+            cutoff = self.universe.tick + mag / self.thrust
             self.universe.add_event(tick=cutoff, callback=self.engine_cut_burn)
 
     def fly_to(self, oid, cruise_speed):
@@ -83,20 +83,20 @@ class Ship(DeepSpaceObject):
 
     @staticmethod
     def _simple_flight_plan(travel_dist, cruise_speed, thrust, tick_offset=0):
-        burn_time = round(cruise_speed / thrust)
+        burn_time = cruise_speed / thrust
         burn_distance = burn_time * (burn_time + 1) // 2 * thrust
         while burn_distance >= travel_dist / 2:
             cruise_speed *= 0.95
-            burn_time = round(cruise_speed / thrust)
+            burn_time = cruise_speed / thrust
             burn_distance = burn_time * (burn_time + 1) // 2 * thrust
         cruise_dist = travel_dist - (burn_distance * 2)
-        cruise_time = round(cruise_dist / cruise_speed)
+        cruise_time = cruise_dist / cruise_speed
         total = burn_time * 2 + cruise_time
         cutoff = tick_offset + burn_time
         break_burn = cutoff + cruise_time
         arrival = break_burn + burn_time
-        assert arrival == tick_offset + total
         fp = FlightPlan(cutoff, break_burn, arrival, total)
+        assert arrival / (tick_offset + total) - 1 < EPSILON
         return fp
 
     def __repr__(self):
@@ -111,10 +111,11 @@ class Ship(DeepSpaceObject):
     def format_fp(self, fp):
         remaining = self.universe.tick - fp.arrival
         if self.universe.tick < fp.cutoff:
-            return f'Cruise burn: {self.universe.tick - fp.cutoff} ({remaining})'
+            return f'Cruise burn: {self.universe.tick - fp.cutoff:.4f} ({remaining:.4f})'
         elif self.universe.tick < fp.break_burn:
-            return f'Cruising: {self.universe.tick - fp.break_burn} ({remaining})'
-        return f'Break burn: {self.universe.tick - fp.arrival}'
+            return f'Cruising: {self.universe.tick - fp.break_burn:.4f} ({remaining:.4f})'
+        return f'Break burn: {self.universe.tick - fp.arrival:.4f}'
 
 
 FlightPlan = namedtuple('FlightPlan', ['cutoff', 'break_burn', 'arrival', 'total'])
+EPSILON = 10**-10
