@@ -12,13 +12,14 @@ FlightPlan = namedtuple('FlightPlan', ['cutoff', 'break_burn', 'arrival', 'total
 
 
 class Ship(DeepSpaceObject):
-    def __init__(self):
+    TYPE_NAME = 'ship'
+
+    def setup(self, name, controller=None):
+        self.name = name
+        self.label = f'§{self.oid} {self.name}'
+        self.color = self.OBJECT_COLORS[self.TYPE_NAME.lower()]
         self.thrust = 1
         self.current_flight = None
-
-    def setup(self, universe, oid, name, color=1, controller=None):
-        super().setup(universe, oid, name, color)
-        self.label = f'§{self.oid} {self.name}'
         self.cockpit = Cockpit(ship=self, controller=controller)
         self.cockpit.follow(self.oid)
         self.stats = defaultdict(lambda: 0)
@@ -105,7 +106,7 @@ class Ship(DeepSpaceObject):
         return fp
 
     def __repr__(self):
-        return f'<Ship #{self.oid} {self.name}>'
+        return f'<Ship {self.label}>'
 
     @property
     def current_orders(self):

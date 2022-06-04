@@ -70,7 +70,7 @@ class Cockpit:
         return charmap
 
     def get_tags(self):
-        return [OBJECT_COLORS[dso.color] for dso in self.universe.ds_objects]
+        return [dso.color for dso in self.universe.ds_objects]
 
     def get_labels(self):
         labels = []

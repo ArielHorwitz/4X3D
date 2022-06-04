@@ -10,7 +10,7 @@ from logic import CELESTIAL_NAMES, RNG
 from logic.events import EventQueue
 from logic.admiral import Player, Agent
 from logic.dso.ship import Ship
-from logic.dso.dso import DeepSpaceObject
+from logic.dso.dso import DeepSpaceObject, SMBH, Star, Rock
 from logic.quaternion import latlong_single
 from logic.engine import Engine
 
@@ -31,7 +31,7 @@ class Universe:
         self.auto_simrate = DEFAULT_SIMRATE
         self.admirals = []
         self.ds_objects = []
-        self.make_rocks(CELESTIAL_BODIES)
+        self.make_rocks(*CELESTIAL_BODIES)
         self.add_player(name='Dev')
         for i in range(COMPUTER_PLAYERS):
             self.add_agent(name=f'Admiral #{i+1}')
@@ -142,19 +142,23 @@ class Universe:
         return self.engine.get_derivative('position')
 
     # Deep space objects
-    def add_object(self, ds_object):
-        assert isinstance(ds_object, DeepSpaceObject)
-        new_oid = len(self.ds_objects)
+    def add_object(self, dso_cls, **kwargs):
+        new_oid = self.object_count
         self.engine.add_objects(1)
+        ds_object = dso_cls(universe=self, oid=new_oid)
+        assert isinstance(ds_object, DeepSpaceObject)
         self.ds_objects.append(ds_object)
         assert self.object_count == len(self.ds_objects)
+        ds_object.setup(**kwargs)
         return new_oid
 
-    def make_rocks(self, count=1):
-        for i in range(count):
-            new_rock = DeepSpaceObject()
-            new_oid = self.add_object(new_rock)
-            new_rock.setup(universe=self, oid=new_oid, name=CELESTIAL_NAMES[i])
+    def make_rocks(self, smbh=1, star=5, rock=10):
+        for i in range(smbh):
+            new_oid = self.add_object(SMBH, name=CELESTIAL_NAMES[i])
+        for j in range(star):
+            new_oid = self.add_object(Star, name=CELESTIAL_NAMES[i+j+1])
+        for k in range(rock):
+            new_oid = self.add_object(Rock, name=CELESTIAL_NAMES[i+j+k+1])
 
     @property
     def object_count(self):
@@ -237,8 +241,8 @@ class Universe:
 
     def inspection_content(self, oid, size, verbose=True):
         ob = self.ds_objects[oid]
-        ob_type = 'Deep space object'
-        color = OBJECT_COLORS[ob.color]
+        ob_type = ob.TYPE_NAME
+        color = ob.color
         ob_rel_vector = ob.position - self.player_ship.position
         dir = latlong_single(ob_rel_vector)
         player_dist = np.linalg.norm(ob_rel_vector)
@@ -252,7 +256,6 @@ class Universe:
 
         extra_lines = []
         if isinstance(ob, Ship):
-            ob_type = 'Ship'
             extra_lines.extend([
                 '<h2>Cockpit</h2>',
                 f'<red>Current orders</red>:',

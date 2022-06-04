@@ -21,13 +21,8 @@ class Admiral:
         self.my_ships = []
 
     def setup(self):
-        my_ship = Ship()
-        new_oid = self.universe.add_object(my_ship)
-        my_ship.setup(
-            universe=self.universe, oid=new_oid,
-            name=f'{self.ship_prefix}. {random.choice(CELESTIAL_NAMES)}',
-            color=random.randint(0, len(OBJECT_COLORS)-1),
-        )
+        name = f'{self.ship_prefix}. {random.choice(CELESTIAL_NAMES)}'
+        new_oid = self.universe.add_object(Ship, name=name)
         self.my_ships.append(new_oid)
 
     def __repr__(self):
@@ -45,15 +40,9 @@ class Admiral:
 class Player(Admiral):
     def setup(self):
         assert self.fid == 0
+        name = f'{self.ship_prefix}. {random.choice(CELESTIAL_NAMES)}'
         controller = self.universe.controller
-        my_ship = Ship()
-        new_oid = self.universe.add_object(my_ship)
-        my_ship.setup(
-            universe=self.universe, oid=new_oid,
-            name=f'{self.ship_prefix}. {random.choice(CELESTIAL_NAMES)}',
-            color=random.randint(0, len(OBJECT_COLORS)-1),
-            controller=controller,
-        )
+        new_oid = self.universe.add_object(Ship, name=name, controller=controller)
         self.my_ships.append(new_oid)
 
 

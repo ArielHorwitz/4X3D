@@ -2,16 +2,30 @@ from gui import OBJECT_COLORS
 
 
 class DeepSpaceObject:
-    def __init__(self):
-        pass
+    OBJECT_COLORS = {
+        'smbh': 'grey',
+        'star': 'white',
+        'rock': 'brown',
+        'ship': 'green',
+        '': 'red',
+        '': 'pink',
+        '': 'yellow',
+        '': 'orange',
+        '': 'blue',
+        '': 'cyan',
+        '': 'magenta',
+        '': 'purple',
+    }
+    TYPE_NAME = 'Object'
 
-    def setup(self, universe, oid, name, color=0):
+    def __init__(self, universe, oid):
         self.universe = universe
         self.oid = oid
+
+    def setup(self, name):
+        self.color = self.OBJECT_COLORS[self.TYPE_NAME.lower()]
         self.name = name
         self.label = f'¤{self.oid} {self.name}'
-        self.color = color
-        assert 0 <= color <= len(OBJECT_COLORS)
 
     @property
     def position(self):
@@ -26,4 +40,14 @@ class DeepSpaceObject:
         return self.universe.engine.get_derivative_second('position', self.oid)
 
     def __repr__(self):
-        return f'<DeepSpaceObject #{self.oid} {self.name}>'
+        return f'<DeepSpaceObject {self.label}>'
+
+
+class SMBH(DeepSpaceObject):
+    TYPE_NAME = 'SMBH'
+
+class Star(DeepSpaceObject):
+    TYPE_NAME = 'star'
+
+class Rock(DeepSpaceObject):
+    TYPE_NAME = 'rock'

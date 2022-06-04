@@ -1,12 +1,12 @@
 FPS = 20
-DEFAULT_SIMRATE = -5
+DEFAULT_SIMRATE = -100
 
-CELESTIAL_BODIES = 5
-COMPUTER_PLAYERS = 100
+CELESTIAL_BODIES = 1, 50, 200
+COMPUTER_PLAYERS = 50
 
 LAYOUT_SCREENS = {
     'multi': ['display', 'browser'],
-    'debug': ['debug', 'events'],
+    'debug': ['debug', 'events', 'browser'],
     'display': ['display'],
 }
 
@@ -14,7 +14,7 @@ CUSTOM_COMMANDS = {
     'debug': 'debug && uni.debug',
     'obs': 'cockpit.follow && cockpit.move -10_000_000',
     'init': '&recursion && recenter && ship.break 1',
-    'recenter': 'cockpit.follow && inspect 5 && cockpit.reset_zoom',
+    'recenter': f'cockpit.follow && inspect {sum(CELESTIAL_BODIES)} && cockpit.reset_zoom',
 }
 
 HOTKEY_COMMANDS = {
