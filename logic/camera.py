@@ -67,18 +67,17 @@ class Camera:
             self.track(None)
 
     def rotate(self, yaw=0, pitch=0, roll=0, consider_zoom=True, disable_track=True):
-        axes = self.current_axes
         if consider_zoom:
             yaw /= self.__zoom_level
             pitch /= self.__zoom_level
         if yaw:
-            yaw_qrot = Quat.from_vector_angle(axes[2], yaw)
+            yaw_qrot = Quat.from_vector_angle(self.current_axes[2], yaw)
             self.rotation = Quat.multi(self.rotation, yaw_qrot)
-        elif pitch:
-            pitch_qrot = Quat.from_vector_angle(axes[1], pitch)
+        if pitch:
+            pitch_qrot = Quat.from_vector_angle(self.current_axes[1], pitch)
             self.rotation = Quat.multi(self.rotation, pitch_qrot)
-        elif roll:
-            roll_qrot = Quat.from_vector_angle(axes[0], roll)
+        if roll:
+            roll_qrot = Quat.from_vector_angle(self.current_axes[0], roll)
             self.rotation = Quat.multi(self.rotation, roll_qrot)
         if disable_track:
             self.track(None)
