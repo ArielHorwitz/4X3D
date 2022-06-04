@@ -18,7 +18,7 @@ class Ship(DeepSpaceObject):
 
     def setup(self, name, controller=None):
         self.name = name
-        self.label = f'§{self.oid} {self.name}'
+        self.label = f'{self.icon}{self.oid} {self.name}'
         self.color = self.OBJECT_COLORS[self.type_name.lower()]
         self.current_flight = None
         self.cockpit = Cockpit(ship=self, controller=controller)

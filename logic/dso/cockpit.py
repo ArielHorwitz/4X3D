@@ -101,9 +101,9 @@ class Cockpit:
         ob = self.universe.ds_objects[oid]
         lbl = ''
         if self.show_labels == 1:
-            lbl = f'#{ob.oid}'
+            lbl = f'{ob.oid}'
         elif self.show_labels >= 2:
-            lbl = ob.label
+            lbl = f'{ob.oid}.{ob.name}'
         if self.show_labels == 3:
             dist = np.linalg.norm(self.camera.pos - ob.position)
             lbl = f'{lbl} ({dist:.3e})'

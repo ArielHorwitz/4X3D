@@ -27,7 +27,7 @@ class DeepSpaceObject:
     def setup(self, name):
         self.color = self.OBJECT_COLORS[self.type_name.lower()]
         self.name = name
-        self.label = f'¤{self.oid} {self.name}'
+        self.label = f'{self.icon}{self.oid} {self.name}'
 
     @property
     def position(self):
