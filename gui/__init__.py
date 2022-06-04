@@ -14,7 +14,6 @@ class SizeAwareFormattedTextControl(FormattedTextControl):
         return super().create_content(width, height)
 
 
-ASCII_ASPECT_RATIO = 29/64
 COLOR_HEXES = {
     'black': '#000000',
     'white': '#ffffff',

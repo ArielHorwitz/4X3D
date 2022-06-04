@@ -1,7 +1,8 @@
 from loguru import logger
 import numpy as np
 from logic.quaternion import Quaternion as Quat, latlong_single, latlong, unit_vectors
-from gui import format_latlong, format_vector, ASCII_ASPECT_RATIO
+from gui import format_latlong, format_vector
+from usr.config import ASCII_ASPECT_RATIO
 
 
 class Camera:
