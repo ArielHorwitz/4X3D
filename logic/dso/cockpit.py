@@ -15,6 +15,8 @@ class Cockpit:
         self.show_labels = 1
         self.camera_following = None
         self.camera_tracking = None
+        self._last_charmap_state = bytes(1)
+        self._last_charmap = ''
         if controller:
             self.register_commands(controller)
 
@@ -59,6 +61,15 @@ class Cockpit:
 
     # Display
     def get_charmap(self, size):
+        state = ''.join([
+            str(self.universe.tick),
+            str(size),
+            str(self.show_labels),
+            str(self.camera.state),
+        ])
+        current_state = bytes(state, encoding='utf-8')
+        if self._last_charmap_state == current_state:
+            return self._last_charmap
         labels = self.get_labels()
         tags = self.get_tags()
         charmap = self.camera.get_charmap(
@@ -67,6 +78,8 @@ class Cockpit:
             tags=tags,
             labels=labels,
         )
+        self._last_charmap_state = current_state
+        self._last_charmap = charmap
         return charmap
 
     def get_tags(self):

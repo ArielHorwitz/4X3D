@@ -24,6 +24,11 @@ class Camera:
             'roll': self.roll,
         }
 
+    @property
+    def state(self):
+        self.update()
+        return f'{self.pos}{self.rotation}{self.__zoom_level}'
+
     def follow(self, callback=None):
         if callback is not None:
             assert callable(callback)
