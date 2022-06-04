@@ -1,4 +1,5 @@
 
+import math
 import arrow
 from prompt_toolkit.layout.containers import Window, HSplit, VSplit
 from prompt_toolkit.widgets import TextArea
@@ -33,11 +34,13 @@ class Prompt(HSplit):
         self.prompt_text.content.text = HTML(s)
         self.prompt_text.width = self.prompt_text.content.preferred_width(30)
         size = f'{window_size().columns}×{window_size().lines} ({swidth}×{sheight})'
+        simrate = self.app.universe.auto_simrate
         self.status_bar.text = HTML(tag('cyan', ' | ').join([
-            tag('code', str(arrow.get().format('YY-MM-DD, hh:mm:ss'))),
             tag('code', size),
-            tag('code', escape_html(f'<{self.app._last_key}>')),
+            tag('code', str(arrow.get().format('YY-MM-DD, hh:mm:ss'))),
+            tag('code', f'{self.app.universe.tick:.1f} (+{math.fabs(simrate):.1f})'),
             tag('code', f'>> {self.app.universe.feedback_str}'),
+            tag('code', escape_html(f'<{self.app._last_key}>')),
         ]))
 
     def defocus(self):
