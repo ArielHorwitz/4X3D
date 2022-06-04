@@ -20,7 +20,7 @@ from gui.screenswitch import ScreenSwitcher
 from gui.prompt import Prompt
 from gui.keybinds import get_keybindings, encode_keyseq
 from usr.config import FPS, LAYOUT_SCREENS, CUSTOM_COMMANDS, HOTKEY_COMMANDS
-from logic.universe import Universe
+from logic.universe.universe import Universe
 
 FRAME_TIME = 1 / FPS
 logger.info(f'Running at {FPS} FPS ({FRAME_TIME*1000:.1f} ms)')

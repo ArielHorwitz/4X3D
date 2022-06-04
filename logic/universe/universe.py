@@ -7,12 +7,12 @@ from inspect import signature
 from gui import format_vector, format_latlong, OBJECT_COLORS, escape_html
 from usr.config import DEFAULT_SIMRATE, HOTKEY_COMMANDS, CELESTIAL_BODIES, COMPUTER_PLAYERS
 from logic import CELESTIAL_NAMES, RNG
-from logic.events import EventQueue
-from logic.admiral import Player, Agent
+from logic._3d import latlong_single
+from logic.universe.events import EventQueue
+from logic.universe.engine import Engine
 from logic.dso.ship import Ship
 from logic.dso.dso import DeepSpaceObject, SMBH, Star, Rock
-from logic._3d import latlong_single
-from logic.engine import Engine
+from logic.admiral import Player, Agent
 
 
 UNIVERSE_INTERVAL = 1_000_000
