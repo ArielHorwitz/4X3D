@@ -1,0 +1,4 @@
+arrow==1.2.2
+loguru==0.6.0
+numpy==1.22.3
+prompt-toolkit==3.0.29
