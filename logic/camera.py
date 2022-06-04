@@ -19,6 +19,9 @@ class Camera:
             'flip': self.flip,
             'zoom': self.adjust_zoom,
             'rotate': self.rotate,
+            'yaw': self.yaw,
+            'pitch': self.pitch,
+            'roll': self.roll,
         }
 
     def follow(self, callback=None):
@@ -81,6 +84,15 @@ class Camera:
             self.rotation = Quat.multi(self.rotation, roll_qrot)
         if disable_track:
             self.track(None)
+
+    def yaw(self, yaw):
+        self.rotate(yaw=yaw, consider_zoom=False)
+
+    def pitch(self, pitch):
+        self.rotate(pitch=pitch, consider_zoom=False)
+
+    def roll(self, roll):
+        self.rotate(roll=roll)
 
     def flip(self):
         self.rotate(yaw=180, consider_zoom=False)
