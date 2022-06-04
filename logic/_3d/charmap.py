@@ -4,7 +4,7 @@ import numpy as np
 from logic import EPSILON
 from logic._3d import unit_vectors
 from gui import format_latlong, format_vector
-from usr.config import ASPECT_RATIO, CROSSHAIR_COLOR
+from usr.config import CONFIG_DATA
 
 
 class CharMap:
@@ -77,11 +77,11 @@ class CharMap:
         if diagonal >= straight:
             diag_chars = '\\\\//'
             for i, (cx, cy) in enumerate(dcoords):
-                self.write_char(cx, cy, diag_chars[i], CROSSHAIR_COLOR)
+                self.write_char(cx, cy, diag_chars[i], CONFIG_DATA['CROSSHAIR_COLOR'])
         else:
             straight_chars = '││──'
             for i, (cx, cy) in enumerate(scoords):
-                self.write_char(cx, cy, straight_chars[i], CROSSHAIR_COLOR)
+                self.write_char(cx, cy, straight_chars[i], CONFIG_DATA['CROSSHAIR_COLOR'])
 
     def add_prograde_retrograde(self, velocity, show_labels=False, show_speed=False):
         mag = np.linalg.norm(velocity)
@@ -101,7 +101,7 @@ class CharMap:
         # Convert 3d position to mercator projection (latitude, longitude)
         ll_coords = self.camera.get_projected_coords(points)
         # Stretch to aspect ratio and zoom to get pixel coordinates
-        pix = ll_coords * [1, ASPECT_RATIO] * self.camera.zoom
+        pix = ll_coords * [1, CONFIG_DATA['ASPECT_RATIO']] * self.camera.zoom
         # Offset such that pixel 0, 0 is at the center
         pix += self.center
         # Reverse vertically such that higher latitudes are higher in the map

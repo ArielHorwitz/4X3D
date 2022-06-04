@@ -2,7 +2,7 @@ from loguru import logger
 import numpy as np
 from functools import partial
 
-from usr.config import SHOW_LABELS
+from usr.config import CONFIG_DATA
 from gui import OBJECT_COLORS
 from logic import CELESTIAL_NAMES
 from logic._3d.camera import Camera
@@ -14,7 +14,7 @@ class Cockpit:
     def __init__(self, ship, controller=None):
         self.ship = ship
         self.camera = Camera()
-        self.show_labels = SHOW_LABELS
+        self.show_labels = CONFIG_DATA['SHOW_LABELS']
         self.camera_following = None
         self.camera_tracking = None
         self._last_charmap_state = bytes(1)

@@ -1,11 +1,11 @@
 from loguru import logger
 import arrow
 import numpy as np
-from datetime import timedelta
+import random
 from inspect import signature
 
-from gui import format_vector, format_latlong, OBJECT_COLORS, escape_html
-from usr.config import DEFAULT_SIMRATE, HOTKEY_COMMANDS, CELESTIAL_BODIES, COMPUTER_PLAYERS
+from gui import format_vector, format_latlong, escape_html
+from usr.config import CONFIG_DATA
 from logic import CELESTIAL_NAMES, RNG
 from logic._3d import latlong_single
 from logic.universe.events import EventQueue
@@ -28,18 +28,69 @@ class Universe:
         self.controller = controller
         self.tick = 0
         self.__last_tick_time = arrow.now()
-        self.auto_simrate = DEFAULT_SIMRATE
+        self.auto_simrate = CONFIG_DATA['DEFAULT_SIMRATE']
         self.admirals = []
         self.ds_objects = []
         self.ds_celestials = self.ds_ships = np.ndarray((0), dtype=np.bool)
-        self.make_rocks(*CELESTIAL_BODIES)
-        self.add_player(name='Dev')
-        for i in range(COMPUTER_PLAYERS):
-            self.add_agent(name=f'Admiral #{i+1}')
-        self.randomize_positions()
+        self.genesis()
         self.register_commands(controller)
         self.interval_event()
         self.inspect(None)
+
+    # Genesis
+    def genesis(self):
+        self.add_player(name='Dev')
+        self.generate_smbh()
+        for i in range(CONFIG_DATA['COMPUTER_PLAYERS']):
+            self.add_agent(name=f'Admiral #{i+1}')
+        self.randomize_positions()
+
+    def generate_smbh(self):
+        # Generate smbh
+        new_oid = self.add_object(SMBH, name='SMBH')
+        # Generate child stars
+        star_count = round(random.gauss(*CONFIG_DATA['SPAWN_RATE']['star']))
+        logger.debug(f'GENERATE_SMBH: {star_count} stars')
+        for j in range(star_count):
+            self.generate_star(new_oid)
+
+    def generate_star(self, parent_oid):
+        parent = self.ds_objects[parent_oid]
+        # Generate star
+        new_oid = self.add_object(Star, name=random.choice(CELESTIAL_NAMES))
+        star = self.ds_objects[new_oid]
+        # Reposition
+        spawn = CONFIG_DATA['SPAWN_OFFSET']['star']
+        offset = np.random.normal(0, spawn, size=3)
+        star.position[:] = parent.position + offset
+        # Generate child rocks
+        rock_count = round(random.gauss(*CONFIG_DATA['SPAWN_RATE']['rock']))
+        logger.debug('\n'.join([
+            f'GENERATE_STAR: {parent} -> {new_oid}',
+            f'parent: {parent.position}',
+            f'offset: {offset}',
+            f'spawn: {star.position}',
+            f'rocks: {rock_count}',
+        ]))
+        for k in range(rock_count):
+            self.generate_rock(new_oid)
+
+    def generate_rock(self, parent_oid):
+        parent = self.ds_objects[parent_oid]
+        # Generate rock
+        new_oid = self.add_object(Rock, name=random.choice(CELESTIAL_NAMES))
+        rock = self.ds_objects[new_oid]
+        # Reposition
+        spawn = CONFIG_DATA['SPAWN_OFFSET']['rock']
+        offset = np.random.normal(0, spawn, size=3)
+        rock.position[:] = parent.position + offset
+        logger.debug('\n'.join([
+            f'GENERATE_ROCK: {parent} -> {new_oid}',
+            f'parent: {parent.position}',
+            f'offset: {offset}',
+            f'spawn: {rock.position}',
+        ]))
+
 
     def update(self):
         if self.auto_simrate > 0:
@@ -96,7 +147,7 @@ class Universe:
 
     def toggle_autosim(self, set_to=None):
         if set_to is None:
-            set_to = DEFAULT_SIMRATE if self.auto_simrate == 0 else -self.auto_simrate
+            set_to = CONFIG_DATA['DEFAULT_SIMRATE'] if self.auto_simrate == 0 else -self.auto_simrate
         self.set_simrate(set_to)
         s = 'in progress' if self.auto_simrate > 0 else 'paused'
         tag = 'blank' if self.auto_simrate > 0 else 'orange'
@@ -131,8 +182,8 @@ class Universe:
     def randomize_positions(self):
         offset = UNIVERSE_SIZE
         half_offset = offset / 2
-        new_pos = RNG.random((self.engine.object_count, 3)) * offset - half_offset
-        self.positions[:] = new_pos
+        new_pos = RNG.random((self.ds_ships.sum(), 3)) * offset - half_offset
+        self.positions[self.ds_ships] = new_pos
 
     @property
     def positions(self):
@@ -156,14 +207,6 @@ class Universe:
         assert self.object_count == len(self.ds_objects) == len(self.ds_ships) == len(self.ds_celestials)
         ds_object.setup(**kwargs)
         return new_oid
-
-    def make_rocks(self, smbh=1, star=5, rock=10):
-        for i in range(smbh):
-            new_oid = self.add_object(SMBH, name=CELESTIAL_NAMES[i])
-        for j in range(star):
-            new_oid = self.add_object(Star, name=CELESTIAL_NAMES[i+j+1])
-        for k in range(rock):
-            new_oid = self.add_object(Rock, name=CELESTIAL_NAMES[i+j+k+1])
 
     @property
     def object_count(self):
@@ -303,5 +346,5 @@ class Universe:
         for k, v in self.controller.commands.items()])
 
     def help_hotkeys(self):
-        r = '\n'.join([f'{k:>11}: {v}' for k, v in HOTKEY_COMMANDS.items()])
+        r = '\n'.join([f'{k:>11}: {v}' for k, v in CONFIG_DATA['HOTKEY_COMMANDS'].items()])
         self.browse_content_callback = lambda *a: r

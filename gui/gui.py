@@ -19,9 +19,10 @@ from gui.controller import Controller
 from gui.screenswitch import ScreenSwitcher
 from gui.prompt import Prompt
 from gui.keybinds import get_keybindings, encode_keyseq
-from usr.config import FPS, LAYOUT_SCREENS, CUSTOM_COMMANDS, HOTKEY_COMMANDS
+from usr.config import CONFIG_DATA
 from logic.universe.universe import Universe
 
+FPS = CONFIG_DATA['FPS']
 FRAME_TIME = 1 / FPS
 logger.info(f'Running at {FPS} FPS ({FRAME_TIME*1000:.1f} ms)')
 
@@ -69,7 +70,7 @@ class App(Application):
 
     def get_layout(self):
         self.prompt_window = Prompt(self, self.handle_prompt_input)
-        self.screen_switcher = ScreenSwitcher(app=self, screens=LAYOUT_SCREENS)
+        self.screen_switcher = ScreenSwitcher(app=self, screens=CONFIG_DATA['LAYOUT_SCREENS'])
         root_container = HSplit([
             self.screen_switcher,
             self.prompt_window,
@@ -93,8 +94,8 @@ class App(Application):
             if line == '&unrecursion':
                 custom_recursion = 0
                 continue
-            if custom_recursion > 0 and line in CUSTOM_COMMANDS:
-                line_text = CUSTOM_COMMANDS[line]
+            if custom_recursion > 0 and line in CONFIG_DATA['CUSTOM_COMMANDS']:
+                line_text = CONFIG_DATA['CUSTOM_COMMANDS'][line]
                 self.handle_prompt_input(line_text, custom_recursion=custom_recursion-1)
                 continue
             command, args = resolve_prompt_input(line)
@@ -103,8 +104,8 @@ class App(Application):
 
     def handle_hotkey(self, key):
         self._last_key = key
-        if key in HOTKEY_COMMANDS:
-            prompt_input = HOTKEY_COMMANDS[key]
+        if key in CONFIG_DATA['HOTKEY_COMMANDS']:
+            prompt_input = CONFIG_DATA['HOTKEY_COMMANDS'][key]
             # logger.debug(f'Hotkey <{key}> resolved to: {prompt_input}')
             self.handle_prompt_input(prompt_input)
         # else:
