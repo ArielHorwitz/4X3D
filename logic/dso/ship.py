@@ -51,7 +51,7 @@ class Ship(DeepSpaceObject):
         v = self.universe.velocities[self.oid]
         mag = np.linalg.norm(v)
         if mag == 0:
-            m = f'{self} trying to engine burn without direction: {vector}'
+            m = f'{self} trying to engine break burn without direction: {v}'
             logger.warning(m)
             return
         self.engine_burn(-v)
