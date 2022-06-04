@@ -38,11 +38,11 @@ class CharMap:
             f'<code>[{format_vector(self.camera.pos)}]</code>',
         ])
 
-    def add_objects(self, points, tag, label=None):
+    def add_objects(self, points, icon, tag, label=None):
         pix_pos = self.get_projected_pixels(points)
         labels = []
         for i, x, y in pix_pos:
-            self.write_char(x, y, '•', [tag(i), 'bold'])
+            self.write_char(x, y, icon(i), tag(i))
             if label:
                 labels.append((i, x, y))
         for i, x, y in labels:

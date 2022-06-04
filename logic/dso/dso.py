@@ -18,6 +18,7 @@ class DeepSpaceObject:
         '': 'purple',
     }
     type_name = 'Object'
+    icon = '?'
 
     def __init__(self, universe, oid):
         self.universe = universe
@@ -46,9 +47,12 @@ class DeepSpaceObject:
 
 class SMBH(DeepSpaceObject):
     type_name = 'SMBH'
+    icon = '■'
 
 class Star(DeepSpaceObject):
     type_name = 'star'
+    icon = '¤'
 
 class Rock(DeepSpaceObject):
     type_name = 'rock'
+    icon = '•'

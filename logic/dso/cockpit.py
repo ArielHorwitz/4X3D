@@ -67,7 +67,12 @@ class Cockpit:
         charmap = CharMap(self.camera, size)
         points = self.universe.positions
         label_getter = self.get_label if self.show_labels else None
-        charmap.add_objects(points=points, tag=self.get_tag, label=label_getter)
+        charmap.add_objects(
+            points=points,
+            icon=self.get_icon,
+            tag=self.get_tag,
+            label=label_getter,
+        )
         charmap.add_projection_axes()
         charmap.add_crosshair()
         return charmap.draw()
@@ -85,6 +90,9 @@ class Cockpit:
         self._last_charmap = self.draw_charmap(size=size)
         self._last_charmap_state = current_state
         return self._last_charmap
+
+    def get_icon(self, oid):
+        return self.universe.ds_objects[oid].icon
 
     def get_tag(self, oid):
         return self.universe.ds_objects[oid].color

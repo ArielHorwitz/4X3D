@@ -14,6 +14,7 @@ FlightPlan = namedtuple('FlightPlan', ['cutoff', 'break_burn', 'arrival', 'total
 class Ship(DeepSpaceObject):
     type_name = 'ship'
     thrust = 1
+    icon = '·'
 
     def setup(self, name, controller=None):
         self.name = name
@@ -126,18 +127,22 @@ class Ship(DeepSpaceObject):
 class Tug(Ship):
     type_name = 'tug'
     thrust = 0.01
+    icon = '¬'
 
 
 class Fighter(Ship):
     type_name = 'fighter'
     thrust = 3
+    icon = '‡'
 
 
 class Escort(Ship):
     type_name = 'escort'
     thrust = 1
+    icon = '≡'
 
 
 class Port(Ship):
     type_name = 'port'
     thrust = 0
+    icon = 'þ'
