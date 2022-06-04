@@ -93,7 +93,7 @@ class CharMap:
         return r
 
     def write_label(self, x, y, name):
-        x += 2
+        x += 3
         normal = self.count_empty_spaces(x, y)
         if normal >= len(name):
             self.insert_label(x, y, name)
@@ -113,7 +113,7 @@ class CharMap:
 
     def insert_label(self, x, y, name):
         for i, char in enumerate(name):
-            if x+i >= self.width or self.charmap[y][x+i] != ' ':
+            if x+i+1 >= self.width or self.charmap[y][x+i+1] != ' ':
                 break
             self.charmap[y][x+i] = char if char != ' ' else '<whitespace> </whitespace>'
 
