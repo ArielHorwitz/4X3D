@@ -31,6 +31,7 @@ class Universe:
         self.auto_simrate = DEFAULT_SIMRATE
         self.admirals = []
         self.ds_objects = []
+        self.ds_celestials = self.ds_ships = np.ndarray((0), dtype=np.bool)
         self.make_rocks(*CELESTIAL_BODIES)
         self.add_player(name='Dev')
         for i in range(COMPUTER_PLAYERS):
@@ -148,7 +149,11 @@ class Universe:
         ds_object = dso_cls(universe=self, oid=new_oid)
         assert isinstance(ds_object, DeepSpaceObject)
         self.ds_objects.append(ds_object)
-        assert self.object_count == len(self.ds_objects)
+        is_ship = isinstance(ds_object, Ship)
+        is_celestial = not is_ship
+        self.ds_ships = np.concatenate((self.ds_ships, [is_ship]))
+        self.ds_celestials = np.concatenate((self.ds_celestials, [is_celestial]))
+        assert self.object_count == len(self.ds_objects) == len(self.ds_ships) == len(self.ds_celestials)
         ds_object.setup(**kwargs)
         return new_oid
 
@@ -204,8 +209,17 @@ class Universe:
         t = arrow.get().format('YY-MM-DD, hh:mm:ss')
         ltt = arrow.now() - self.__last_tick_time
         object_summaries = []
-        for oid in range(min(30, self.object_count)):
-            object_summaries.append(self.inspection_content(oid, size, verbose=False))
+        for oid in np.flatnonzero(self.ds_celestials)[:5]:
+            ob = self.ds_objects[oid]
+            line = f'<{ob.color}>{ob.label} ({ob.TYPE_NAME})</{ob.color}>'
+            object_summaries.append(line)
+        object_summaries.append('...')
+        for oid in np.flatnonzero(self.ds_ships)[:30]:
+            ship = self.ds_objects[oid]
+            name = f'<{ship.color}>{ship.label} ({ship.TYPE_NAME})</{ship.color}>'
+            orders = f'<italic>{ship.current_orders}</italic>'
+            object_summaries.append(f'{name:<50} {orders}')
+            # object_summaries.append(self.inspection_content(oid, size, verbose=False))
         event_str = ''
         if len(self.events) > 0:
             ev = self.events.next
