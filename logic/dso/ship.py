@@ -12,13 +12,13 @@ FlightPlan = namedtuple('FlightPlan', ['cutoff', 'break_burn', 'arrival', 'total
 
 
 class Ship(DeepSpaceObject):
-    TYPE_NAME = 'ship'
+    type_name = 'ship'
     thrust = 1
 
     def setup(self, name, controller=None):
         self.name = name
         self.label = f'§{self.oid} {self.name}'
-        self.color = self.OBJECT_COLORS[self.TYPE_NAME.lower()]
+        self.color = self.OBJECT_COLORS[self.type_name.lower()]
         self.current_flight = None
         self.cockpit = Cockpit(ship=self, controller=controller)
         self.cockpit.follow(self.oid)
@@ -124,20 +124,20 @@ class Ship(DeepSpaceObject):
 
 
 class Tug(Ship):
-    TYPE_NAME = 'tug'
+    type_name = 'tug'
     thrust = 0.01
 
 
 class Fighter(Ship):
-    TYPE_NAME = 'fighter'
+    type_name = 'fighter'
     thrust = 3
 
 
 class Escort(Ship):
-    TYPE_NAME = 'escort'
+    type_name = 'escort'
     thrust = 1
 
 
 class Port(Ship):
-    TYPE_NAME = 'port'
+    type_name = 'port'
     thrust = 0

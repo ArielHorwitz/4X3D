@@ -17,14 +17,14 @@ class DeepSpaceObject:
         '': 'cyan',
         '': 'purple',
     }
-    TYPE_NAME = 'Object'
+    type_name = 'Object'
 
     def __init__(self, universe, oid):
         self.universe = universe
         self.oid = oid
 
     def setup(self, name):
-        self.color = self.OBJECT_COLORS[self.TYPE_NAME.lower()]
+        self.color = self.OBJECT_COLORS[self.type_name.lower()]
         self.name = name
         self.label = f'¤{self.oid} {self.name}'
 
@@ -45,10 +45,10 @@ class DeepSpaceObject:
 
 
 class SMBH(DeepSpaceObject):
-    TYPE_NAME = 'SMBH'
+    type_name = 'SMBH'
 
 class Star(DeepSpaceObject):
-    TYPE_NAME = 'star'
+    type_name = 'star'
 
 class Rock(DeepSpaceObject):
-    TYPE_NAME = 'rock'
+    type_name = 'rock'

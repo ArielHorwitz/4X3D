@@ -211,12 +211,12 @@ class Universe:
         object_summaries = []
         for oid in np.flatnonzero(self.ds_celestials)[:5]:
             ob = self.ds_objects[oid]
-            line = f'<{ob.color}>{ob.label} ({ob.TYPE_NAME})</{ob.color}>'
+            line = f'<{ob.color}>{ob.label} ({ob.type_name})</{ob.color}>'
             object_summaries.append(line)
         object_summaries.append('...')
         for oid in np.flatnonzero(self.ds_ships)[:30]:
             ship = self.ds_objects[oid]
-            name = f'<{ship.color}>{ship.label} ({ship.TYPE_NAME})</{ship.color}>'
+            name = f'<{ship.color}>{ship.label} ({ship.type_name})</{ship.color}>'
             orders = f'<italic>{ship.current_orders}</italic>'
             object_summaries.append(f'{name:<50} {orders}')
             # object_summaries.append(self.inspection_content(oid, size, verbose=False))
@@ -255,7 +255,7 @@ class Universe:
 
     def inspection_content(self, oid, size, verbose=True):
         ob = self.ds_objects[oid]
-        ob_type = ob.TYPE_NAME
+        ob_type = ob.type_name
         color = ob.color
         ob_rel_vector = ob.position - self.player_ship.position
         dir = latlong_single(ob_rel_vector)
