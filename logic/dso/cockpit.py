@@ -4,8 +4,8 @@ from functools import partial
 
 from gui import OBJECT_COLORS
 from logic import CELESTIAL_NAMES
-from logic.camera import Camera
-from logic.charmap import CharMap
+from logic._3d.camera import Camera
+from logic._3d.charmap import CharMap
 
 
 

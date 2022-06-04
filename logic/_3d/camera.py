@@ -1,6 +1,7 @@
 from loguru import logger
 import numpy as np
-from logic.quaternion import Quaternion as Quat, latlong_single, latlong, unit_vectors
+from logic._3d.quaternion import Quaternion as Quat
+from logic._3d import latlong_single, latlong, unit_vectors
 
 
 class Camera:

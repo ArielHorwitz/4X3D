@@ -2,7 +2,7 @@ from loguru import logger
 import numpy as np
 
 from logic import EPSILON
-from logic.quaternion import unit_vectors
+from logic._3d import unit_vectors
 from gui import format_latlong, format_vector
 from usr.config import ASPECT_RATIO, CROSSHAIR_COLOR
 

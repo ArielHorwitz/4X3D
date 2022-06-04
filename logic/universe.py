@@ -11,7 +11,7 @@ from logic.events import EventQueue
 from logic.admiral import Player, Agent
 from logic.dso.ship import Ship
 from logic.dso.dso import DeepSpaceObject, SMBH, Star, Rock
-from logic.quaternion import latlong_single
+from logic._3d import latlong_single
 from logic.engine import Engine
 
 
