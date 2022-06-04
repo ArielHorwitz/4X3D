@@ -75,6 +75,11 @@ class Cockpit:
         )
         charmap.add_projection_axes()
         charmap.add_crosshair()
+        charmap.add_prograde_retrograde(
+            velocity=self.ship.velocity,
+            show_labels=self.show_labels,
+            show_speed=self.show_labels > 1,
+        )
         return charmap.draw()
 
     def get_charmap(self, size):

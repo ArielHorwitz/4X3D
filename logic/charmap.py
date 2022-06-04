@@ -1,6 +1,7 @@
 from loguru import logger
 import numpy as np
 
+from logic import EPSILON
 from logic.quaternion import unit_vectors
 from gui import format_latlong, format_vector
 from usr.config import ASPECT_RATIO, CROSSHAIR_COLOR
@@ -81,6 +82,20 @@ class CharMap:
             straight_chars = '││──'
             for i, (cx, cy) in enumerate(scoords):
                 self.write_char(cx, cy, straight_chars[i], CROSSHAIR_COLOR)
+
+    def add_prograde_retrograde(self, velocity, show_labels=False, show_speed=False):
+        mag = np.linalg.norm(velocity)
+        if mag < EPSILON:
+            return
+        velocity = velocity * 10**10
+        pro_label = ret_label = None
+        if show_labels:
+            pro_label, ret_label = 'PROGRADE', 'RETROGRADE'
+        if show_labels and show_speed:
+            pro_label = f'PRO ({mag:.3f})'
+            ret_label = f'RET ({mag:.3f})'
+        self.add_object(velocity, '×', 'green', pro_label)
+        self.add_object(-velocity, '+', 'red', ret_label)
 
     def get_projected_pixels(self, points):
         # Convert 3d position to mercator projection (latitude, longitude)

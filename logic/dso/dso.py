@@ -41,6 +41,14 @@ class DeepSpaceObject:
     def acceleration(self):
         return self.universe.engine.get_derivative_second('position', self.oid)
 
+    @property
+    def prograde(self):
+        return self.velocity * 10 ** 10
+
+    @property
+    def retrograde(self):
+        return -self.velocity * 10 ** 10
+
     def __repr__(self):
         return f'<DeepSpaceObject {self.label}>'
 
