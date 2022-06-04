@@ -136,7 +136,7 @@ class Camera:
         charmap = [[' '] * width for _ in range(height)]
         self.add_projection_axes(charmap, size)
         self.add_objects(charmap, size, points, tags, labels)
-        self.add_crosshair(charmap, size, horizontal=True, diagonal=True)
+        self.add_crosshair(charmap, size)
         map_str = '\n'.join(''.join(_) for _ in charmap)
         map_str = f'{map_str}{bar_str}'
         return map_str
@@ -166,18 +166,20 @@ class Camera:
             write_char(charmap, x, y, wrap_tag('╬', 'bold'))
             write_label(charmap, x, y, labels[i])
 
-    def add_crosshair(self, charmap, size, horizontal=True, diagonal=False):
+    def add_crosshair(self, charmap, size):
         cx, cy = self.get_center(size)
-        if horizontal:
-            write_char(charmap, cx, cy-1, '│', CROSSHAIR_COLOR)
-            write_char(charmap, cx, cy+1, '│', CROSSHAIR_COLOR)
-            write_char(charmap, cx-1, cy, '─', CROSSHAIR_COLOR)
-            write_char(charmap, cx+1, cy, '─', CROSSHAIR_COLOR)
-        if diagonal:
-            write_char(charmap, cx+1, cy+1, '\\', CROSSHAIR_COLOR)
-            write_char(charmap, cx-1, cy-1, '\\', CROSSHAIR_COLOR)
-            write_char(charmap, cx-1, cy+1, '/', CROSSHAIR_COLOR)
-            write_char(charmap, cx+1, cy-1, '/', CROSSHAIR_COLOR)
+        scoords = (cx, cy-1), (cx, cy+1), (cx-1, cy), (cx+1, cy)  # 2 vertical, 2 horizontal
+        dcoords = (cx+1, cy+1), (cx-1, cy-1), (cx-1, cy+1), (cx+1, cy-1)  # 2 left diag, 2 right diag
+        straight = sum(check_empty(charmap, *c) for c in scoords)
+        diagonal = sum(check_empty(charmap, *c) for c in dcoords)
+        if diagonal >= straight:
+            diag_chars = '\\\\//'
+            for i, (cx, cy) in enumerate(dcoords):
+                write_char(charmap, cx, cy, diag_chars[i], CROSSHAIR_COLOR)
+        else:
+            straight_chars = '││──'
+            for i, (cx, cy) in enumerate(scoords):
+                write_char(charmap, cx, cy, straight_chars[i], CROSSHAIR_COLOR)
 
     def get_projected_coords(self, pos):
         rv = Quat.rotate_vectors(pos - self.pos, self.rotation)
@@ -264,3 +266,7 @@ def count_empty_spaces(charmap, x, y):
         x += 1
         total += 1
     return total
+
+
+def check_empty(charmap, x, y):
+    return charmap[y][x] == ' '
