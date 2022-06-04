@@ -20,6 +20,7 @@ class CharMap:
         self.size = self.width, self.height
         self.center = self.width // 2, self.height // 2
         self.charmap = [[' '] * self.width for _ in range(self.height)]
+        self.camera.update()
 
     def draw(self):
         map_str = '\n'.join(''.join(_) for _ in self.charmap)
@@ -47,6 +48,16 @@ class CharMap:
                 labels.append((i, x, y))
         for i, x, y in labels:
             self.write_label(x, y, label(i))
+
+    def add_object(self, point, icon, tag=None, label=None):
+        pix_pos = self.get_projected_pixels(np.asarray([point]))
+        if len(pix_pos) == 0:
+            return False
+        x, y = pix_pos[0, 1:]
+        self.write_char(x, y, icon, tag)
+        if label:
+            self.write_label(x, y, label)
+        return True
 
     def add_projection_axes(self):
         coords = unit_vectors()
