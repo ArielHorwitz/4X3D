@@ -164,8 +164,7 @@ class Camera:
             write_label(charmap, x, y, labels[i])
 
     def add_crosshair(self, charmap, size, horizontal=True, diagonal=False):
-        width, height = size
-        cx, cy = round(width/2), round(height/2)
+        cx, cy = self.get_center(size)
         if horizontal:
             write_char(charmap, cx, cy-1, '│')
             write_char(charmap, cx, cy+1, '│')
@@ -187,7 +186,7 @@ class Camera:
         width, height = size
         ll_coords = self.get_projected_coords(points)
         pix = ll_coords * [1, ASCII_ASPECT_RATIO] * self.zoom
-        pix += [width/2, height/2]
+        pix += self.get_center(size)
         pix[:, 1] = height - pix[:, 1]
         above_botleft = (pix[:, 0] >= 0) & (pix[:, 1] >= 0)
         below_topright = (pix[:, 0] < width-1) & (pix[:, 1] < height-1)
@@ -197,6 +196,10 @@ class Camera:
         r = np.concatenate((np.flatnonzero(valid)[:, None], pix), axis=-1)
         r = np.asarray(np.round(r), dtype=np.int32)
         return r
+
+    @staticmethod
+    def get_center(size):
+        return size[0]//2, size[1]//2
 
 
 def write_char(charmap, x, y, char, overwrite=False):
