@@ -5,6 +5,9 @@ from gui import format_latlong, format_vector
 from usr.config import ASCII_ASPECT_RATIO
 
 
+CROSSHAIR_COLOR = 'pink'
+
+
 class Camera:
     def __init__(self):
         self.pos = np.asarray([0,0,0], dtype=np.float64)
@@ -166,15 +169,15 @@ class Camera:
     def add_crosshair(self, charmap, size, horizontal=True, diagonal=False):
         cx, cy = self.get_center(size)
         if horizontal:
-            write_char(charmap, cx, cy-1, '│')
-            write_char(charmap, cx, cy+1, '│')
-            write_char(charmap, cx-1, cy, '─')
-            write_char(charmap, cx+1, cy, '─')
+            write_char(charmap, cx, cy-1, '│', CROSSHAIR_COLOR)
+            write_char(charmap, cx, cy+1, '│', CROSSHAIR_COLOR)
+            write_char(charmap, cx-1, cy, '─', CROSSHAIR_COLOR)
+            write_char(charmap, cx+1, cy, '─', CROSSHAIR_COLOR)
         if diagonal:
-            write_char(charmap, cx+1, cy+1, '\\')
-            write_char(charmap, cx-1, cy-1, '\\')
-            write_char(charmap, cx-1, cy+1, '/')
-            write_char(charmap, cx+1, cy-1, '/')
+            write_char(charmap, cx+1, cy+1, '\\', CROSSHAIR_COLOR)
+            write_char(charmap, cx-1, cy-1, '\\', CROSSHAIR_COLOR)
+            write_char(charmap, cx-1, cy+1, '/', CROSSHAIR_COLOR)
+            write_char(charmap, cx+1, cy-1, '/', CROSSHAIR_COLOR)
 
     def get_projected_coords(self, pos):
         rv = Quat.rotate_vectors(pos - self.pos, self.rotation)
@@ -202,7 +205,9 @@ class Camera:
         return size[0]//2, size[1]//2
 
 
-def write_char(charmap, x, y, char, overwrite=False):
+def write_char(charmap, x, y, char, tag=None, overwrite=False):
+    if tag:
+        char = wrap_tag(char, tag)
     try:
         if overwrite or charmap[y][x] == ' ':
             charmap[y][x] = char
