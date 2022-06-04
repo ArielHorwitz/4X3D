@@ -10,15 +10,23 @@ LAYOUT_SCREENS = {
     'display': ['display'],
 }
 
+CUSTOM_COMMANDS = {
+    'debug': 'debug && uni.debug',
+    'obs': 'cockpit.follow && cockpit.move -10_000_000',
+    'init': '&recursion && recenter && ship.break 1',
+    'recenter': 'cockpit.follow && inspect 5 && cockpit.reset_zoom',
+}
+
 HOTKEY_COMMANDS = {
-    '^ f12': 'debug',
-    '^ f1': 'layout.screen 0',
-    '^ f2': 'layout.screen 1',
-    '^ f3': 'layout.screen 2',
-    '^ f4': 'layout.screen 3',
-    'tab': 'layout.screen.next',
+    # gui controls
     'enter': 'prompt.focus',
     '^ c': 'prompt.clear',
+    'tab': 'layout.screen.next',
+    'f1': 'layout.screen 0',
+    'f2': 'layout.screen 1',
+    'f3': 'layout.screen 2',
+    'f4': 'layout.screen 3',
+    '^ f12': 'debug',
     # universe simulation
     'space': 'sim.toggle',
     '^ t': 'sim.tick 1',
@@ -30,8 +38,8 @@ HOTKEY_COMMANDS = {
     '^+ pagedown': 'sim.rate -100 1',
     # ship window controls
     'I': 'ship.burn',
-    'K': 'ship.cut',
-    'J': 'ship.break 1',
+    'J': 'ship.cut',
+    'K': 'ship.break 1',
     '^ l': 'cockpit.labels',
     'up': 'cockpit.move +100',
     '+ up': 'cockpit.move +1',

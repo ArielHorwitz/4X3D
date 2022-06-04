@@ -19,7 +19,7 @@ from gui.controller import Controller
 from gui.screenswitch import ScreenSwitcher
 from gui.prompt import Prompt
 from gui.keybinds import get_keybindings, encode_keyseq
-from usr.config import FPS, HOTKEY_COMMANDS, LAYOUT_SCREENS
+from usr.config import FPS, LAYOUT_SCREENS, CUSTOM_COMMANDS, HOTKEY_COMMANDS
 from logic.universe import Universe
 
 FRAME_TIME = 1 / FPS
@@ -74,13 +74,25 @@ class App(Application):
         return Layout(root_container)
 
     # Handlers
-    def handle_prompt_input(self, text):
+    def handle_prompt_input(self, text, custom_recursion=1):
         self.defocus_prompt()
         if not text:
             return
-        command, args = resolve_prompt_input(text)
-        # logger.debug(f'Resolved prompt input: {command} {args}')
-        self.controller.do_command(command, *args)
+        lines = text.split(' && ')
+        for line in lines:
+            if line == '&recursion':
+                custom_recursion += 1
+                continue
+            if line == '&unrecursion':
+                custom_recursion = 0
+                continue
+            if custom_recursion > 0 and line in CUSTOM_COMMANDS:
+                line_text = CUSTOM_COMMANDS[line]
+                self.handle_prompt_input(line_text, custom_recursion=custom_recursion-1)
+                continue
+            command, args = resolve_prompt_input(line)
+            # logger.debug(f'Resolved prompt input: {line} -> {command} {args}')
+            self.controller.do_command(command, *args)
 
     def handle_hotkey(self, key):
         self._last_key = key
