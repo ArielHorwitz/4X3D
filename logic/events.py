@@ -10,7 +10,7 @@ class EventQueue:
         self.queue = deque()
 
     def add(self, tick, callback):
-        assert isinstance(tick, int)
+        assert isinstance(tick, int) or isinstance(tick, float)
         assert callable(callback)
         event = Event(tick, callback)
         insert_idx = bisect.bisect_right(self.queue, event.tick, key=attrgetter('tick'))

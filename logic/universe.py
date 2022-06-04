@@ -48,6 +48,8 @@ class Universe:
             'sim.toggle': self.toggle_autosim,
             'sim.tick': self.do_ticks,
             'sim.rate': self.set_simrate,
+            'sim.next_event': self.do_next_event,
+            'sim.until_event': self.do_until_event,
             'uni.debug': self.debug,
             'inspect': self.inspect,
             'help': self.help,
@@ -63,8 +65,14 @@ class Universe:
         self.add_event(tick=self.tick+UNIVERSE_INTERVAL, callback=self.interval_event)
 
     # Simulation
+    def do_until_event(self):
+        self.do_ticks(self.events.next.tick - self.tick - 0.00001)
+
+    def do_next_event(self):
+        self.do_ticks(self.events.next.tick - self.tick + 0.00001)
+
     def do_ticks(self, ticks=1):
-        ticks = int(ticks)
+        assert ticks > 0
         last_tick = self.tick + ticks
         next_event = self.events.pop_next(tick=last_tick)
         while next_event:
@@ -76,7 +84,7 @@ class Universe:
         intermediate_ticks = last_tick - self.tick
         self.__do_ticks(intermediate_ticks)
 
-    def __do_ticks(self, ticks: int):
+    def __do_ticks(self, ticks):
         self.tick += ticks
         self.engine.tick(ticks)
 
@@ -182,11 +190,11 @@ class Universe:
         event_str = ''
         if len(self.events) > 0:
             ev = self.events.next
-            event_str = f'Next: @{ev.tick} {escape_html(ev.callback.__name__)}'
+            event_str = f'Next: @{ev.tick:.2f} {escape_html(ev.callback.__name__)}'
         return '\n'.join([
             f'<h1>Simulation</h1>',
             f'<red>Simrate</red>: <code>{self.auto_simrate}</code>',
-            f'<red>Tick</red>: <code>{self.tick}</code>',
+            f'<red>Tick</red>: <code>{self.tick:.4f}</code>',
             f'<red>Events</red>: <code>{len(self.events)}</code>\n{event_str}',
             f'<h2>Celestial Objects</h2>',
             '\n'.join(object_summaries),
@@ -199,7 +207,7 @@ class Universe:
         for i in range(min(20, event_count)):
             event = self.events.queue[i]
             event_summaries.append('\n'.join([
-                f'<orange><bold>{i:>2}</bold></orange> <h3>@{event.tick} ({self.tick-event.tick}) : {event.callback.__name__}</h3>',
+                f'<orange><bold>{i:>2}</bold></orange> <h3>@{event.tick:.4f} ({self.tick-event.tick:.4f}) : {event.callback.__name__}</h3>',
                 f'<red>Callback</red>: <code>{escape_html(event.callback)}</code>',
             ]))
         return '\n'.join([
