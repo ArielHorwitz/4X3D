@@ -5,6 +5,7 @@ from functools import partial
 from gui import OBJECT_COLORS
 from logic import CELESTIAL_NAMES
 from logic.camera import Camera
+from logic.charmap import CharMap
 
 
 
@@ -60,6 +61,15 @@ class Cockpit:
         logger.info(f'Showing labels: {self.show_labels}')
 
     # Display
+    def draw_charmap(self, size):
+        if size[0] < CharMap.MINIMUM_SIZE or size[1] < CharMap.MINIMUM_SIZE:
+            return 'TooSmall'
+        charmap = CharMap(self.camera, size)
+        charmap.add_objects(self.universe.positions, self.get_tags(), self.get_labels())
+        charmap.add_projection_axes()
+        charmap.add_crosshair()
+        return charmap.draw()
+
     def get_charmap(self, size):
         state = ''.join([
             str(self.universe.tick),
@@ -70,17 +80,9 @@ class Cockpit:
         current_state = bytes(state, encoding='utf-8')
         if self._last_charmap_state == current_state:
             return self._last_charmap
-        labels = self.get_labels()
-        tags = self.get_tags()
-        charmap = self.camera.get_charmap(
-            size=size,
-            points=self.universe.positions,
-            tags=tags,
-            labels=labels,
-        )
+        self._last_charmap = self.draw_charmap(size=size)
         self._last_charmap_state = current_state
-        self._last_charmap = charmap
-        return charmap
+        return self._last_charmap
 
     def get_tags(self):
         return [dso.color for dso in self.universe.ds_objects]
