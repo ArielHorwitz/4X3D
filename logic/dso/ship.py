@@ -5,9 +5,9 @@ from collections import defaultdict, namedtuple
 
 from logic.dso.cockpit import Cockpit
 from logic.dso.dso import DeepSpaceObject
+from logic import EPSILON
 
 
-EPSILON = 10**-10
 FlightPlan = namedtuple('FlightPlan', ['cutoff', 'break_burn', 'arrival', 'total'])
 
 
