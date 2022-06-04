@@ -57,7 +57,7 @@ class Cockpit:
         self.camera.look_at_vector(self.universe.positions[index])
 
     def toggle_labels(self):
-        self.show_labels = (self.show_labels + 1) % 3
+        self.show_labels = (self.show_labels + 1) % 4
         logger.info(f'Showing labels: {self.show_labels}')
 
     # Display
@@ -65,7 +65,9 @@ class Cockpit:
         if size[0] < CharMap.MINIMUM_SIZE or size[1] < CharMap.MINIMUM_SIZE:
             return 'TooSmall'
         charmap = CharMap(self.camera, size)
-        charmap.add_objects(self.universe.positions, self.get_tags(), self.get_labels())
+        points = self.universe.positions
+        label_getter = self.get_label if self.show_labels else None
+        charmap.add_objects(points=points, tag=self.get_tag, label=label_getter)
         charmap.add_projection_axes()
         charmap.add_crosshair()
         return charmap.draw()
@@ -84,17 +86,17 @@ class Cockpit:
         self._last_charmap_state = current_state
         return self._last_charmap
 
-    def get_tags(self):
-        return [dso.color for dso in self.universe.ds_objects]
+    def get_tag(self, oid):
+        return self.universe.ds_objects[oid].color
 
-    def get_labels(self):
-        labels = []
-        for oid, ob in enumerate(self.universe.ds_objects):
-            lbl = ''
-            if self.show_labels:
-                lbl = ob.label
-            if self.show_labels > 1:
-                dist = np.linalg.norm(self.camera.pos - ob.position)
-                lbl = f'{lbl} ({dist:.1f})'
-            labels.append(lbl)
-        return labels
+    def get_label(self, oid):
+        ob = self.universe.ds_objects[oid]
+        lbl = ''
+        if self.show_labels == 1:
+            lbl = f'#{ob.oid}'
+        elif self.show_labels >= 2:
+            lbl = ob.label
+        if self.show_labels == 3:
+            dist = np.linalg.norm(self.camera.pos - ob.position)
+            lbl = f'{lbl} ({dist:.3e})'
+        return lbl

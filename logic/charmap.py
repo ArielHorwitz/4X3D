@@ -38,11 +38,15 @@ class CharMap:
             f'<code>[{format_vector(self.camera.pos)}]</code>',
         ])
 
-    def add_objects(self, points, tags, labels):
+    def add_objects(self, points, tag, label=None):
         pix_pos = self.get_projected_pixels(points)
+        labels = []
         for i, x, y in pix_pos:
-            self.write_char(x, y, '•', [tags[i], 'bold'])
-            self.write_label(x, y, labels[i])
+            self.write_char(x, y, '•', [tag(i), 'bold'])
+            if label:
+                labels.append((i, x, y))
+        for i, x, y in labels:
+            self.write_label(x, y, label(i))
 
     def add_projection_axes(self):
         coords = unit_vectors()
@@ -106,7 +110,6 @@ class CharMap:
         idy = np.argmax(np.asarray(options)) - 1
         if options[idy] > 3:
             self.insert_label(x, y+idy, name)
-
 
     def insert_label(self, x, y, name):
         for i, char in enumerate(name):
