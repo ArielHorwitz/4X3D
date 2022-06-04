@@ -1,6 +1,7 @@
 from loguru import logger
 import arrow
 import numpy as np
+from datetime import timedelta
 from inspect import signature
 
 from gui import format_vector, format_latlong, OBJECT_COLORS, escape_html
@@ -26,6 +27,7 @@ class Universe:
         self.events = EventQueue()
         self.controller = controller
         self.tick = 0
+        self.__last_tick_time = arrow.now()
         self.auto_simrate = DEFAULT_SIMRATE
         self.admirals = []
         self.ds_objects = []
@@ -40,7 +42,9 @@ class Universe:
 
     def update(self):
         if self.auto_simrate > 0:
-            self.do_ticks(self.auto_simrate)
+            ticks = self.get_autosim_ticks()
+            if ticks > 0:
+                self.do_ticks(ticks)
 
     def register_commands(self, controller):
         d = {
@@ -87,10 +91,12 @@ class Universe:
     def __do_ticks(self, ticks):
         self.tick += ticks
         self.engine.tick(ticks)
+        self.__last_tick_time = arrow.now()
 
     def toggle_autosim(self, set_to=None):
-        new = DEFAULT_SIMRATE if self.auto_simrate == 0 else -self.auto_simrate
-        self.auto_simrate = new if set_to is None else set_to
+        if set_to is None:
+            set_to = DEFAULT_SIMRATE if self.auto_simrate == 0 else -self.auto_simrate
+        self.set_simrate(set_to)
         s = 'in progress' if self.auto_simrate > 0 else 'paused'
         tag = 'blank' if self.auto_simrate > 0 else 'orange'
         self.feedback_str = f'<{tag}>Simulation {s}</{tag}>'
@@ -105,6 +111,14 @@ class Universe:
                 self.auto_simrate = min(-1, self.auto_simrate)
         elif value != 0:
             self.auto_simrate = value
+        if self.auto_simrate > 0:
+            self.__last_tick_time = arrow.now()
+
+    def get_autosim_ticks(self):
+        if self.auto_simrate <= 0:
+            return 0
+        td = arrow.now() - self.__last_tick_time
+        return td.total_seconds() * self.auto_simrate
 
     def add_event(self, tick, callback):
         if tick < self.tick:
@@ -184,6 +198,7 @@ class Universe:
 
     def get_content_debug(self, size):
         t = arrow.get().format('YY-MM-DD, hh:mm:ss')
+        ltt = arrow.now() - self.__last_tick_time
         object_summaries = []
         for oid in range(min(30, self.object_count)):
             object_summaries.append(self.inspection_content(oid, size, verbose=False))
@@ -195,6 +210,7 @@ class Universe:
             f'<h1>Simulation</h1>',
             f'<red>Simrate</red>: <code>{self.auto_simrate}</code>',
             f'<red>Tick</red>: <code>{self.tick:.4f}</code>',
+            f'<red>Tick time</red>: <code>{ltt}</code>',
             f'<red>Events</red>: <code>{len(self.events)}</code>\n{event_str}',
             f'<h2>Celestial Objects</h2>',
             '\n'.join(object_summaries),
