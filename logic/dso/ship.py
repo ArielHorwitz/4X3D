@@ -7,6 +7,10 @@ from logic.dso.cockpit import Cockpit
 from logic.dso.dso import DeepSpaceObject
 
 
+EPSILON = 10**-10
+FlightPlan = namedtuple('FlightPlan', ['cutoff', 'break_burn', 'arrival', 'total'])
+
+
 class Ship(DeepSpaceObject):
     def __init__(self):
         self.thrust = 1
@@ -14,6 +18,7 @@ class Ship(DeepSpaceObject):
 
     def setup(self, universe, oid, name, color=1, controller=None):
         super().setup(universe, oid, name, color)
+        self.label = f'§{self.oid} {self.name}'
         self.cockpit = Cockpit(ship=self, controller=controller)
         self.cockpit.follow(self.oid)
         self.stats = defaultdict(lambda: 0)
@@ -115,7 +120,3 @@ class Ship(DeepSpaceObject):
         elif self.universe.tick < fp.break_burn:
             return f'Cruising: {self.universe.tick - fp.break_burn:.4f} ({remaining:.4f})'
         return f'Break burn: {self.universe.tick - fp.arrival:.4f}'
-
-
-FlightPlan = namedtuple('FlightPlan', ['cutoff', 'break_burn', 'arrival', 'total'])
-EPSILON = 10**-10

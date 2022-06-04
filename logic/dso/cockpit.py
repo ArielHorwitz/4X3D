@@ -12,7 +12,7 @@ class Cockpit:
     def __init__(self, ship, controller=None):
         self.ship = ship
         self.camera = Camera()
-        self.show_labels = 2
+        self.show_labels = 1
         self.camera_following = None
         self.camera_tracking = None
         if controller:
@@ -54,7 +54,7 @@ class Cockpit:
         self.camera.look_at_vector(self.universe.positions[index])
 
     def toggle_labels(self):
-        self.show_labels = (self.show_labels + 1) % 4
+        self.show_labels = (self.show_labels + 1) % 3
         logger.info(f'Showing labels: {self.show_labels}')
 
     # Display
@@ -77,10 +77,8 @@ class Cockpit:
         for oid, ob in enumerate(self.universe.ds_objects):
             lbl = ''
             if self.show_labels:
-                lbl = ob.name
+                lbl = ob.label
             if self.show_labels > 1:
-                lbl = f'#{oid} {lbl}'
-            if self.show_labels > 2:
                 dist = np.linalg.norm(self.camera.pos - ob.position)
                 lbl = f'{lbl} ({dist:.1f})'
             labels.append(lbl)

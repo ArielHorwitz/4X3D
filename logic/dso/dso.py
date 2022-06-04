@@ -9,6 +9,7 @@ class DeepSpaceObject:
         self.universe = universe
         self.oid = oid
         self.name = name
+        self.label = f'¤{self.oid} {self.name}'
         self.color = color
         assert 0 <= color <= len(OBJECT_COLORS)
 
