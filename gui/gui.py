@@ -14,7 +14,7 @@ from prompt_toolkit.layout.controls import BufferControl, FormattedTextControl
 from prompt_toolkit.layout.layout import Layout
 import prompt_toolkit.shortcuts
 
-from gui import STYLE, restart_script, window_size, resolve_prompt_input
+from gui import STYLE, restart_script, window_size, resolve_prompt_input, escape_html
 from gui.controller import Controller
 from gui.screenswitch import ScreenSwitcher
 from gui.prompt import Prompt
@@ -24,6 +24,9 @@ from logic.universe import Universe
 
 FRAME_TIME = 1 / FPS
 logger.info(f'Running at {FPS} FPS ({FRAME_TIME*1000:.1f} ms)')
+
+PROMPT_LINE_SPLIT = ' && '
+PROMPT_LINE_SPLIT_ESCAPE = escape_html(PROMPT_LINE_SPLIT)
 
 
 class App(Application):
@@ -78,7 +81,11 @@ class App(Application):
         self.defocus_prompt()
         if not text:
             return
-        lines = text.split(' && ')
+        lines = [text]
+        if PROMPT_LINE_SPLIT in text:
+            lines = text.split(PROMPT_LINE_SPLIT)
+        elif PROMPT_LINE_SPLIT_ESCAPE in text:
+            lines = text.split(PROMPT_LINE_SPLIT_ESCAPE)
         for line in lines:
             if line == '&recursion':
                 custom_recursion += 1
@@ -91,7 +98,7 @@ class App(Application):
                 self.handle_prompt_input(line_text, custom_recursion=custom_recursion-1)
                 continue
             command, args = resolve_prompt_input(line)
-            # logger.debug(f'Resolved prompt input: {line} -> {command} {args}')
+            logger.debug(f'Resolved prompt input: {line} -> {command} {args}')
             self.controller.do_command(command, *args)
 
     def handle_hotkey(self, key):
