@@ -32,6 +32,8 @@ class Cockpit:
             'cockpit.follow': self.follow,
             'cockpit.track': self.track,
             'cockpit.look': self.look,
+            'cockpit.pro': self.look_prograde,
+            'cockpit.retro': self.look_retrograde,
             'cockpit.labels': self.toggle_labels,
         }
         for command, callback in d.items():
@@ -56,6 +58,12 @@ class Cockpit:
 
     def look(self, index):
         self.camera.look_at_vector(self.universe.positions[index])
+
+    def look_prograde(self):
+        self.camera.look_at_vector(self.ship.velocity * 10 **10)
+
+    def look_retrograde(self):
+        self.camera.look_at_vector(-self.ship.velocity * 10 **10)
 
     def toggle_labels(self):
         self.show_labels = (self.show_labels + 1) % 4
