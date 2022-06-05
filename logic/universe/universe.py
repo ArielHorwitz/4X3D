@@ -13,7 +13,7 @@ from logic.universe.engine import Engine
 from logic.dso.dso import DeepSpaceObject
 from logic.dso.celestial import CelestialObject, SMBH, Star, Rock
 from logic.dso.ship import Ship
-from logic.admiral import Player, Agent
+from logic.command.admiral import Player, Agent
 
 
 UNIVERSE_INTERVAL = 1_000_000
