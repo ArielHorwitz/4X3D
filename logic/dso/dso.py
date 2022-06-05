@@ -1,4 +1,7 @@
 
+import numpy as np
+
+
 class DeepSpaceObject:
     type_name = 'Object'
     icon = '?'
@@ -34,3 +37,7 @@ class DeepSpaceObject:
 
     def __repr__(self):
         return f'<DeepSpaceObject {self.label}>'
+
+    def position_from_parent(self, parent, offset):
+        offset_coords = np.random.normal(0, offset, size=3)
+        self.position[:] = parent.position + offset_coords

@@ -44,14 +44,13 @@ class Universe:
         self.generate_smbh()
         for i in range(CONFIG_DATA['COMPUTER_PLAYERS']):
             self.add_agent(name=f'Admiral #{i+1}')
-        self.randomize_positions()
+        self.randomize_ship_positions()
 
     def generate_smbh(self):
         # Generate smbh
         new_oid = self.add_object(SMBH, name='SMBH')
         # Generate child stars
         star_count = round(random.gauss(*CONFIG_DATA['SPAWN_RATE']['star']))
-        logger.debug(f'GENERATE_SMBH: {star_count} stars')
         for j in range(star_count):
             self.generate_star(new_oid)
 
@@ -61,18 +60,9 @@ class Universe:
         new_oid = self.add_object(Star, name=random.choice(CELESTIAL_NAMES))
         star = self.ds_objects[new_oid]
         # Reposition
-        spawn = CONFIG_DATA['SPAWN_OFFSET']['star']
-        offset = np.random.normal(0, spawn, size=3)
-        star.position[:] = parent.position + offset
+        star.position_from_parent(parent, CONFIG_DATA['SPAWN_OFFSET']['star'])
         # Generate child rocks
         rock_count = round(random.gauss(*CONFIG_DATA['SPAWN_RATE']['rock']))
-        logger.debug('\n'.join([
-            f'GENERATE_STAR: {parent} -> {new_oid}',
-            f'parent: {parent.position}',
-            f'offset: {offset}',
-            f'spawn: {star.position}',
-            f'rocks: {rock_count}',
-        ]))
         for k in range(rock_count):
             self.generate_rock(new_oid)
 
@@ -82,15 +72,14 @@ class Universe:
         new_oid = self.add_object(Rock, name=random.choice(CELESTIAL_NAMES))
         rock = self.ds_objects[new_oid]
         # Reposition
-        spawn = CONFIG_DATA['SPAWN_OFFSET']['rock']
-        offset = np.random.normal(0, spawn, size=3)
-        rock.position[:] = parent.position + offset
-        logger.debug('\n'.join([
-            f'GENERATE_ROCK: {parent} -> {new_oid}',
-            f'parent: {parent.position}',
-            f'offset: {offset}',
-            f'spawn: {rock.position}',
-        ]))
+        rock.position_from_parent(parent, CONFIG_DATA['SPAWN_OFFSET']['rock'])
+
+    def randomize_ship_positions(self):
+        for ship_oid in self.ds_ships:
+            parent_oid = random.choice(np.flatnonzero(self.ds_celestials))
+            ship = self.ds_objects[ship_oid]
+            parent = self.ds_objects[parent_oid]
+            ship.position_from_parent(parent, 10**2)
 
 
     def update(self):
@@ -179,12 +168,6 @@ class Universe:
             logger.error(m)
             raise ValueError(m)
         self.events.add(tick, callback)
-
-    def randomize_positions(self):
-        offset = UNIVERSE_SIZE
-        half_offset = offset / 2
-        new_pos = RNG.random((self.ds_ships.sum(), 3)) * offset - half_offset
-        self.positions[self.ds_ships] = new_pos
 
     @property
     def positions(self):
