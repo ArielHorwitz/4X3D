@@ -50,6 +50,7 @@ DEFAULT_CONFIG_DATA = {
         'enter': 'prompt.focus',
         '^ c': 'prompt.clear',
         'tab': 'layout.screen.next',
+        '+ tab': 'layout.screen.prev',
         'f1': 'layout.screen 0',
         'f2': 'layout.screen 1',
         'f3': 'layout.screen 2',

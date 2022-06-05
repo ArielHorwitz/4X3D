@@ -37,6 +37,10 @@ class ScreenSwitcher(VSplit):
         self.current_index += 1
         self.current_index %= len(self.screens)
 
+    def prev_screen(self):
+        self.current_index -= 1
+        self.current_index %= len(self.screens)
+
     def switch_to(self, index):
         if isinstance(index, str):
             index = self.screen_names.index(index)

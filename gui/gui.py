@@ -67,6 +67,7 @@ class App(Application):
             'prompt.clear': self.prompt_window.clear,
             'layout.screen': self.screen_switcher.switch_to,
             'layout.screen.next': self.screen_switcher.next_screen,
+            'layout.screen.prev': self.screen_switcher.prev_screen,
         }
         for command, callback in d.items():
             self.controller.register_command(command, callback)
