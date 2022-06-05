@@ -1,5 +1,5 @@
-# Deep Space Celestial
-A 4X game in 3D space that runs in your terminal.
+# Space (looking for name)
+A 4X game in 3D space that runs in your terminal. Still in early development.
 
 ### Getting started
 Requires python version 3.9 or higher.
