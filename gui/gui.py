@@ -5,6 +5,7 @@ import asyncio
 import prompt_toolkit
 import arrow
 from prompt_toolkit import Application
+from prompt_toolkit.output.color_depth import ColorDepth
 from prompt_toolkit import print_formatted_text as print
 from prompt_toolkit.formatted_text import HTML
 from prompt_toolkit.buffer import Buffer
@@ -51,7 +52,9 @@ class App(Application):
             style=STYLE,
             full_screen=True,
             key_bindings=kb,
+            color_depth=ColorDepth.DEPTH_24_BIT,
         )
+        logger.debug(f'Terminal color depth: {self.color_depth}')
 
     # Setup
     def register_commands(self):
