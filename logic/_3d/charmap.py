@@ -38,6 +38,7 @@ class CharMap:
             f'<code>{format_latlong(self.camera.lat_long)}</code>',
             f'<code>x{self.camera.zoom:.2f}</code>',
             f'<code>[{format_vector(self.camera.pos)}]</code>',
+            f'<code>{self.width}×{self.height}</code>',
         ])
 
     def add_objects(self, points, icon, tag, label=None):
@@ -102,10 +103,10 @@ class CharMap:
         ll_coords = self.camera.get_projected_coords(points)
         # Stretch to aspect ratio and zoom to get pixel coordinates
         pix = ll_coords * [1, CONFIG_DATA['ASPECT_RATIO']] * self.camera.zoom
+        # Reverse vertically such that position latitudes are up
+        pix[:, 1] *= -1
         # Offset such that pixel 0, 0 is at the center
         pix += self.center
-        # Reverse vertically such that higher latitudes are higher in the map
-        pix[:, 1] = self.height - pix[:, 1]
         # Filter coordinates off map
         above_botleft = (pix[:, 0] >= 0) & (pix[:, 1] >= 0)
         below_topright = (pix[:, 0] < self.width-1) & (pix[:, 1] < self.height-1)
