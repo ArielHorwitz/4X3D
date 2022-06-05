@@ -81,7 +81,7 @@ class Universe:
             parent = self.ds_objects[parent_oid]
             ship.position_from_parent(parent, 10**2)
 
-
+    # Simulation
     def update(self):
         if self.auto_simrate > 0:
             ticks = self.get_autosim_ticks()
@@ -110,7 +110,6 @@ class Universe:
     def interval_event(self):
         self.add_event(tick=self.tick+UNIVERSE_INTERVAL, callback=self.interval_event)
 
-    # Simulation
     def do_until_event(self):
         self.do_ticks(self.events.next.tick - self.tick - 0.00001)
 
