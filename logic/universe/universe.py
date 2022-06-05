@@ -10,8 +10,9 @@ from logic import CELESTIAL_NAMES, RNG
 from logic._3d import latlong_single
 from logic.universe.events import EventQueue
 from logic.universe.engine import Engine
+from logic.dso.dso import DeepSpaceObject
+from logic.dso.celestial import CelestialObject, SMBH, Star, Rock
 from logic.dso.ship import Ship
-from logic.dso.dso import DeepSpaceObject, SMBH, Star, Rock
 from logic.admiral import Player, Agent
 
 
@@ -201,7 +202,7 @@ class Universe:
         assert isinstance(ds_object, DeepSpaceObject)
         self.ds_objects.append(ds_object)
         is_ship = isinstance(ds_object, Ship)
-        is_celestial = not is_ship
+        is_celestial = isinstance(ds_object, CelestialObject)
         self.ds_ships = np.concatenate((self.ds_ships, [is_ship]))
         self.ds_celestials = np.concatenate((self.ds_celestials, [is_celestial]))
         assert self.object_count == len(self.ds_objects) == len(self.ds_ships) == len(self.ds_celestials)

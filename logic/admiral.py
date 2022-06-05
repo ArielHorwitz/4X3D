@@ -6,6 +6,7 @@ import numpy as np
 from gui import OBJECT_COLORS
 from logic import CELESTIAL_NAMES
 from logic.dso.ship import Ship, Tug, Fighter, Escort, Port
+from logic.dso.celestial import CelestialObject
 
 
 PREFIXES = ['XSS', 'KRS', 'ISS', 'JTS', 'VSS']
@@ -57,7 +58,7 @@ class Agent(Admiral):
 
     def get_new_destination(self):
         oid = random.randint(0, self.universe.object_count-1)
-        while isinstance(self.universe.ds_objects[oid], Ship):
+        while not isinstance(self.universe.ds_objects[oid], CelestialObject):
             oid = random.randint(0, self.universe.object_count-1)
         return oid
 

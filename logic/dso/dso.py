@@ -1,5 +1,3 @@
-from gui import OBJECT_COLORS
-
 
 class DeepSpaceObject:
     type_name = 'Object'
@@ -36,19 +34,3 @@ class DeepSpaceObject:
 
     def __repr__(self):
         return f'<DeepSpaceObject {self.label}>'
-
-
-class SMBH(DeepSpaceObject):
-    type_name = 'SMBH'
-    icon = '■'
-    color = 'grey'
-
-class Star(DeepSpaceObject):
-    type_name = 'star'
-    icon = '¤'
-    color = 'white'
-
-class Rock(DeepSpaceObject):
-    type_name = 'rock'
-    icon = '•'
-    color = 'brown'
