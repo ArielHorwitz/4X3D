@@ -38,52 +38,6 @@ class Universe:
         self.interval_event()
         self.inspect(None)
 
-    # Genesis
-    def genesis(self):
-        self.add_player(name='Dev')
-        self.generate_smbh()
-        for i in range(CONFIG_DATA['COMPUTER_PLAYERS']):
-            self.add_agent(name=f'Admiral #{i+1}')
-        self.randomize_ship_positions()
-
-    def generate_smbh(self):
-        # Generate smbh
-        smbh = self.add_object(SMBH, name='SMBH')
-        # Generate child stars
-        star_count = round(random.gauss(*CONFIG_DATA['SPAWN_RATE']['star']))
-        for j in range(star_count):
-            self.generate_star(smbh)
-
-    def generate_star(self, parent):
-        # Generate star
-        star = self.add_object(Star, name=random.choice(CELESTIAL_NAMES))
-        # Reposition
-        star.position_from_parent(parent, CONFIG_DATA['SPAWN_OFFSET']['star'])
-        # Generate child rocks
-        rock_count = round(random.gauss(*CONFIG_DATA['SPAWN_RATE']['rock']))
-        for k in range(rock_count):
-            self.generate_rock(star)
-
-    def generate_rock(self, parent):
-        # Generate rock
-        rock = self.add_object(Rock, name=random.choice(CELESTIAL_NAMES))
-        # Reposition
-        rock.position_from_parent(parent, CONFIG_DATA['SPAWN_OFFSET']['rock'])
-
-    def randomize_ship_positions(self):
-        for ship_oid in self.ds_ships:
-            parent_oid = random.choice(np.flatnonzero(self.ds_celestials))
-            ship = self.ds_objects[ship_oid]
-            parent = self.ds_objects[parent_oid]
-            ship.position_from_parent(parent, 10**2)
-
-    # Simulation
-    def update(self):
-        if self.auto_simrate > 0:
-            ticks = self.get_autosim_ticks()
-            if ticks > 0:
-                self.do_ticks(ticks)
-
     def register_commands(self, controller):
         d = {
             'sim': self.toggle_autosim,
@@ -102,6 +56,47 @@ class Universe:
 
     def debug(self, *args, **kwargs):
         logger.debug(f'Universe debug() called: {args} {kwargs}')
+
+    # Genesis
+    def genesis(self):
+        self.add_player(name='Dev')
+        self.generate_smbh()
+        for i in range(CONFIG_DATA['COMPUTER_PLAYERS']):
+            self.add_agent(name=f'Admiral #{i+1}')
+        self.randomize_ship_positions()
+
+    def generate_smbh(self):
+        smbh = self.add_object(SMBH, name='SMBH')
+        # Generate child stars
+        star_count = round(random.gauss(*CONFIG_DATA['SPAWN_RATE']['star']))
+        for j in range(star_count):
+            self.generate_star(smbh)
+
+    def generate_star(self, parent):
+        star = self.add_object(Star, name=random.choice(CELESTIAL_NAMES))
+        star.position_from_parent(parent, CONFIG_DATA['SPAWN_OFFSET']['star'])
+        # Generate child rocks
+        rock_count = round(random.gauss(*CONFIG_DATA['SPAWN_RATE']['rock']))
+        for k in range(rock_count):
+            self.generate_rock(star)
+
+    def generate_rock(self, parent):
+        rock = self.add_object(Rock, name=random.choice(CELESTIAL_NAMES))
+        rock.position_from_parent(parent, CONFIG_DATA['SPAWN_OFFSET']['rock'])
+
+    def randomize_ship_positions(self):
+        for ship_oid in self.ds_ships:
+            parent_oid = random.choice(np.flatnonzero(self.ds_celestials))
+            ship = self.ds_objects[ship_oid]
+            parent = self.ds_objects[parent_oid]
+            ship.position_from_parent(parent, 10**2)
+
+    # Simulation
+    def update(self):
+        if self.auto_simrate > 0:
+            ticks = self.get_autosim_ticks()
+            if ticks > 0:
+                self.do_ticks(ticks)
 
     def interval_event(self):
         self.add_event(tick=self.tick+UNIVERSE_INTERVAL, callback=self.interval_event)
