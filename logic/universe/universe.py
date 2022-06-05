@@ -99,7 +99,7 @@ class Universe:
                 self.do_ticks(ticks)
 
     def interval_event(self):
-        self.add_event(tick=self.tick+UNIVERSE_INTERVAL, callback=self.interval_event)
+        self.add_event(0, tick=self.tick+UNIVERSE_INTERVAL, callback=self.interval_event)
 
     def do_until_event(self):
         self.do_ticks(self.events.next.tick - self.tick - 0.00001)
@@ -115,7 +115,7 @@ class Universe:
             intermediate_ticks = next_event.tick - self.tick
             self.__do_ticks(intermediate_ticks)
             logger.debug(f'Handling event @{self.tick}: {next_event.callback}')
-            next_event.callback()
+            next_event.callback(next_event.uid)
             next_event = self.events.pop_next(tick=last_tick)
         intermediate_ticks = last_tick - self.tick
         self.__do_ticks(intermediate_ticks)
@@ -152,12 +152,12 @@ class Universe:
         td = arrow.now() - self.__last_tick_time
         return td.total_seconds() * self.auto_simrate
 
-    def add_event(self, tick, callback):
+    def add_event(self, uid, tick, callback, description=None):
         if tick < self.tick:
             m = f'Cannot add to universe events at past tick {tick} (currently: {self.tick})'
             logger.error(m)
             raise ValueError(m)
-        self.events.add(tick, callback)
+        self.events.add(uid, tick, callback, description)
 
     @property
     def positions(self):
@@ -258,8 +258,8 @@ class Universe:
         for i in range(min(20, event_count)):
             event = self.events.queue[i]
             event_summaries.append('\n'.join([
-                f'<orange><bold>{i:>2}</bold></orange> <h3>@{event.tick:.4f} ({self.tick-event.tick:.4f}) : {event.callback.__name__}</h3>',
-                f'<red>Callback</red>: <code>{escape_html(event.callback)}</code>',
+                f'<orange><bold>{i:>2}</bold></orange> <h3>@{event.tick:.4f} ({self.tick-event.tick:.4f})</h3> {escape_html(event.callback)}',
+                f'<code>{event.description}</code>',
             ]))
         return '\n'.join([
             f'<h1>Events</h1>',

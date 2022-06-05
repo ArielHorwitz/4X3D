@@ -54,17 +54,17 @@ class Ship(DeepSpaceObject):
     def engine_cut_burn(self):
         self.universe.engine.get_derivative_second('position')[self.oid] = 0
 
-    def engine_break_burn(self, auto_cutoff=False):
+    def engine_break_burn(self, throttle=1, auto_cutoff=False):
         v = self.universe.velocities[self.oid]
         mag = np.linalg.norm(v)
         if mag == 0:
             m = f'{self} trying to engine break burn without direction: {v}'
             logger.warning(m)
             return
-        self.engine_burn(-v)
+        self.engine_burn(-v, throttle)
         if auto_cutoff:
             cutoff = self.universe.tick + mag / self.thrust
-            self.universe.add_event(tick=cutoff, callback=self.engine_cut_burn)
+            self.universe.add_event(0, tick=cutoff, callback=lambda uid: self.engine_cut_burn())
 
     def fly_to(self, oid, cruise_speed):
         target = self.universe.ds_objects[oid]
@@ -79,9 +79,9 @@ class Ship(DeepSpaceObject):
         )
         # Cruise burn, cruise cutoff, break burn, break cutoff
         self.engine_burn(travel_vector)
-        self.universe.add_event(tick=plan.cutoff, callback=self.engine_cut_burn)
-        self.universe.add_event(tick=plan.break_burn, callback=self.engine_break_burn)
-        self.universe.add_event(tick=plan.arrival, callback=self.end_flight)
+        self.universe.add_event(0, tick=plan.cutoff, callback=lambda uid: self.engine_cut_burn())
+        self.universe.add_event(0, tick=plan.break_burn, callback=lambda uid: self.engine_break_burn())
+        self.universe.add_event(0, tick=plan.arrival, callback=lambda uid: self.end_flight())
         self.current_flight = plan
         return plan
 

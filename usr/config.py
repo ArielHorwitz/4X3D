@@ -41,7 +41,7 @@ DEFAULT_CONFIG_DATA = {
     'CUSTOM_COMMANDS': {
         'debug': 'debug && uni.debug',
         'obs': 'cockpit.follow && cockpit.move -10_000_000',
-        'init': '&recursion && recenter && ship.break 1',
+        'init': '&recursion && recenter && ship.break 1 1',
         'recenter': f'cockpit.follow && inspect 0 && cockpit.reset_zoom',
     },
     # Hotkeys
@@ -68,7 +68,7 @@ DEFAULT_CONFIG_DATA = {
         # ship window controls
         'I': 'ship.burn',
         'J': 'ship.cut',
-        'K': 'ship.break 1',
+        'K': 'ship.break 1 1',
         '^ l': 'cockpit.labels',
         'up': 'cockpit.move +100',
         '+ up': 'cockpit.move +1',

@@ -5,14 +5,19 @@ from operator import attrgetter
 import bisect
 
 
+Event = namedtuple('Event', ('uid', 'tick', 'callback', 'description'))
+
+
 class EventQueue:
     def __init__(self):
         self.queue = deque()
 
-    def add(self, tick, callback):
-        assert isinstance(tick, int) or isinstance(tick, float)
+    def add(self, uid, tick, callback, description=None):
+        assert isinstance(tick, float) or isinstance(tick, int)
         assert callable(callback)
-        event = Event(tick, callback)
+        if description is None:
+            description = 'N/A'
+        event = Event(uid, tick, callback, description)
         insert_idx = bisect.bisect_right(self.queue, event.tick, key=attrgetter('tick'))
         self.queue.insert(insert_idx, event)
         # logger.debug(f'Added {event} at index {insert_idx} of event queue')
@@ -29,6 +34,3 @@ class EventQueue:
 
     def __len__(self):
         return len(self.queue)
-
-
-Event = namedtuple('Event', ('tick', 'callback'))
