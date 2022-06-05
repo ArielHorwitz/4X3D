@@ -68,6 +68,7 @@ class Ship(DeepSpaceObject):
 
     def fly_to(self, oid, cruise_speed):
         target = self.universe.ds_objects[oid]
+        self.cockpit.look(oid)
         travel_vector = target.position - self.position
         travel_dist = np.linalg.norm(travel_vector)
         plan = self._simple_flight_plan(
