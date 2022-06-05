@@ -85,7 +85,7 @@ class Universe:
         rock.position_from_parent(parent, CONFIG_DATA['SPAWN_OFFSET']['rock'])
 
     def randomize_ship_positions(self):
-        for ship_oid in self.ds_ships:
+        for ship_oid in np.flatnonzero(self.ds_ships):
             parent_oid = random.choice(np.flatnonzero(self.ds_celestials))
             ship = self.ds_objects[ship_oid]
             parent = self.ds_objects[parent_oid]
