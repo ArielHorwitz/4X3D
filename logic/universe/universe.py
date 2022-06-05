@@ -48,29 +48,25 @@ class Universe:
 
     def generate_smbh(self):
         # Generate smbh
-        new_oid = self.add_object(SMBH, name='SMBH')
+        smbh = self.add_object(SMBH, name='SMBH')
         # Generate child stars
         star_count = round(random.gauss(*CONFIG_DATA['SPAWN_RATE']['star']))
         for j in range(star_count):
-            self.generate_star(new_oid)
+            self.generate_star(smbh)
 
-    def generate_star(self, parent_oid):
-        parent = self.ds_objects[parent_oid]
+    def generate_star(self, parent):
         # Generate star
-        new_oid = self.add_object(Star, name=random.choice(CELESTIAL_NAMES))
-        star = self.ds_objects[new_oid]
+        star = self.add_object(Star, name=random.choice(CELESTIAL_NAMES))
         # Reposition
         star.position_from_parent(parent, CONFIG_DATA['SPAWN_OFFSET']['star'])
         # Generate child rocks
         rock_count = round(random.gauss(*CONFIG_DATA['SPAWN_RATE']['rock']))
         for k in range(rock_count):
-            self.generate_rock(new_oid)
+            self.generate_rock(star)
 
-    def generate_rock(self, parent_oid):
-        parent = self.ds_objects[parent_oid]
+    def generate_rock(self, parent):
         # Generate rock
-        new_oid = self.add_object(Rock, name=random.choice(CELESTIAL_NAMES))
-        rock = self.ds_objects[new_oid]
+        rock = self.add_object(Rock, name=random.choice(CELESTIAL_NAMES))
         # Reposition
         rock.position_from_parent(parent, CONFIG_DATA['SPAWN_OFFSET']['rock'])
 
@@ -189,7 +185,7 @@ class Universe:
         self.ds_celestials = np.concatenate((self.ds_celestials, [is_celestial]))
         assert self.object_count == len(self.ds_objects) == len(self.ds_ships) == len(self.ds_celestials)
         ds_object.setup(**kwargs)
-        return new_oid
+        return ds_object
 
     @property
     def object_count(self):
@@ -213,7 +209,7 @@ class Universe:
 
     @property
     def player_ship(self):
-        return self.ds_objects[self.player.ship_oid]
+        return self.player.my_ship
 
     # GUI content
     def get_window_content(self, name, size):

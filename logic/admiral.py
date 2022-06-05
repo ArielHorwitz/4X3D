@@ -30,12 +30,8 @@ class Admiral:
         return f'<Admiral {self.name} FID #{self.fid}>'
 
     @property
-    def ship_oid(self):
-        return self.my_ships[0]
-
-    @property
     def my_ship(self):
-        return self.universe.ds_objects[self.ship_oid]
+        return self.my_ships[0]
 
 
 class Player(Admiral):
@@ -43,8 +39,8 @@ class Player(Admiral):
         assert self.fid == 0
         name = f'{self.ship_prefix}. {random.choice(CELESTIAL_NAMES)}'
         controller = self.universe.controller
-        new_oid = self.universe.add_object(Escort, name=name, controller=controller)
-        self.my_ships.append(new_oid)
+        my_ship = self.universe.add_object(Escort, name=name, controller=controller)
+        self.my_ships.append(my_ship)
 
 
 class Agent(Admiral):
@@ -52,8 +48,8 @@ class Agent(Admiral):
         # Make ship
         ship_cls = random.choices(SHIP_CLASSES, weights=SHIP_WEIGHTS)[0]
         name = f'{self.ship_prefix}. {random.choice(CELESTIAL_NAMES)}'
-        new_oid = self.universe.add_object(ship_cls, name=name)
-        self.my_ships.append(new_oid)
+        my_ship = self.universe.add_object(ship_cls, name=name)
+        self.my_ships.append(my_ship)
         self.universe.add_event(tick=self.universe.tick+1, callback=self.new_order)
 
     def get_new_destination(self):
