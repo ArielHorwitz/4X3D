@@ -7,12 +7,16 @@ from gui import format_latlong, format_vector
 from usr.config import CONFIG_DATA
 
 
+WHITESPACE = '<whitespace> </whitespace>'
+
+
 class CharMap:
     MINIMUM_SIZE = 3
 
-    def __init__(self, camera, size, show_bar=True):
+    def __init__(self, camera, size, show_bar=True, minimum_label_size=4):
         self.camera = camera
         self.width, self.height = size
+        self.minimum_label_size = minimum_label_size
         self.show_bar = show_bar
         if self.show_bar:
             self.height -= 1
@@ -119,36 +123,38 @@ class CharMap:
         r = np.asarray(np.round(r), dtype=np.int32)
         return r
 
-    def write_label(self, x, y, name):
-        x += 3
-        normal = self.count_empty_spaces(x, y)
-        if normal >= len(name):
-            self.insert_label(x, y, name)
+    def write_label(self, x, y, label):
+        x += 1  # Offset label to the right of object
+        label = f'{label} '  # Add small whitespace as padding
+        label_size = len(label)
+        normal = self.count_empty_spaces(x, y, label_size)
+        if normal >= label_size:
+            self.insert_label(x, y, label)
             return
-        below = self.count_empty_spaces(x, y+1)
-        if below >= len(name):
-            self.insert_label(x, y+1, name)
+        below = self.count_empty_spaces(x, y+1, label_size)
+        if below >= label_size:
+            self.insert_label(x, y+1, label)
             return
-        above = self.count_empty_spaces(x, y-1)
-        if above >= len(name):
-            self.insert_label(x, y-1, name)
+        above = self.count_empty_spaces(x, y-1, label_size)
+        if above >= label_size:
+            self.insert_label(x, y-1, label)
             return
         options = [above, normal, below]
         idy = np.argmax(np.asarray(options)) - 1
-        if options[idy] > 3:
-            self.insert_label(x, y+idy, name)
+        if options[idy] > self.minimum_label_size:
+            self.insert_label(x, y+idy, label)
 
     def insert_label(self, x, y, name):
         for i, char in enumerate(name):
             if x+i+1 >= self.width or self.charmap[y][x+i+1] != ' ':
                 break
-            self.charmap[y][x+i] = char if char != ' ' else '<whitespace> </whitespace>'
+            self.charmap[y][x+i] = char if char != ' ' else WHITESPACE
 
-    def count_empty_spaces(self, x, y):
+    def count_empty_spaces(self, x, y, max_chars=float('inf')):
         if y >= self.height:
             return -1
         total = 0
-        while x < self.width and self.check_empty(x, y):
+        while x < self.width and total < max_chars and self.check_empty(x, y):
             x += 1
             total += 1
         return total
