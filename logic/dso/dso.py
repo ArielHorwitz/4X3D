@@ -2,30 +2,15 @@ from gui import OBJECT_COLORS
 
 
 class DeepSpaceObject:
-    OBJECT_COLORS = {
-        'smbh': 'grey',
-        'star': 'white',
-        'rock': 'brown',
-        'ship': 'green',
-        'escort': 'green',
-        'tug': 'yellow',
-        'port': 'blue',
-        'fighter': 'red',
-        '': 'magenta',
-        '': 'pink',
-        '': 'orange',
-        '': 'cyan',
-        '': 'purple',
-    }
     type_name = 'Object'
     icon = '?'
+    color = 'grey'
 
     def __init__(self, universe, oid):
         self.universe = universe
         self.oid = oid
 
     def setup(self, name):
-        self.color = self.OBJECT_COLORS[self.type_name.lower()]
         self.name = name
         self.label = f'{self.icon}{self.oid} {self.name}'
 
@@ -56,11 +41,14 @@ class DeepSpaceObject:
 class SMBH(DeepSpaceObject):
     type_name = 'SMBH'
     icon = '■'
+    color = 'grey'
 
 class Star(DeepSpaceObject):
     type_name = 'star'
     icon = '¤'
+    color = 'white'
 
 class Rock(DeepSpaceObject):
     type_name = 'rock'
     icon = '•'
+    color = 'brown'

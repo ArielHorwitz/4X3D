@@ -15,11 +15,11 @@ class Ship(DeepSpaceObject):
     type_name = 'ship'
     thrust = 1
     icon = '·'
+    color = 'green'
 
     def setup(self, name, controller=None):
         self.name = name
         self.label = f'{self.icon}{self.oid} {self.name}'
-        self.color = self.OBJECT_COLORS[self.type_name.lower()]
         self.current_flight = None
         self.cockpit = Cockpit(ship=self, controller=controller)
         self.cockpit.follow(self.oid)
@@ -128,21 +128,25 @@ class Tug(Ship):
     type_name = 'tug'
     thrust = 0.01
     icon = '¬'
+    color = 'yellow'
 
 
 class Fighter(Ship):
     type_name = 'fighter'
     thrust = 3
     icon = '‡'
+    color = 'red'
 
 
 class Escort(Ship):
     type_name = 'escort'
     thrust = 1
     icon = '≡'
+    color = 'green'
 
 
 class Port(Ship):
     type_name = 'port'
     thrust = 0
     icon = 'þ'
+    color = 'blue'
