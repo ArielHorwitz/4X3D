@@ -26,7 +26,7 @@ class CharMap:
     def draw(self):
         map_str = '\n'.join(''.join(_) for _ in self.charmap)
         if self.show_bar:
-            map_str = f'{map_str}\n{self.get_bar()}'
+            map_str = f'<map>{map_str}</map>\n<bar>{self.get_bar()}</bar>'
         return map_str
 
     def get_bar(self):
