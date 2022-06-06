@@ -16,7 +16,7 @@ class EventQueue:
         assert isinstance(tick, float) or isinstance(tick, int)
         assert callable(callback)
         if description is None:
-            description = 'N/A'
+            description = 'Event description not available.'
         event = Event(uid, tick, callback, description)
         insert_idx = bisect.bisect_right(self.queue, event.tick, key=attrgetter('tick'))
         self.queue.insert(insert_idx, event)

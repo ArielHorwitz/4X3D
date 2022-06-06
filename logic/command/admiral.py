@@ -50,7 +50,8 @@ class Agent(Admiral):
         name = f'{self.ship_prefix}. {random.choice(CELESTIAL_NAMES)}'
         my_ship = self.universe.add_object(ship_cls, name=name)
         self.my_ships.append(my_ship)
-        self.universe.add_event(0, tick=self.universe.tick+1, callback=self.new_order)
+        self.universe.add_event(0, self.universe.tick+1, self.new_order,
+            'Start first order')
 
     def get_new_destination(self):
         oid = random.randint(0, self.universe.object_count-1)
@@ -67,4 +68,4 @@ class Agent(Admiral):
         dock_time = random.randint(2000, 4000)
         plan = self.my_ship.fly_to(dest_oid, cruise_speed=speed)
         next_order = plan.arrival + dock_time
-        self.universe.add_event(0, tick=next_order, callback=self.new_order)
+        self.universe.add_event(0, next_order, self.new_order, f'{self.my_ship.label}: next order')

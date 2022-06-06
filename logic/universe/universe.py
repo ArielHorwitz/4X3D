@@ -99,7 +99,8 @@ class Universe:
                 self.do_ticks(ticks)
 
     def interval_event(self):
-        self.add_event(0, tick=self.tick+UNIVERSE_INTERVAL, callback=self.interval_event)
+        self.add_event(0, self.tick+UNIVERSE_INTERVAL, self.interval_event,
+            'Universe interval')
 
     def do_until_event(self):
         self.do_ticks(self.events.next.tick - self.tick - 0.00001)
@@ -259,7 +260,7 @@ class Universe:
             event = self.events.queue[i]
             event_summaries.append('\n'.join([
                 f'<orange><bold>{i:>2}</bold></orange> <h3>@{event.tick:.4f} ({self.tick-event.tick:.4f})</h3> {escape_html(event.callback)}',
-                f'<code>{event.description}</code>',
+                f'<red>{event.uid}</red>: <code>{event.description}</code>',
             ]))
         return '\n'.join([
             f'<h1>Events</h1>',

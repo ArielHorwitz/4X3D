@@ -64,7 +64,8 @@ class Ship(DeepSpaceObject):
         self.engine_burn(-v, throttle)
         if auto_cutoff:
             cutoff = self.universe.tick + mag / self.thrust
-            self.universe.add_event(0, tick=cutoff, callback=lambda uid: self.engine_cut_burn())
+            self.universe.add_event(0, cutoff, lambda uid: self.engine_cut_burn(),
+                f'Auto cutoff engine burn: {mag} v')
 
     def fly_to(self, oid, cruise_speed):
         target = self.universe.ds_objects[oid]
@@ -79,9 +80,12 @@ class Ship(DeepSpaceObject):
         )
         # Cruise burn, cruise cutoff, break burn, break cutoff
         self.engine_burn(travel_vector)
-        self.universe.add_event(0, tick=plan.cutoff, callback=lambda uid: self.engine_cut_burn())
-        self.universe.add_event(0, tick=plan.break_burn, callback=lambda uid: self.engine_break_burn())
-        self.universe.add_event(0, tick=plan.arrival, callback=lambda uid: self.end_flight())
+        self.universe.add_event(0, plan.cutoff, lambda uid: self.engine_cut_burn(),
+            f'{self.label}: Cruise burn cutoff')
+        self.universe.add_event(0, plan.break_burn, lambda uid: self.engine_break_burn(),
+            f'{self.label}: break burn ignition')
+        self.universe.add_event(0, plan.arrival, lambda uid: self.end_flight(),
+            f'{self.label}: break burn cutoff, arrival.')
         self.current_flight = plan
         return plan
 
