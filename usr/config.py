@@ -34,8 +34,11 @@ DEFAULT_CONFIG_DATA = {
     # Layout
     'LAYOUT_SCREENS': {
         'multi': ['display', 'browser'],
-        'debug': ['debug', 'events', 'browser'],
+        'multi-debug': ['debug', 'events', 'browser'],
         'display': ['display'],
+        'browser': ['browser'],
+        'events': ['events'],
+        'debug': ['debug'],
     },
     # Custom commands
     'CUSTOM_COMMANDS': {
