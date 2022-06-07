@@ -21,7 +21,6 @@ class Admiral:
         self.fid = fid
         self.name = name
         self.ship_prefix = random.choice(PREFIXES)
-        self.my_ships = []
 
     def setup(self):
         pass
@@ -29,18 +28,20 @@ class Admiral:
     def __repr__(self):
         return f'<Admiral {self.name} FID #{self.fid}>'
 
-    @property
-    def my_ship(self):
-        return self.my_ships[0]
-
 
 class Player(Admiral):
     def setup(self):
         assert self.fid == 0
-        name = f'{self.ship_prefix}. {random.choice(CELESTIAL_NAMES)}'
+        name = f'{self.ship_prefix}. Devship'
         controller = self.universe.controller
-        my_ship = self.universe.add_object(Escort, name=name, controller=controller)
-        self.my_ships.append(my_ship)
+        self.my_ship = self.universe.add_object(Escort, name=name, controller=controller)
+
+    def get_charmap(self, size):
+        return self.my_ship.cockpit.get_charmap(size)
+
+    @property
+    def position(self):
+        return self.my_ship.position
 
 
 class Agent(Admiral):
@@ -48,8 +49,7 @@ class Agent(Admiral):
         # Make ship
         ship_cls = random.choices(SHIP_CLASSES, weights=SHIP_WEIGHTS)[0]
         name = f'{self.ship_prefix}. {random.choice(CELESTIAL_NAMES)}'
-        my_ship = self.universe.add_object(ship_cls, name=name)
-        self.my_ships.append(my_ship)
+        self.my_ship = self.universe.add_object(ship_cls, name=name)
         self.universe.add_event(0, self.universe.tick+1, self.new_order,
             'Start first order')
 

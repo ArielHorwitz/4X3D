@@ -203,10 +203,6 @@ class Universe:
     def player(self):
         return self.admirals[0]
 
-    @property
-    def player_ship(self):
-        return self.player.my_ship
-
     # GUI content
     def get_window_content(self, name, size):
         if hasattr(self, f'get_content_{name}'):
@@ -221,7 +217,7 @@ class Universe:
             ])
 
     def get_content_display(self, size):
-        return self.player_ship.cockpit.get_charmap(size)
+        return self.player.get_charmap(size)
 
     def get_content_debug(self, size):
         t = arrow.get().format('YY-MM-DD, hh:mm:ss')
@@ -253,7 +249,6 @@ class Universe:
         ])
 
     def get_content_events(self, size):
-        proj = self.player_ship.cockpit.camera.get_projected_coords(self.positions)
         event_count = len(self.events)
         event_summaries = []
         for i in range(min(20, event_count)):
@@ -275,7 +270,7 @@ class Universe:
         ob = self.ds_objects[oid]
         ob_type = ob.type_name
         color = ob.color
-        ob_rel_vector = ob.position - self.player_ship.position
+        ob_rel_vector = ob.position - self.player.position
         dir = latlong_single(ob_rel_vector)
         player_dist = np.linalg.norm(ob_rel_vector)
         p = f'\n{format_vector(ob.position)}' if verbose else ''
