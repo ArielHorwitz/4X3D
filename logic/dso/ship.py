@@ -37,36 +37,7 @@ class Ship(DeepSpaceObject):
         for command, callback in d.items():
             controller.register_command(command, callback)
 
-    def engine_burn(self, vector=None, throttle=1):
-        if vector is None:
-            self.cockpit.camera.update()
-            vector = self.cockpit.camera.current_axes[0]
-        assert isinstance(vector, np.ndarray)
-        assert vector.shape == (3, )
-        mag = np.linalg.norm(vector)
-        if mag == 0:
-            m = f'{self} trying to engine burn without direction: {vector}'
-            logger.warning(m)
-            return
-        vector *= self.thrust * throttle / mag
-        self.universe.engine.get_derivative_second('position')[self.oid] = vector
-
-    def engine_cut_burn(self):
-        self.universe.engine.get_derivative_second('position')[self.oid] = 0
-
-    def engine_break_burn(self, throttle=1, auto_cutoff=False):
-        v = self.universe.velocities[self.oid]
-        mag = np.linalg.norm(v)
-        if mag == 0:
-            m = f'{self} trying to engine break burn without direction: {v}'
-            logger.warning(m)
-            return
-        self.engine_burn(-v, throttle)
-        if auto_cutoff:
-            cutoff = self.universe.tick + mag / self.thrust
-            self.universe.add_event(0, cutoff, lambda uid: self.engine_cut_burn(),
-                f'Auto cutoff engine burn: {mag} v')
-
+    # Navigation
     def fly_to(self, oid, cruise_speed):
         target = self.universe.ds_objects[oid]
         self.cockpit.look(oid)
@@ -111,6 +82,38 @@ class Ship(DeepSpaceObject):
         assert arrival / (tick_offset + total) - 1 < EPSILON
         return fp
 
+    # Engine
+    def engine_burn(self, vector=None, throttle=1):
+        if vector is None:
+            self.cockpit.camera.update()
+            vector = self.cockpit.camera.current_axes[0]
+        assert isinstance(vector, np.ndarray)
+        assert vector.shape == (3, )
+        mag = np.linalg.norm(vector)
+        if mag == 0:
+            m = f'{self} trying to engine burn without direction: {vector}'
+            logger.warning(m)
+            return
+        vector *= self.thrust * throttle / mag
+        self.universe.engine.get_derivative_second('position')[self.oid] = vector
+
+    def engine_cut_burn(self):
+        self.universe.engine.get_derivative_second('position')[self.oid] = 0
+
+    def engine_break_burn(self, throttle=1, auto_cutoff=False):
+        v = self.universe.velocities[self.oid]
+        mag = np.linalg.norm(v)
+        if mag == 0:
+            m = f'{self} trying to engine break burn without direction: {v}'
+            logger.warning(m)
+            return
+        self.engine_burn(-v, throttle)
+        if auto_cutoff:
+            cutoff = self.universe.tick + mag / self.thrust
+            self.universe.add_event(0, cutoff, lambda uid: self.engine_cut_burn(),
+                f'Auto cutoff engine burn: {mag} v')
+
+    # Properties
     def __repr__(self):
         return f'<Ship {self.label}>'
 
