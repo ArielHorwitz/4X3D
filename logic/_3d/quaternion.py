@@ -2,6 +2,7 @@ from loguru import logger
 import math
 import numpy as np
 
+from logic import EPSILON
 from logic._3d import RADIANS_IN_DEGREES, GOOGOL
 
 
@@ -145,3 +146,28 @@ class Quaternion:
         qv = vr * ws + vs * wr + np.cross(vr, vs)
         r = np.asarray([qw, *qv])
         return r
+
+    @classmethod
+    def ln(cls, q):
+        w = q[0]
+        v = q[1:]
+        r = math.sqrt((v * v).sum())
+        t = math.atan2(r, w) / r if r > EPSILON else 0
+        w_ = math.log((q * q).sum()) * 0.5
+        v_ = v * t
+        return np.asarray([w_, *v])
+
+    @classmethod
+    def exp(cls, q):
+        w = q[0]
+        v = q[1:]
+        r = math.sqrt((v * v).sum())
+        et = math.exp(w)
+        s = et * math.sin(r) / r if r > EPSILON else 0
+        w_ = et * math.cos(r)
+        v_ = v * s
+        return np.asarray([w_, *v_])
+
+    @classmethod
+    def pow(cls, q, n):
+        return cls.exp(cls.ln(q) * n)
