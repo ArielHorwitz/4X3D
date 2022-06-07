@@ -1,6 +1,7 @@
 from loguru import logger
 import math
 import numpy as np
+from functools import wraps
 from collections import defaultdict, namedtuple
 
 from logic.dso.cockpit import Cockpit
@@ -16,11 +17,12 @@ class Ship(DeepSpaceObject):
     thrust = 1
     icon = '·'
     color = 'green'
+    current_order_uid = None
+    current_flight = None
 
     def setup(self, name, controller=None):
         self.name = name
         self.label = f'{self.icon}{self.oid} {self.name}'
-        self.current_flight = None
         self.cockpit = Cockpit(ship=self, controller=controller)
         self.cockpit.follow(self.oid)
         self.stats = defaultdict(lambda: 0)
@@ -37,6 +39,21 @@ class Ship(DeepSpaceObject):
         for command, callback in d.items():
             controller.register_command(command, callback)
 
+    # Orders
+    def event_callback(f):
+        @wraps(f)
+        def event_callback_wrapper(self, uid):
+            # Ignore event callback if uid is obsolete
+            # uid of 0 means ignore uid check (force callback)
+            if uid != 0 and self.check_obsolete_order(uid):
+                logger.debug(f'event_callback with obsolete uid: {uid} {f}')
+                return
+            f(self, uid)
+        return event_callback_wrapper
+
+    def check_obsolete_order(self, uid):
+        return uid != self.current_order_uid
+
     # Navigation
     def fly_to(self, oid, cruise_speed):
         target = self.universe.ds_objects[oid]
@@ -51,16 +68,25 @@ class Ship(DeepSpaceObject):
         )
         # Cruise burn, cruise cutoff, break burn, break cutoff
         self.engine_burn(travel_vector)
-        self.universe.add_event(0, plan.cutoff, lambda uid: self.engine_cut_burn(),
+        self.universe.add_event(0, plan.cutoff, self.fly_cruise_cutoff,
             f'{self.label}: Cruise burn cutoff')
-        self.universe.add_event(0, plan.break_burn, lambda uid: self.engine_break_burn(),
-            f'{self.label}: break burn ignition')
-        self.universe.add_event(0, plan.arrival, lambda uid: self.end_flight(),
-            f'{self.label}: break burn cutoff, arrival.')
         self.current_flight = plan
         return plan
 
-    def end_flight(self):
+    @event_callback
+    def fly_cruise_cutoff(self, uid):
+        self.engine_cut_burn()
+        self.universe.add_event(uid, self.current_flight.break_burn, self.fly_break_burn,
+        f'{self.label}: break burn ignition')
+
+    @event_callback
+    def fly_break_burn(self, uid):
+        self.engine_break_burn()
+        self.universe.add_event(uid, self.current_flight.arrival, self.fly_end,
+            f'{self.label}: break burn cutoff, arrival.')
+
+    @event_callback
+    def fly_end(self, uid):
         self.engine_cut_burn()
         self.current_flight = None
 
