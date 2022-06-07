@@ -16,7 +16,6 @@ from logic.dso.ship import Ship
 from logic.command.admiral import Player, Agent
 
 
-UNIVERSE_INTERVAL = 1_000_000
 UNIVERSE_SIZE = 10**6
 TINY_TICK = 0.00001
 
@@ -36,7 +35,6 @@ class Universe:
         self.ds_celestials = self.ds_ships = np.ndarray((0), dtype=np.bool)
         self.genesis()
         self.register_commands(controller)
-        self.interval_event()
         self.inspect(None)
 
     def register_commands(self, controller):
@@ -98,10 +96,6 @@ class Universe:
             ticks = self.get_autosim_ticks()
             if ticks > 0:
                 self.do_ticks(ticks)
-
-    def interval_event(self):
-        self.add_event(0, self.tick+UNIVERSE_INTERVAL, self.interval_event,
-            'Universe interval')
 
     def do_until_event(self):
         self.do_ticks(self.events.next.tick - self.tick - TINY_TICK)
