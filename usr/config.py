@@ -58,6 +58,8 @@ DEFAULT_CONFIG_DATA = {
         'f2': 'layout.screen 1',
         'f3': 'layout.screen 2',
         'f4': 'layout.screen 3',
+        'f5': 'layout.screen 4',
+        'f6': 'layout.screen 5',
         '^ f12': 'debug',
         # universe simulation
         'space': 'sim.toggle',
