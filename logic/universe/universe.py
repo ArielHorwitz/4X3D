@@ -115,7 +115,7 @@ class Universe:
         while next_event:
             intermediate_ticks = next_event.tick - self.tick
             self.__do_ticks(intermediate_ticks)
-            logger.debug(f'Handling event @{self.tick}: {next_event.callback}')
+            logger.debug(f'Handling event {next_event.uid} @{self.tick}: {next_event.description} ({next_event.callback})')
             next_event.callback(next_event.uid)
             next_event = self.events.pop_next(tick=last_tick)
         intermediate_ticks = last_tick - self.tick
