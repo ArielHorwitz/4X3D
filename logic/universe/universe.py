@@ -18,6 +18,7 @@ from logic.command.admiral import Player, Agent
 
 UNIVERSE_INTERVAL = 1_000_000
 UNIVERSE_SIZE = 10**6
+TINY_TICK = 0.00001
 
 
 class Universe:
@@ -103,10 +104,10 @@ class Universe:
             'Universe interval')
 
     def do_until_event(self):
-        self.do_ticks(self.events.next.tick - self.tick - 0.00001)
+        self.do_ticks(self.events.next.tick - self.tick - TINY_TICK)
 
     def do_next_event(self):
-        self.do_ticks(self.events.next.tick - self.tick + 0.00001)
+        self.do_ticks(self.events.next.tick - self.tick + TINY_TICK)
 
     def do_ticks(self, ticks=1):
         assert ticks > 0
@@ -154,6 +155,8 @@ class Universe:
         return td.total_seconds() * self.auto_simrate
 
     def add_event(self, uid, tick, callback, description=None):
+        if tick is None:
+            tick = self.tick + TINY_TICK
         if tick < self.tick:
             m = f'Cannot add to universe events at past tick {tick} (currently: {self.tick})'
             logger.error(m)
