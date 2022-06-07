@@ -37,6 +37,7 @@ class Ship(DeepSpaceObject):
             'ship.burn': self.engine_burn,
             'ship.break': self.engine_break_burn,
             'ship.cut': self.engine_cut_burn,
+            'ship.patrol': self.command_order_patrol,
         }
         for command, callback in d.items():
             controller.register_command(command, callback)
@@ -64,6 +65,11 @@ class Ship(DeepSpaceObject):
         self.patrol_cycle = itertools.cycle(oids)
         self.universe.add_event(uid, None, self.next_patrol,
             f'{self.label} start patrol.')
+
+    def command_order_patrol(self, *oids):
+        if not oids:
+            oids = random.choices(np.flatnonzero(self.universe.ds_celestials), k=20)
+        self.order_patrol(oids)
 
     @event_callback
     def next_patrol(self, uid):
@@ -167,6 +173,8 @@ class Ship(DeepSpaceObject):
     def current_orders(self):
         if self.current_flight:
             return self.format_fp(self.current_flight)
+        elif self.current_order_uid is not None:
+            return 'Docked.'
         return 'Idle.'
 
     def format_fp(self, fp):
