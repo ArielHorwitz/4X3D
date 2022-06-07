@@ -38,6 +38,7 @@ class Ship(DeepSpaceObject):
             'ship.break': self.engine_break_burn,
             'ship.cut': self.engine_cut_burn,
             'ship.patrol': self.command_order_patrol,
+            'ship.cancel': self.order_cancel,
         }
         for command, callback in d.items():
             controller.register_command(command, callback)
@@ -56,6 +57,10 @@ class Ship(DeepSpaceObject):
 
     def check_obsolete_order(self, uid):
         return uid != self.current_order_uid
+
+    def order_cancel(self):
+        self.current_order_uid = None
+        self.current_flight = None
 
     def order_patrol(self, oids):
         if self.thrust == 0:
