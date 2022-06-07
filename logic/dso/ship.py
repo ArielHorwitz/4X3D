@@ -1,6 +1,8 @@
 from loguru import logger
 import math
+import random
 import numpy as np
+import itertools
 from functools import wraps
 from collections import defaultdict, namedtuple
 
@@ -54,8 +56,26 @@ class Ship(DeepSpaceObject):
     def check_obsolete_order(self, uid):
         return uid != self.current_order_uid
 
+    def order_patrol(self, oids):
+        if self.thrust == 0:
+            logger.debug(f'{self} ignoring order_patrol since we have no thrust')
+            return
+        self.current_order_uid = uid = random.random()
+        self.patrol_cycle = itertools.cycle(oids)
+        self.universe.add_event(uid, None, self.next_patrol,
+            f'{self.label} start patrol.')
+
+    @event_callback
+    def next_patrol(self, uid):
+        oid = next(self.patrol_cycle)
+        logger.debug(f'{self} next_patrol oid: {oid}')
+        self.current_flight = self.fly_to(oid, 10**8, uid)
+        next_patrol = self.current_flight.arrival + 200
+        self.universe.add_event(uid, next_patrol, self.next_patrol,
+            f'{self.label} next patrol.')
+
     # Navigation
-    def fly_to(self, oid, cruise_speed):
+    def fly_to(self, oid, cruise_speed, uid=0):
         target = self.universe.ds_objects[oid]
         self.cockpit.look(oid)
         travel_vector = target.position - self.position
@@ -68,7 +88,7 @@ class Ship(DeepSpaceObject):
         )
         # Cruise burn, cruise cutoff, break burn, break cutoff
         self.engine_burn(travel_vector)
-        self.universe.add_event(0, plan.cutoff, self.fly_cruise_cutoff,
+        self.universe.add_event(uid, plan.cutoff, self.fly_cruise_cutoff,
             f'{self.label}: Cruise burn cutoff')
         self.current_flight = plan
         return plan

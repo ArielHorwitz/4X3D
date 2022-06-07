@@ -50,8 +50,7 @@ class Agent(Admiral):
         ship_cls = random.choices(SHIP_CLASSES, weights=SHIP_WEIGHTS)[0]
         name = f'{self.ship_prefix}. {random.choice(CELESTIAL_NAMES)}'
         self.my_ship = self.universe.add_object(ship_cls, name=name)
-        self.universe.add_event(0, self.universe.tick+1, self.new_order,
-            'Start first order')
+        self.universe.add_event(0, None, self.first_order, 'Start first order')
 
     def get_new_destination(self):
         oid = random.randint(0, self.universe.object_count-1)
@@ -59,13 +58,6 @@ class Agent(Admiral):
             oid = random.randint(0, self.universe.object_count-1)
         return oid
 
-    def new_order(self, uid):
-        if self.my_ship.thrust == 0:
-            logger.debug(f'{self} ending orders since my ship has no thrust: {self.my_ship}')
-            return
-        dest_oid = self.get_new_destination()
-        speed = (1 + 9 * random.random())*10**random.randint(2, 3)
-        dock_time = random.randint(2000, 4000)
-        plan = self.my_ship.fly_to(dest_oid, cruise_speed=speed)
-        next_order = plan.arrival + dock_time
-        self.universe.add_event(0, next_order, self.new_order, f'{self.my_ship.label}: next order')
+    def first_order(self, uid):
+        oids = random.choices(np.flatnonzero(self.universe.ds_celestials), k=5)
+        self.my_ship.order_patrol(oids)
