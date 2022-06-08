@@ -71,6 +71,13 @@ class Quaternion:
         return q
 
     @classmethod
+    def from_vector_vector(cls, v1, v2):
+        w = math.sqrt((np.linalg.norm(v1)**2) * (np.linalg.norm(v2)**2))
+        w += np.dot(v1, v2)
+        a = np.cross(v1, v2)
+        return cls.normalize(np.asarray([w, *a]))
+
+    @classmethod
     def from_vector(cls, v):
         return np.asarray([0, *v])
 
