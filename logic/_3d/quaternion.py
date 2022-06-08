@@ -155,26 +155,10 @@ class Quaternion:
         return r
 
     @classmethod
-    def ln(cls, q):
-        w = q[0]
-        v = q[1:]
-        r = math.sqrt((v * v).sum())
-        t = math.atan2(r, w) / r if r > EPSILON else 0
-        w_ = math.log((q * q).sum()) * 0.5
-        v_ = v * t
-        return np.asarray([w_, *v])
-
-    @classmethod
-    def exp(cls, q):
-        w = q[0]
-        v = q[1:]
-        r = math.sqrt((v * v).sum())
-        et = math.exp(w)
-        s = et * math.sin(r) / r if r > EPSILON else 0
-        w_ = et * math.cos(r)
-        v_ = v * s
-        return np.asarray([w_, *v_])
-
-    @classmethod
-    def pow(cls, q, n):
-        return cls.exp(cls.ln(q) * n)
+    def pow(cls, q, x):
+        q_mag = np.linalg.norm(q)
+        left = q_mag ** x
+        phi = math.acos(q[0] / q_mag)
+        w_ = math.cos(x * phi)
+        v_ = math.sin(x * phi) * cls.normalize(q[1:])
+        return left * np.asarray([w_, *v_])
