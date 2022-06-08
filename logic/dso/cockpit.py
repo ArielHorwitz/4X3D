@@ -31,6 +31,7 @@ class Cockpit:
         d = {
             'cockpit.follow': self.follow,
             'cockpit.track': self.track,
+            'cockpit.swivel': self.swivel,
             'cockpit.look': self.look,
             'cockpit.pro': self.look_prograde,
             'cockpit.retro': self.look_retrograde,
@@ -55,6 +56,9 @@ class Cockpit:
         def get_pos(index):
             return self.universe.positions[index]
         self.camera.track(partial(get_pos, index) if index is not None else None)
+
+    def swivel(self, index, ms=2000):
+        self.camera.swivel_to_vector(self.universe.ds_objects[index].position, ms)
 
     def look(self, index):
         self.camera.look_at_vector(self.universe.positions[index])
