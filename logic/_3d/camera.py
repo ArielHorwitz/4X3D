@@ -44,7 +44,7 @@ class Camera:
         if self.following is not None:
             self.pos = np.copy(self.following())
         if self.tracking is not None:
-            self.look_at_vector(self.tracking(), disable_track=False)
+            self.look_at_point(self.tracking(), disable_track=False)
 
     def set_position(self, point):
         self.pos = np.asarray(point, dtype=np.float64)
@@ -107,25 +107,24 @@ class Camera:
     def adjust_zoom(self, zoom_multiplier):
         self.__zoom_level = max(0.5, self.__zoom_level * zoom_multiplier)
 
-    def look_at_vector(self, vector, reset_axes=True, disable_track=True):
+    def look_at_point(self, point, reset_axes=True, disable_track=True):
         if reset_axes:
             self.reset_rotation(disable_track=disable_track)
-        rotated = Quat.rotate_vector(vector - self.pos, self.rotation)
+        rotated = Quat.rotate_vector(point - self.pos, self.rotation)
         lat, long = latlong_single(rotated)
         self.rotate(yaw=lat, consider_zoom=False, disable_track=disable_track)
         self.rotate(pitch=long, consider_zoom=False, disable_track=disable_track)
 
-    def swivel_to_vector(self, vector, ms):
+    def swivel_to_point(self, point, total_time_ms):
         self.update()
-        fixed_vector = Quat.normalize(vector - self.pos)
-        qrot = Quat.from_vector_vector(self.current_axes[0], fixed_vector)
+        vector = Quat.normalize(point - self.pos)
+        qrot = Quat.from_vector_vector(self.current_axes[0], vector)
 
         def swivel_tracking_callback(
-            start_vector=self.current_axes[0], qrot=qrot,
-            start_time=arrow.now(), total_time=ms,
+            start_vector=self.current_axes[0], start_time=arrow.now()
         ):
             elapsed_ms = (arrow.now() - start_time).total_seconds() * 1000
-            progress = elapsed_ms / total_time
+            progress = elapsed_ms / total_time_ms
             if progress < 1:
                 current_qrot = Quat.pow(qrot, progress)
             else:

@@ -58,16 +58,16 @@ class Cockpit:
         self.camera.track(partial(get_pos, index) if index is not None else None)
 
     def swivel(self, index, ms=2000):
-        self.camera.swivel_to_vector(self.universe.ds_objects[index].position, ms)
+        self.camera.swivel_to_point(self.universe.ds_objects[index].position, ms)
 
     def look(self, index):
-        self.camera.look_at_vector(self.universe.positions[index])
+        self.camera.look_at_point(self.universe.positions[index])
 
     def look_prograde(self):
-        self.camera.look_at_vector(self.ship.velocity * 10 **10)
+        self.camera.look_at_point(self.ship.velocity * 10 **10)
 
     def look_retrograde(self):
-        self.camera.look_at_vector(-self.ship.velocity * 10 **10)
+        self.camera.look_at_point(-self.ship.velocity * 10 **10)
 
     def toggle_labels(self):
         self.show_labels = (self.show_labels + 1) % 4
