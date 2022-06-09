@@ -20,9 +20,9 @@ class CharMap:
         self.show_bar = show_bar
         if self.show_bar:
             self.height -= 1
-        if self.width < self.MINIMUM_SIZE or self.height < self.MINIMUM_SIZE:
-            raise ValueError(f'CharMap size too small: {size} (minimum: {MINIMUM_SIZE}, {MINIMUM_SIZE})')
         self.size = self.width, self.height
+        if self.width < self.MINIMUM_SIZE or self.height < self.MINIMUM_SIZE:
+            raise ValueError(f'CharMap size too small: {self.size} (minimum: {self.MINIMUM_SIZE})')
         self.center = self.width // 2, self.height // 2
         self.charmap = [[' '] * self.width for _ in range(self.height)]
         self.camera.update()
