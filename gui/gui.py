@@ -16,6 +16,7 @@ from prompt_toolkit.layout.layout import Layout
 import prompt_toolkit.shortcuts
 
 from gui import STYLE, restart_script, window_size, resolve_prompt_input, escape_html
+from gui.layout import DEFAULT_LAYOUT
 from gui.controller import Controller
 from gui.screenswitch import ScreenSwitcher
 from gui.prompt import Prompt
@@ -74,7 +75,7 @@ class App(Application):
 
     def get_layout(self):
         self.prompt_window = Prompt(self, self.handle_prompt_input)
-        self.screen_switcher = ScreenSwitcher(app=self, screens=CONFIG_DATA['LAYOUT_SCREENS'])
+        self.screen_switcher = ScreenSwitcher(app=self, layout=DEFAULT_LAYOUT)
         root_container = HSplit([
             self.screen_switcher,
             self.prompt_window,

@@ -1,5 +1,6 @@
 
 import os, sys, traceback
+from collections import namedtuple
 from prompt_toolkit.styles import Style
 from prompt_toolkit.layout.controls import FormattedTextControl
 
@@ -12,6 +13,15 @@ class SizeAwareFormattedTextControl(FormattedTextControl):
     def create_content(self, width, height):
         self.last_size = width, height
         return super().create_content(width, height)
+
+
+_SPLIT_ATTRS = 'children', 'width', 'height'
+_WIN_ATTRS = 'window', 'width', 'height'
+_SPLIT_DEFAULTS = [], 1000, 1000
+_WIN_DEFAULTS = 'help', 1000, 1000
+VSub = namedtuple('VerticalSublayout', _SPLIT_ATTRS, defaults=_SPLIT_DEFAULTS)
+HSub = namedtuple('HorizontalSublayout', _SPLIT_ATTRS, defaults=_SPLIT_DEFAULTS)
+WSub = namedtuple('WindowSublayout', _WIN_ATTRS, defaults=_WIN_DEFAULTS)
 
 
 COLOR_HEXES = {

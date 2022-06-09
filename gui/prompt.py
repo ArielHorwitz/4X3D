@@ -35,7 +35,10 @@ class Prompt(HSplit):
         self.prompt_text.width = self.prompt_text.content.preferred_width(30)
         size = f'{window_size().columns}×{window_size().lines} ({swidth}×{sheight})'
         simrate = self.app.universe.auto_simrate
+        screen_name = self.app.screen_switcher.current_screen.name
+        screen_index = self.app.screen_switcher.current_index + 1
         self.status_bar.text = HTML(tag('cyan', ' | ').join([
+            tag('code', f'Screen: {screen_index}.{screen_name}'),
             tag('code', size),
             tag('code', str(arrow.get().format('YY-MM-DD, hh:mm:ss'))),
             tag('code', f'{self.app.universe.tick:.1f} (+{math.fabs(simrate):.1f})'),
