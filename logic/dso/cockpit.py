@@ -18,7 +18,6 @@ class Cockpit:
         self.camera_following = None
         self.camera_tracking = None
         self._last_charmap_state = bytes(1)
-        self._last_charmap = ''
         if controller:
             self.register_commands(controller)
 
@@ -80,7 +79,7 @@ class Cockpit:
     # Display
     def draw_charmap(self, size):
         if size[0] < CharMap.MINIMUM_SIZE or size[1] < CharMap.MINIMUM_SIZE:
-            return 'TooSmall'
+            return 'Window too small'
         charmap = CharMap(self.camera, size)
         points = self.universe.positions
         label_getter = self.get_label if self.show_labels else None
@@ -108,10 +107,9 @@ class Cockpit:
         ])
         current_state = bytes(state, encoding='utf-8')
         if self._last_charmap_state == current_state:
-            return self._last_charmap
-        self._last_charmap = self.draw_charmap(size=size)
+            return None
         self._last_charmap_state = current_state
-        return self._last_charmap
+        return self.draw_charmap(size=size)
 
     def get_icon(self, oid):
         return self.universe.ds_objects[oid].icon
