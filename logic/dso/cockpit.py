@@ -31,8 +31,8 @@ class Cockpit:
         d = {
             'cockpit.follow': self.follow,
             'cockpit.track': self.track,
-            'cockpit.swivel': self.swivel,
             'cockpit.look': self.look,
+            'cockpit.snaplook': self.snaplook,
             'cockpit.pro': self.look_prograde,
             'cockpit.retro': self.look_retrograde,
             'cockpit.labels': self.toggle_labels,
@@ -57,14 +57,14 @@ class Cockpit:
             return self.universe.positions[index]
         self.camera.track(partial(get_pos, index) if index is not None else None)
 
-    def swivel(self, index, ms=None, smooth=None):
+    def look(self, index, ms=None, smooth=None):
         if ms is None:
             ms = CONFIG_DATA['CAMERA_SMOOTH_TIME']
         if smooth is None:
             smooth = CONFIG_DATA['CAMERA_SMOOTH_CURVE']
         self.camera.swivel_to_point(self.universe.ds_objects[index].position, ms, smooth)
 
-    def look(self, index):
+    def snaplook(self, index):
         self.camera.look_at_point(self.universe.positions[index])
 
     def look_prograde(self):
