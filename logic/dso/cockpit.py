@@ -57,7 +57,11 @@ class Cockpit:
             return self.universe.positions[index]
         self.camera.track(partial(get_pos, index) if index is not None else None)
 
-    def swivel(self, index, ms=2000, smooth=0.25):
+    def swivel(self, index, ms=None, smooth=None):
+        if ms is None:
+            ms = CONFIG_DATA['CAMERA_SMOOTH_TIME']
+        if smooth is None:
+            smooth = CONFIG_DATA['CAMERA_SMOOTH_CURVE']
         self.camera.swivel_to_point(self.universe.ds_objects[index].position, ms, smooth)
 
     def look(self, index):

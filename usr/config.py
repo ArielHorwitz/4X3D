@@ -21,6 +21,8 @@ DEFAULT_CONFIG_DATA = {
     'ASPECT_RATIO_Y': 64,
     'CROSSHAIR_COLOR': 'pink',
     'SHOW_LABELS': 0,
+    'CAMERA_SMOOTH_TIME': 1000,
+    'CAMERA_SMOOTH_CURVE': 0.75,
     # Spawn
     'SPAWN_OFFSET': {
         'star': 10**6,
