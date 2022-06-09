@@ -57,8 +57,8 @@ class Cockpit:
             return self.universe.positions[index]
         self.camera.track(partial(get_pos, index) if index is not None else None)
 
-    def swivel(self, index, ms=2000):
-        self.camera.swivel_to_point(self.universe.ds_objects[index].position, ms)
+    def swivel(self, index, ms=2000, smooth=0.25):
+        self.camera.swivel_to_point(self.universe.ds_objects[index].position, ms, smooth)
 
     def look(self, index):
         self.camera.look_at_point(self.universe.positions[index])

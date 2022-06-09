@@ -1,6 +1,7 @@
 from loguru import logger
 import arrow
 import numpy as np
+from logic import adjustable_sigmoid
 from logic._3d.quaternion import Quaternion as Quat
 from logic._3d import latlong_single, latlong, unit_vectors
 
@@ -115,7 +116,7 @@ class Camera:
         self.rotate(yaw=lat, consider_zoom=False, disable_track=disable_track)
         self.rotate(pitch=long, consider_zoom=False, disable_track=disable_track)
 
-    def swivel_to_point(self, point, total_time_ms):
+    def swivel_to_point(self, point, total_time_ms, smooth=0):
         self.update()
         vector = Quat.normalize(point - self.pos)
         qrot = Quat.from_vector_vector(self.current_axes[0], vector)
@@ -124,9 +125,10 @@ class Camera:
             start_vector=self.current_axes[0], start_time=arrow.now()
         ):
             elapsed_ms = (arrow.now() - start_time).total_seconds() * 1000
-            progress = elapsed_ms / total_time_ms
-            if progress < 1:
-                current_qrot = Quat.pow(qrot, progress)
+            elapsed_ratio = elapsed_ms / total_time_ms
+            if elapsed_ratio < 1:
+                adjusted = adjustable_sigmoid(elapsed_ratio, smooth)
+                current_qrot = Quat.pow(qrot, adjusted)
             else:
                 current_qrot = qrot
                 self.track(None)
