@@ -7,7 +7,6 @@ import arrow
 from prompt_toolkit import Application
 from prompt_toolkit.output.color_depth import ColorDepth
 from prompt_toolkit import print_formatted_text as print
-from prompt_toolkit.formatted_text import HTML
 from prompt_toolkit.buffer import Buffer
 from prompt_toolkit.layout.containers import VSplit, HSplit, Window
 from prompt_toolkit.widgets import VerticalLine, HorizontalLine, Frame, TextArea
@@ -34,7 +33,6 @@ PROMPT_LINE_SPLIT_ESCAPE = escape_html(PROMPT_LINE_SPLIT)
 
 class App(Application):
     def __init__(self):
-        print(HTML('<i>Initializing app...</i>'))
         prompt_toolkit.shortcuts.clear()
         prompt_toolkit.shortcuts.set_title('Space')
         self._last_key = ''
@@ -118,8 +116,7 @@ class App(Application):
 
     def get_window_content(self, name, size=None):
         size = self.screen_size if size is None else size
-        content = self.universe.get_window_content(name, size)
-        return HTML(content)
+        return self.universe.get_window_content(name, size)
 
     # Miscallaneous
     def defocus_prompt(self):

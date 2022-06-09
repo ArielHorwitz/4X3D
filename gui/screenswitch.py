@@ -2,6 +2,7 @@ from loguru import logger
 
 from prompt_toolkit.layout import Dimension
 from prompt_toolkit.layout.containers import Window, VSplit, HSplit, ConditionalContainer
+from prompt_toolkit.formatted_text import HTML
 from prompt_toolkit.widgets import Frame
 from prompt_toolkit.filters import Condition
 from gui import SizeAwareFormattedTextControl, WSub, HSub, VSub
@@ -65,7 +66,9 @@ class Screen(VSplit):
     def update(self):
         for name, tc in self.text_controls.items():
             size = tc.last_size
-            tc.text = self.app.get_window_content(name, size)
+            r = self.app.get_window_content(name, size)
+            if r is not None:
+                tc.text = HTML(r)
 
     @classmethod
     def get_sublayout(cls, sublayout):
