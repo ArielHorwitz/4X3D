@@ -56,14 +56,14 @@ class App(Application):
     def register_commands(self):
         d = {
             'quit': self.exit,
-            'quit.restart': restart_script,
-            'debug': self.debug,
-            'prompt.focus': self.focus_prompt,
-            'prompt.defocus': self.defocus_prompt,
-            'prompt.clear': self.prompt_window.clear,
-            'layout.screen': self.screen_switcher.switch_to,
-            'layout.screen.next': self.screen_switcher.next_screen,
-            'layout.screen.prev': self.screen_switcher.prev_screen,
+            'gui.restart': restart_script,
+            'gui.debug': self.debug,
+            'gui.prompt.focus': self.focus_prompt,
+            'gui.prompt.defocus': self.defocus_prompt,
+            'gui.prompt.clear': self.prompt_window.clear,
+            'gui.layout.screen': self.screen_switcher.switch_to,
+            'gui.layout.screen.next': self.screen_switcher.next_screen,
+            'gui.layout.screen.prev': self.screen_switcher.prev_screen,
         }
         for command, callback in d.items():
             self.controller.register_command(command, callback)
@@ -114,7 +114,7 @@ class App(Application):
         return width, height
 
     def debug(self, *a):
-        logger.debug(f'Debug action called: {a}')
+        logger.debug(f'GUI debug called: {a}')
 
     # Runtime
     async def logic_loop(self):

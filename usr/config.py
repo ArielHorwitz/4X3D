@@ -44,7 +44,7 @@ DEFAULT_CONFIG_DATA = {
     },
     # Custom commands
     'CUSTOM_COMMANDS': {
-        'debug': 'debug && uni.debug',
+        'debug': 'gui.debug && uni.debug',
         'obs': 'cockpit.follow && cockpit.move -10_000_000',
         'init': '&recursion && recenter && ship.break 1 1',
         'recenter': f'cockpit.follow && inspect 0 && cockpit.reset_zoom',
@@ -52,17 +52,17 @@ DEFAULT_CONFIG_DATA = {
     # Hotkeys
     'HOTKEY_COMMANDS': {
         # gui controls
-        'enter': 'prompt.focus',
-        '^ c': 'prompt.clear',
-        'tab': 'layout.screen.next',
-        '+ tab': 'layout.screen.prev',
-        'f1': 'layout.screen 0',
-        'f2': 'layout.screen 1',
-        'f3': 'layout.screen 2',
-        'f4': 'layout.screen 3',
-        'f5': 'layout.screen 4',
-        'f6': 'layout.screen 5',
-        '^ f12': 'debug',
+        'enter': 'gui.prompt.focus',
+        '^ c': 'gui.prompt.clear',
+        'tab': 'gui.layout.screen.next',
+        '+ tab': 'gui.layout.screen.prev',
+        'f1': 'gui.layout.screen 0',
+        'f2': 'gui.layout.screen 1',
+        'f3': 'gui.layout.screen 2',
+        'f4': 'gui.layout.screen 3',
+        'f5': 'gui.layout.screen 4',
+        'f6': 'gui.layout.screen 5',
+        '^ f12': 'gui.debug',
         # universe simulation
         'space': 'sim.toggle',
         '^ t': 'sim.tick 1',

@@ -84,7 +84,8 @@ class Universe:
                 continue
             command, args = resolve_prompt_input(line)
             logger.debug(f'Resolved prompt input: {line} -> {command} {args}')
-            self.output_console(f'<cyan>$</cyan> {line}')
+            if not command.startswith('gui.'):
+                self.output_console(f'<cyan>$</cyan> {line}')
             self.controller.do_command(command, *args)
 
     def output_console(self, message):
