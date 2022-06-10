@@ -80,22 +80,6 @@ def format_vector(v):
     return ','.join(f'{f"{_:.3e}":>10}' for _ in v)
 
 
-def resolve_prompt_input(s):
-    command, *args = s.split(' ')
-    args = [try_number(a) for a in args]
-    return command, args
-
-
-def try_number(v):
-    try:
-        r = float(v)
-        if r == int(r):
-            r = int(r)
-        return r
-    except ValueError as e:
-        return v
-
-
 def format_exc(e):
     strs = []
     for line in traceback.format_exception(*sys.exc_info()):

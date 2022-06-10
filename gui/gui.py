@@ -14,7 +14,7 @@ from prompt_toolkit.layout.controls import BufferControl, FormattedTextControl
 from prompt_toolkit.layout.layout import Layout
 import prompt_toolkit.shortcuts
 
-from gui import STYLE, restart_script, window_size, resolve_prompt_input, escape_html
+from gui import STYLE, restart_script, window_size, escape_html
 from gui.layout import DEFAULT_LAYOUT
 from gui.controller import Controller
 from gui.screenswitch import ScreenSwitcher
@@ -26,9 +26,6 @@ from logic.universe.universe import Universe
 FPS = CONFIG_DATA['FPS']
 FRAME_TIME = 1 / FPS
 logger.info(f'Running at {FPS} FPS ({FRAME_TIME*1000:.1f} ms)')
-
-PROMPT_LINE_SPLIT = ' && '
-PROMPT_LINE_SPLIT_ESCAPE = escape_html(PROMPT_LINE_SPLIT)
 
 
 class App(Application):
@@ -81,31 +78,11 @@ class App(Application):
         return Layout(root_container)
 
     # Handlers
-    def handle_prompt_input(self, text, custom_recursion=1):
+    def handle_prompt_input(self, text):
         self.defocus_prompt()
         if not text:
             return
-        lines = [text]
-        if PROMPT_LINE_SPLIT in text:
-            lines = text.split(PROMPT_LINE_SPLIT)
-        elif PROMPT_LINE_SPLIT_ESCAPE in text:
-            lines = text.split(PROMPT_LINE_SPLIT_ESCAPE)
-        for line in lines:
-            if line == '&recursion':
-                custom_recursion += 1
-                continue
-            if line == '&unrecursion':
-                custom_recursion = 0
-                continue
-            if custom_recursion > 0 and line in CONFIG_DATA['CUSTOM_COMMANDS']:
-                line_text = CONFIG_DATA['CUSTOM_COMMANDS'][line]
-                self.universe.output_console(f'<blue>$</blue> {escape_html(line)} -> {escape_html(line_text)}')
-                self.handle_prompt_input(line_text, custom_recursion=custom_recursion-1)
-                continue
-            command, args = resolve_prompt_input(line)
-            logger.debug(f'Resolved prompt input: {line} -> {command} {args}')
-            self.universe.output_console(f'<cyan>$</cyan> {line}')
-            self.controller.do_command(command, *args)
+        self.universe.handle_input(text)
 
     def handle_hotkey(self, key):
         self._last_key = key

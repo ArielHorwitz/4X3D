@@ -9,7 +9,7 @@ from inspect import signature
 
 from gui import format_vector, format_latlong, escape_html
 from usr.config import CONFIG_DATA
-from logic import CELESTIAL_NAMES, RNG
+from logic import CELESTIAL_NAMES, RNG, resolve_prompt_input
 from logic._3d import latlong_single
 from logic.universe.events import EventQueue
 from logic.universe.engine import Engine
@@ -23,6 +23,8 @@ UNIVERSE_SIZE = 10**6
 TINY_TICK = 0.00001
 CONSOLE_SCROLLBACK = 1000
 FEEDBACK_SCROLLBACK = 20
+PROMPT_LINE_SPLIT = ' && '
+PROMPT_LINE_SPLIT_ESCAPE = escape_html(PROMPT_LINE_SPLIT)
 
 
 class Universe:
@@ -59,6 +61,30 @@ class Universe:
         }
         for command, callback in d.items():
             controller.register_command(command, callback)
+
+    def handle_input(self, input_text, custom_recursion=1):
+        if PROMPT_LINE_SPLIT in input_text:
+            lines = input_text.split(PROMPT_LINE_SPLIT)
+        elif PROMPT_LINE_SPLIT_ESCAPE in input_text:
+            lines = input_text.split(PROMPT_LINE_SPLIT_ESCAPE)
+        else:
+            lines = [input_text]
+        for line in lines:
+            if line == '&recursion':
+                custom_recursion += 1
+                continue
+            if line == '&unrecursion':
+                custom_recursion = 0
+                continue
+            if custom_recursion > 0 and line in CONFIG_DATA['CUSTOM_COMMANDS']:
+                line_text = CONFIG_DATA['CUSTOM_COMMANDS'][line]
+                self.output_console(f'<blue>$</blue> {escape_html(line)} -> {escape_html(line_text)}')
+                self.handle_input(line_text, custom_recursion=custom_recursion-1)
+                continue
+            command, args = resolve_prompt_input(line)
+            logger.debug(f'Resolved prompt input: {line} -> {command} {args}')
+            self.output_console(f'<cyan>$</cyan> {line}')
+            self.controller.do_command(command, *args)
 
     def output_console(self, message):
         self.console_stack.appendleft(str(message))

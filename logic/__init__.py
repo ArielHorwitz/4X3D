@@ -18,3 +18,19 @@ def adjustable_sigmoid(x, k):
         denom = -4*k*x + 3*k - 1
         r = nom/denom * 0.5 + 0.5
         return max(0.5, r)
+
+@staticmethod
+def resolve_prompt_input(s):
+    command, *args = s.split(' ')
+    args = [try_number(a) for a in args]
+    return command, args
+
+@staticmethod
+def try_number(v):
+    try:
+        r = float(v)
+        if r == int(r):
+            r = int(r)
+        return r
+    except ValueError as e:
+        return v
