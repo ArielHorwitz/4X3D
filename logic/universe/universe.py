@@ -234,9 +234,9 @@ class Universe:
     # Admirals
     def add_player(self, name):
         assert len(self.admirals) == 0
-        admiral = Player(universe=self, fid=0, name=name)
-        self.admirals.append(admiral)
-        admiral.setup()
+        player = Player(universe=self, fid=0, name=name)
+        self.admirals.append(player)
+        player.setup(self.controller)
 
     def add_agent(self, name):
         admiral = Agent(universe=self, fid=len(self.admirals), name=name)

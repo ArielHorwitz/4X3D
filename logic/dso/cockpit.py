@@ -11,38 +11,32 @@ from logic._3d.charmap import CharMap
 
 
 class Cockpit:
-    def __init__(self, ship, controller=None):
+    def __init__(self, ship):
         self.ship = ship
         self.camera = Camera()
         self.show_labels = CONFIG_DATA['SHOW_LABELS']
         self.camera_following = None
         self.camera_tracking = None
         self._last_charmap_state = bytes(1)
-        if controller:
-            self.register_commands(controller)
+
+    @property
+    def commands(self):
+        cockpit_commands = {
+            'follow': self.follow,
+            'track': self.track,
+            'look': self.look,
+            'snaplook': self.snaplook,
+            'pro': self.look_prograde,
+            'retro': self.look_retrograde,
+            'labels': self.toggle_labels,
+        }
+        for camera_command in self.camera.commands:
+            assert camera_command not in cockpit_commands
+        return cockpit_commands | self.camera.commands
 
     @property
     def universe(self):
         return self.ship.universe
-
-    def register_commands(self, controller):
-        # Ship controls
-        d = {
-            'cockpit.follow': self.follow,
-            'cockpit.track': self.track,
-            'cockpit.look': self.look,
-            'cockpit.snaplook': self.snaplook,
-            'cockpit.pro': self.look_prograde,
-            'cockpit.retro': self.look_retrograde,
-            'cockpit.labels': self.toggle_labels,
-        }
-        for command, callback in d.items():
-            controller.register_command(command, callback)
-        # Camera controls
-        # We build seperate dicts so that camera commands don't overwrite ours
-        d = {f'cockpit.{k}': v for k, v in self.camera.commands.items()}
-        for command, callback in d.items():
-            controller.register_command(command, callback)
 
     def follow(self, index=None):
         def get_pos(index):

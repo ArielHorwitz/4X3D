@@ -30,11 +30,19 @@ class Admiral:
 
 
 class Player(Admiral):
-    def setup(self):
+    def setup(self, controller):
         assert self.fid == 0
         name = f'{self.ship_prefix}. Devship'
-        controller = self.universe.controller
-        self.my_ship = self.universe.add_object(Escort, name=name, controller=controller)
+        self.my_ship = self.universe.add_object(Escort, name=name)
+        self.register_commands(controller)
+
+    def register_commands(self, controller):
+        d = {
+            **{f'ship.{k}': v for k, v in self.my_ship.commands.items()},
+            **{f'cockpit.{k}': v for k, v in self.my_ship.cockpit.commands.items()},
+        }
+        for command, callback in d.items():
+            controller.register_command(command, callback)
 
     def get_charmap(self, size):
         return self.my_ship.cockpit.get_charmap(size)

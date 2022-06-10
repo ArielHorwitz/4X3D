@@ -22,26 +22,23 @@ class Ship(DeepSpaceObject):
     current_order_uid = None
     current_flight = None
 
-    def setup(self, name, controller=None):
+    def setup(self, name):
         self.name = name
         self.label = f'{self.icon}{self.oid} {self.name}'
-        self.cockpit = Cockpit(ship=self, controller=controller)
+        self.cockpit = Cockpit(ship=self)
         self.cockpit.follow(self.oid)
         self.stats = defaultdict(lambda: 0)
-        if controller:
-            self.register_commands(controller)
 
-    def register_commands(self, controller):
-        d = {
-            'ship.fly': self.fly_to,
-            'ship.burn': self.engine_burn,
-            'ship.break': self.engine_break_burn,
-            'ship.cut': self.engine_cut_burn,
-            'ship.patrol': self.command_order_patrol,
-            'ship.cancel': self.order_cancel,
+    @property
+    def commands(self):
+        return {
+            'fly': self.fly_to,
+            'burn': self.engine_burn,
+            'break': self.engine_break_burn,
+            'cut': self.engine_cut_burn,
+            'patrol': self.command_order_patrol,
+            'cancel': self.order_cancel,
         }
-        for command, callback in d.items():
-            controller.register_command(command, callback)
 
     # Orders
     def event_callback(f):
