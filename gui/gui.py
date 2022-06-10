@@ -99,10 +99,12 @@ class App(Application):
                 continue
             if custom_recursion > 0 and line in CONFIG_DATA['CUSTOM_COMMANDS']:
                 line_text = CONFIG_DATA['CUSTOM_COMMANDS'][line]
+                self.universe.output_console(f'<blue>$</blue> {escape_html(line)} -> {escape_html(line_text)}')
                 self.handle_prompt_input(line_text, custom_recursion=custom_recursion-1)
                 continue
             command, args = resolve_prompt_input(line)
             logger.debug(f'Resolved prompt input: {line} -> {command} {args}')
+            self.universe.output_console(f'<cyan>$</cyan> {line}')
             self.controller.do_command(command, *args)
 
     def handle_hotkey(self, key):

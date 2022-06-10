@@ -6,6 +6,10 @@ from usr.config import CONFIG_DATA
 aspect_ratio = CONFIG_DATA['ASPECT_RATIO']
 
 DEFAULT_LAYOUT = {
+    'console': HSub([
+        WSub('console'),
+        WSub('feedback', width=70),
+    ]),
     'cockpit': HSub([
         VSub(width=50, children=[
             WSub('browser'),
@@ -26,8 +30,8 @@ DEFAULT_LAYOUT = {
     'debug': HSub([
         WSub('debug'),
         WSub('events'),
+        WSub('console'),
     ]),
-
 }
 
 

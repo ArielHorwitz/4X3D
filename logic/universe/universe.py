@@ -1,7 +1,10 @@
 from loguru import logger
 import arrow
+import math
 import numpy as np
 import random
+import itertools
+from collections import deque
 from inspect import signature
 
 from gui import format_vector, format_latlong, escape_html
@@ -18,11 +21,14 @@ from logic.command.admiral import Player, Agent
 
 UNIVERSE_SIZE = 10**6
 TINY_TICK = 0.00001
+CONSOLE_SCROLLBACK = 1000
+FEEDBACK_SCROLLBACK = 20
 
 
 class Universe:
     def __init__(self, controller):
-        self.feedback_str = 'Welcome to space.'
+        self.console_stack = deque()
+        self.feedback_stack = deque()
         self.browse_content_callback = lambda *a: ''
         self.engine = Engine({'position': 3})
         self.events = EventQueue()
@@ -36,6 +42,7 @@ class Universe:
         self.genesis()
         self.register_commands(controller)
         self.inspect(None)
+        self.output_feedback('Welcome to space.')
 
     def register_commands(self, controller):
         d = {
@@ -53,8 +60,23 @@ class Universe:
         for command, callback in d.items():
             controller.register_command(command, callback)
 
+    def output_console(self, message):
+        self.console_stack.appendleft(str(message))
+        while len(self.console_stack) > CONSOLE_SCROLLBACK:
+            self.console_stack.pop()
+
+    def output_feedback(self, message, also_console=True):
+        self.feedback_stack.appendleft(str(message))
+        while len(self.feedback_stack) > FEEDBACK_SCROLLBACK:
+            self.feedback_stack.pop()
+        if also_console:
+            self.output_console(message)
+
     def debug(self, *args, **kwargs):
         logger.debug(f'Universe debug() called: {args} {kwargs}')
+        self.output_console(escape_html(f'{self.controller} registered commands:'))
+        for cmd, callback in self.controller.commands.items():
+            self.output_console(escape_html(f'{cmd} : {callback}'))
 
     # Genesis
     def genesis(self):
@@ -125,9 +147,6 @@ class Universe:
         if set_to is None:
             set_to = CONFIG_DATA['DEFAULT_SIMRATE'] if self.auto_simrate == 0 else -self.auto_simrate
         self.set_simrate(set_to)
-        s = 'in progress' if self.auto_simrate > 0 else 'paused'
-        tag = 'blank' if self.auto_simrate > 0 else 'orange'
-        self.feedback_str = f'<{tag}>Simulation {s}</{tag}>'
 
     def set_simrate(self, value, delta=False):
         sign = -1 if self.auto_simrate < 0 else 1
@@ -141,6 +160,9 @@ class Universe:
             self.auto_simrate = value
         if self.auto_simrate > 0:
             self.__last_tick_time = arrow.now()
+        s = 'in progress' if self.auto_simrate > 0 else 'paused'
+        tag = 'green' if self.auto_simrate > 0 else 'orange'
+        self.output_feedback(f'<{tag}>Simulation {s}</{tag}> ({self.auto_simrate:.1f})')
 
     def get_autosim_ticks(self):
         if self.auto_simrate <= 0:
@@ -215,6 +237,19 @@ class Universe:
 
     def get_content_display(self, size):
         return self.player.get_charmap(size)
+
+    def get_content_console(self, size):
+        return self.stack_content(self.console_stack, size)
+
+    def get_content_feedback(self, size):
+        return self.stack_content(self.feedback_stack, size)
+
+    def stack_content(self, stack, size):
+        line_count = size[1]
+        sliced = itertools.islice(stack, 0, line_count)
+        full = '\n'.join(reversed(list(sliced)))
+        lines = full.split('\n')[-line_count:]
+        return '\n'.join(lines)
 
     def get_content_debug(self, size):
         t = arrow.get().format('YY-MM-DD, hh:mm:ss')
@@ -306,6 +341,7 @@ class Universe:
 
     def help(self):
         self.browse_content_callback = self.help_content
+        self.output_console(self.help_content((1000, 1000)))
 
     def help_content(self, size):
         return '\n'.join([
@@ -315,3 +351,7 @@ class Universe:
     def help_hotkeys(self):
         r = '\n'.join([f'{k:>11}: {v}' for k, v in CONFIG_DATA['HOTKEY_COMMANDS'].items()])
         self.browse_content_callback = lambda *a: r
+
+    @property
+    def feedback_str(self):
+        return self.feedback_stack[0]
