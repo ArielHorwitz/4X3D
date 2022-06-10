@@ -4,6 +4,7 @@ import math
 import numpy as np
 import random
 import itertools
+from functools import partial
 from collections import deque
 from inspect import signature
 
@@ -29,12 +30,12 @@ PROMPT_LINE_SPLIT_ESCAPE = escape_html(PROMPT_LINE_SPLIT)
 
 class Universe:
     def __init__(self, controller):
+        self.controller = controller
         self.console_stack = deque()
         self.feedback_stack = deque()
-        self.browse_content_callback = lambda *a: ''
+        self.get_content_browser = lambda *a: 'Use "help" command for help.'
         self.engine = Engine({'position': 3})
         self.events = EventQueue()
-        self.controller = controller
         self.tick = 0
         self.__last_tick_time = arrow.now()
         self.auto_simrate = CONFIG_DATA['DEFAULT_SIMRATE']
@@ -43,8 +44,8 @@ class Universe:
         self.ds_celestials = self.ds_ships = np.ndarray((0), dtype=np.bool)
         self.genesis()
         self.register_commands(controller)
-        self.inspect(None)
-        self.output_feedback('Welcome to space.')
+        self.output_feedback('<orange><bold>Welcome to space.</bold></orange>')
+        self.output_console('Need help? Press enter and use the "help" command.')
 
     def register_commands(self, controller):
         d = {
@@ -56,8 +57,8 @@ class Universe:
             'sim.until_event': self.do_until_event,
             'uni.debug': self.debug,
             'inspect': self.inspect,
+            'print': self.print,
             'help': self.help,
-            'hotkeys': self.help_hotkeys,
         }
         for command, callback in d.items():
             controller.register_command(command, callback)
@@ -100,9 +101,6 @@ class Universe:
 
     def debug(self, *args, **kwargs):
         logger.debug(f'Universe debug() called: {args} {kwargs}')
-        self.output_console(escape_html(f'{self.controller} registered commands:'))
-        for cmd, callback in self.controller.commands.items():
-            self.output_console(escape_html(f'{cmd} : {callback}'))
 
     # Genesis
     def genesis(self):
@@ -254,11 +252,9 @@ class Universe:
             f = getattr(self, f'get_content_{name}')
             return f(size)
         else:
-            t = arrow.get().format('YY-MM-DD, hh:mm:ss')
             return '\n'.join([
                 f'<h1>{name}</h1>',
-                f'<red>Time</red>: <code>{t}</code>',
-                f'<red>Size</red>: <code>{size}</code>',
+                f'<code>{size}</code>',
             ])
 
     def get_content_display(self, size):
@@ -321,9 +317,6 @@ class Universe:
             '\n'.join(event_summaries),
         ])
 
-    def get_content_browser(self, size):
-        return self.browse_content_callback(size)
-
     def inspection_content(self, oid, size, verbose=True):
         ob = self.ds_objects[oid]
         ob_type = ob.type_name
@@ -359,25 +352,37 @@ class Universe:
             *extra_lines,
         ])
 
+    def print(self, content_name, set_browser=False):
+        callback = partial(self.get_window_content, content_name)
+        self.output_console(callback((10000, 10000)))
+        if set_browser:
+            self.set_browser_content(callback)
+
+    def set_browser_content(self, callback, print=False):
+        self.get_content_browser = callback
+        logger.debug(f'setting browser content: {callback}')
+        if print:
+            logger.debug(f'setting browser content print')
+            self.output_console(callback((10000, 10000)))
+
     def inspect(self, oid=None):
         if oid is None:
-            self.browse_content_callback = lambda *a: self.get_content_debug(*a)
+            self.set_browser_content(self.get_content_debug, print=True)
             return
-        self.browse_content_callback = lambda size, oid=int(oid): self.inspection_content(oid, size)
+        self.set_browser_content(lambda size, oid=int(oid): self.inspection_content(oid, size), print=True)
 
-    def help(self):
-        self.browse_content_callback = self.help_content
-        self.output_console(self.help_content((1000, 1000)))
+    def help(self, *args):
+        self.set_browser_content(self.get_content_help, print=True)
 
-    def help_content(self, size):
-        return '\n'.join([
-            f'{k:.<20}: {v.__name__} {signature(v)}'
-        for k, v in self.controller.commands.items()])
-
-    def help_hotkeys(self):
-        r = '\n'.join([f'{k:>11}: {v}' for k, v in CONFIG_DATA['HOTKEY_COMMANDS'].items()])
-        self.browse_content_callback = lambda *a: r
+    def help_hotkeys(self, *args):
+        self.set_browser_content(self.get_content_help_hotkey, print=True)
 
     @property
     def feedback_str(self):
         return self.feedback_stack[0]
+
+    def get_content_help(self, *a):
+        return 'Registered commands:\n'+'\n'.join([f'{k:.<20}: {v.__name__} {signature(v)}' for k, v in self.controller.commands.items()])
+
+    def get_content_hotkeys(self, *a):
+        return 'Registered hotkeys:\n'+'\n'.join([f'{k:>11}: {v}' for k, v in CONFIG_DATA['HOTKEY_COMMANDS'].items()])

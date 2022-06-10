@@ -8,7 +8,10 @@ aspect_ratio = CONFIG_DATA['ASPECT_RATIO']
 DEFAULT_LAYOUT = {
     'console': HSub([
         WSub('console'),
-        WSub('feedback', width=70),
+        VSub(width=70, children=[
+            WSub('browser'),
+            WSub('feedback', height=15),
+        ]),
     ]),
     'cockpit': HSub([
         VSub(width=50, children=[
