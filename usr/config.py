@@ -32,7 +32,7 @@ DEFAULT_CONFIG_DATA = {
         'star': (10, 1),
         'rock': (30, 10),
     },
-    'COMPUTER_PLAYERS': 50,
+    'COMPUTER_PLAYERS': 5,
     # Custom commands
     'CUSTOM_COMMANDS': {
         'debug': 'gui.debug && uni.debug',

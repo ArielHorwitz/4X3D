@@ -22,8 +22,14 @@ class Ship(DeepSpaceObject):
     current_order_uid = None
     current_flight = None
 
-    def setup(self, name):
+    def setup(self, fid, name, parent=None):
+        self.fid = fid
         self.name = name
+        self.my_admiral = self.universe.admirals[fid]
+        if parent is None:
+            parent_oid = random.choice(np.flatnonzero(self.universe.ds_celestials))
+            parent = self.universe.ds_objects[parent_oid]
+        self.position_from_parent(parent, 10**2)
         self.label = f'{self.icon}{self.oid} {self.name}'
         self.cockpit = Cockpit(ship=self)
         self.cockpit.follow(self.oid)
