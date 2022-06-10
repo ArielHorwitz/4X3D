@@ -33,15 +33,6 @@ DEFAULT_CONFIG_DATA = {
         'rock': (30, 10),
     },
     'COMPUTER_PLAYERS': 50,
-    # Layout
-    'LAYOUT_SCREENS': {
-        'multi': ['display', 'browser'],
-        'multi-debug': ['debug', 'events', 'browser'],
-        'display': ['display'],
-        'browser': ['browser'],
-        'events': ['events'],
-        'debug': ['debug'],
-    },
     # Custom commands
     'CUSTOM_COMMANDS': {
         'debug': 'gui.debug && uni.debug',
