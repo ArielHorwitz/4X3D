@@ -6,8 +6,8 @@ from prompt_toolkit.widgets import TextArea
 from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.formatted_text import HTML
 
-from gui import window_size, tag, format_latlong, format_vector, escape_html
-from logic._3d import latlong_single
+from util import window_size, tag, format_latlong, format_vector, escape_html
+from util._3d import latlong_single
 
 
 class Prompt(HSplit):

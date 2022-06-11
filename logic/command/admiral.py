@@ -3,8 +3,8 @@ from loguru import logger
 import math
 import random
 import numpy as np
-from gui import OBJECT_COLORS
-from logic import CELESTIAL_NAMES
+from util import OBJECT_COLORS, CELESTIAL_NAMES
+from util.controller import ParseCollect, ParseStr, ParseFloat
 from logic.dso.ship import Ship, Tug, Fighter, Escort, Port
 from logic.dso.celestial import CelestialObject
 
@@ -64,13 +64,18 @@ class Player(Admiral):
 
     def register_commands(self, controller):
         d = {
-            'admiral.fleet': self.print_fleet,
-            'order': self.order_ship,
-            **{f'ship.{k}': v for k, v in self.my_ship.commands.items()},
-            **{f'cockpit.{k}': v for k, v in self.my_ship.cockpit.commands.items()},
+            ('admiral.fleet', self.print_fleet),
+            ('order.fly', self.order_fly,
+                self.universe.parsers.player_ship,
+                self.universe.parsers.oid, 
+                ParseFloat(default=10**6),
+            ),
+            ('order.patrol', self.order_patrol, self.universe.parsers.player_ship, ParseCollect()),
+            *[(f'ship.{n}', *a) for n, *a in self.my_ship.commands],
+            *[(f'cockpit.{n}', *a) for n, *a in self.my_ship.cockpit.commands],
         }
-        for command, callback in d.items():
-            controller.register_command(command, callback)
+        for command in d:
+            controller.register_command(*command)
 
     def get_charmap(self, size):
         return self.my_ship.cockpit.get_charmap(size)
@@ -86,14 +91,13 @@ class Player(Admiral):
             ship_name = random.choice(CELESTIAL_NAMES)
             self.add_ship(cls, name=ship_name, parent=self.my_ship)
 
-    def order_ship(self, command_name, oid, *args):
+    def order_patrol(self, oid, *target_oids):
         ship = self.universe.ds_objects[oid]
-        if oid not in self.fleet_oids:
-            self.print_fleet()
-            self.universe.output_feedback(f'{ship.label} not in my fleet.')
-            return
-        command = ship.commands[command_name]
-        command(*args)
+        ship.command_order_patrol(*target_oids)
+
+    def order_fly(self, oid, target_oid, cruise_speed):
+        ship = self.universe.ds_objects[oid]
+        ship.fly_to(target_oid, cruise_speed)
 
 
 class Agent(Admiral):

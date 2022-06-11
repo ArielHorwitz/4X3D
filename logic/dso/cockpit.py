@@ -2,11 +2,10 @@ from loguru import logger
 import numpy as np
 from functools import partial
 
-from usr.config import CONFIG_DATA
-from gui import OBJECT_COLORS
-from logic import CELESTIAL_NAMES
-from logic._3d.camera import Camera
-from logic._3d.charmap import CharMap
+from util.config import CONFIG_DATA
+from util import OBJECT_COLORS, CELESTIAL_NAMES
+from util.camera import Camera
+from util.charmap import CharMap
 
 
 
@@ -21,18 +20,16 @@ class Cockpit:
 
     @property
     def commands(self):
-        cockpit_commands = {
-            'follow': self.follow,
-            'track': self.track,
-            'look': self.look,
-            'snaplook': self.snaplook,
-            'pro': self.look_prograde,
-            'retro': self.look_retrograde,
-            'labels': self.toggle_labels,
-        }
-        for camera_command in self.camera.commands:
-            assert camera_command not in cockpit_commands
-        return cockpit_commands | self.camera.commands
+        cockpit_commands = [
+            ('follow', self.follow, self.universe.parsers.oid),
+            ('track', self.track, self.universe.parsers.oid),
+            ('look', self.look, self.universe.parsers.oid),
+            ('snaplook', self.snaplook, self.universe.parsers.oid),
+            ('pro', self.look_prograde),
+            ('retro', self.look_retrograde),
+            ('labels', self.toggle_labels),
+        ]
+        return cockpit_commands + self.camera.commands
 
     @property
     def universe(self):

@@ -1,7 +1,7 @@
 from loguru import logger
 import json
-from gui import WSub, HSub, VSub
-from usr.config import CONFIG_DATA
+from util.layout import WSubLayout as WSub, HSubLayout as HSub, VSubLayout as VSub
+from util.config import CONFIG_DATA
 
 aspect_ratio = CONFIG_DATA['ASPECT_RATIO']
 
@@ -15,8 +15,8 @@ DEFAULT_LAYOUT = {
     ]),
     'cockpit': HSub([
         VSub(width=50, children=[
-            WSub('browser'),
-            WSub('console', height=10),
+            WSub('cockpit', height=15),
+            WSub('console'),
         ]),
         WSub('display'),
     ]),

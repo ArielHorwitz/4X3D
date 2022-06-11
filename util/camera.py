@@ -1,9 +1,18 @@
 from loguru import logger
 import arrow
 import numpy as np
-from logic import adjustable_sigmoid
-from logic._3d.quaternion import Quaternion as Quat
-from logic._3d import latlong_single, latlong, unit_vectors
+
+from util import adjustable_sigmoid
+from util.controller import (
+    ValidationFail,
+    ParseInt,
+    ParseFloat,
+    ParseBool,
+    ParseCollect,
+    ParseConsume,
+    ParserCustom,
+)
+from util._3d import latlong_single, latlong, Quaternion as Quat
 
 
 class Camera:
@@ -13,18 +22,21 @@ class Camera:
         self.reset_rotation()
         self.following = None
         self.tracking = None
-        self.commands = {
-            'move': self.move,
-            'strafe': self.strafe,
-            'reset_rotation': self.reset_rotation,
-            'reset_zoom': self.reset_zoom,
-            'flip': self.flip,
-            'zoom': self.adjust_zoom,
-            'rotate': self.rotate,
-            'yaw': self.yaw,
-            'pitch': self.pitch,
-            'roll': self.roll,
-        }
+        self.commands = [
+            ('move', self.move, ParseFloat(allow_default=False)),
+            ('strafe', self.strafe, ParseFloat(allow_default=False)),
+            ('reset_rotation', self.reset_rotation),
+            ('reset_zoom', self.reset_zoom),
+            ('flip', self.flip),
+            ('zoom', self.adjust_zoom, ParseFloat(allow_default=False)),
+            ('rotate', self.rotate,
+                ParseFloat(default=0), ParseFloat(default=0), ParseFloat(default=0),
+                ParseBool(default=True), ParseBool(default=True)
+            ),
+            ('yaw', self.yaw, ParseFloat(allow_default=False)),
+            ('pitch', self.pitch, ParseFloat(allow_default=False)),
+            ('roll', self.roll, ParseFloat(allow_default=False)),
+        ]
 
     @property
     def state(self):

@@ -4,23 +4,24 @@ import traceback
 import asyncio
 import prompt_toolkit
 import arrow
+import prompt_toolkit.shortcuts
 from prompt_toolkit import Application
-from prompt_toolkit.output.color_depth import ColorDepth
 from prompt_toolkit import print_formatted_text as print
+from prompt_toolkit.styles import Style
 from prompt_toolkit.buffer import Buffer
+from prompt_toolkit.output.color_depth import ColorDepth
 from prompt_toolkit.layout.containers import VSplit, HSplit, Window
 from prompt_toolkit.widgets import VerticalLine, HorizontalLine, Frame, TextArea
 from prompt_toolkit.layout.controls import BufferControl, FormattedTextControl
 from prompt_toolkit.layout.layout import Layout
-import prompt_toolkit.shortcuts
 
-from gui import STYLE, restart_script, window_size, escape_html
+from util import STYLE, restart_script, window_size, escape_html
+from util.config import CONFIG_DATA
+from util.controller import Controller, ParseInt
 from gui.layout import DEFAULT_LAYOUT
-from gui.controller import Controller
 from gui.screenswitch import ScreenSwitcher
 from gui.prompt import Prompt
 from gui.keybinds import get_keybindings, encode_keyseq
-from usr.config import CONFIG_DATA
 from logic.universe.universe import Universe
 
 FPS = CONFIG_DATA['FPS']
@@ -45,7 +46,7 @@ class App(Application):
 
         super().__init__(
             layout=self.root_layout,
-            style=STYLE,
+            style=Style.from_dict(STYLE),
             full_screen=True,
             key_bindings=kb,
             color_depth=ColorDepth.DEPTH_24_BIT,
@@ -54,19 +55,19 @@ class App(Application):
 
     # Setup
     def register_commands(self):
-        d = {
-            'quit': self.exit,
-            'gui.restart': restart_script,
-            'gui.debug': self.debug,
-            'gui.prompt.focus': self.focus_prompt,
-            'gui.prompt.defocus': self.defocus_prompt,
-            'gui.prompt.clear': self.prompt_window.clear,
-            'gui.layout.screen': self.screen_switcher.switch_to,
-            'gui.layout.screen.next': self.screen_switcher.next_screen,
-            'gui.layout.screen.prev': self.screen_switcher.prev_screen,
-        }
-        for command, callback in d.items():
-            self.controller.register_command(command, callback)
+        d = [
+            ('quit', self.exit),
+            ('gui.restart', restart_script),
+            ('gui.debug', self.debug),
+            ('gui.prompt.focus', self.focus_prompt),
+            ('gui.prompt.defocus', self.defocus_prompt),
+            ('gui.prompt.clear', self.prompt_window.clear),
+            ('gui.layout.screen', self.screen_switcher.switch_to, ParseInt(min=0, max=len(self.screen_switcher)-1)),
+            ('gui.layout.screen.next', self.screen_switcher.next_screen),
+            ('gui.layout.screen.prev', self.screen_switcher.prev_screen),
+        ]
+        for command in d:
+            self.controller.register_command(*command)
 
     def get_layout(self):
         self.prompt_window = Prompt(self, self.handle_prompt_input)
@@ -88,10 +89,7 @@ class App(Application):
         self._last_key = key
         if key in CONFIG_DATA['HOTKEY_COMMANDS']:
             prompt_input = CONFIG_DATA['HOTKEY_COMMANDS'][key]
-            # logger.debug(f'Hotkey <{key}> resolved to: {prompt_input}')
             self.handle_prompt_input(prompt_input)
-        # else:
-        #     logger.debug(f'Unknown hotkey <{key}>')
 
     def get_window_content(self, name, size=None):
         size = self.screen_size if size is None else size

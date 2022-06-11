@@ -1,8 +1,76 @@
+import os, sys, traceback
 import numpy as np
 
 RNG = np.random.default_rng()
 EPSILON = 10**-10
+RADIANS_IN_DEGREES = 57.29577951308
+GOOGOL = 10**100
+
 CELESTIAL_NAMES = ['Alkurhah', 'Alterf', 'Wezn', 'Aldhibah', 'Anser', 'Tyl', 'Caph', 'Alderamin', 'Cursa', 'Dubhe', 'Sirius', 'Baten kaitos', 'Ras elased australis', 'Atlas', 'Zavijah', 'Deneb kaitos shemali', 'Kitalpha', 'Mirphak', 'Asellus tertius', 'Menkar', 'Dschubba', 'Alnitak', 'Mebsuta', 'Ascella', 'Nash', 'Marfic', 'Naos', 'Graffias', 'Algenib', 'Algol', 'Canopus', 'Maasym', 'Phad', 'Asellus borealis', 'Asellus secondus', 'Saiph', 'Ain al rami', 'Alsuhail', 'Gorgonea quarta', 'Arkab prior', 'Sarin', 'Alzirr', 'Tania australis', 'Sadalsuud', 'Tabit', 'Murzim', 'Nair al saif', 'Polaris australis', 'Nodus secundus', 'Cor caroli', 'Brachium', 'Mesarthim', 'Sualocin', 'Polaris', 'Muliphen', 'Skat', 'Fum al samakah', 'Alphard', 'Alathfar', 'Alchiba', 'Wasat', 'Hyadum I', 'Capella', 'Alfecca meridiana', 'Gorgonea secunda', 'Cebalrai', 'Alsafi', 'Diadem', 'Rigel kentaurus', 'Menkalinan', 'Albaldah', 'Torcularis septentrionalis', 'Hamal', 'Nunki', 'Azmidiske', 'Miram', 'Alioth', 'Ruchba', 'Tania borealis', 'Acubens', 'Sol', 'Zibal', 'Gianfar', 'Turais', 'Muscida', 'Rastaban', 'Prima giedi', 'Merope', 'Deneb dulfim', 'Agena', 'Situla', 'Algorab', 'Hyadum II', 'Matar', 'Suhail al muhlif', 'Asellus australis', 'Kajam', 'Adhil', 'Pherkad', 'Maia', 'Zaniah', 'Sabik', 'Kaus australis', 'Minkar', 'Gienah ghurab', 'Keid', 'Etamin', 'Subra', 'Menkent', 'Altair', 'Alhena', 'Hadar', 'Menkib', 'Ed asich', 'Sharatan', 'Alfirk', 'Alcor', 'Arneb', 'Secunda giedi', 'Gienah cygni', 'Diphda', 'Zaurak', 'Kaus meridionalis', 'Rukbat', 'Mintaka', 'Dsiban', 'Alphekka', 'Betelgeuse', 'Yildun', 'Alnair', 'Marfik', 'Menkar', 'Furud', 'Syrma', 'Spica', 'Achird', 'Adhafera', 'Taygeta', 'Adara', 'Arcturus', 'Albireo', 'Porrima', 'Sceptrum', 'Almaak', 'Avior', 'Kaffaljidhma', 'Mira', 'Alcyone', 'Wezen', 'Tejat posterior', 'Metallah', 'Marfak', 'Sheliak', 'Alsciaukat', 'Acamar', 'Deneb', 'Alkaid', 'Arkab posterior', 'Auva', 'Alkalurops', 'Antares', 'Izar', 'Yed prior', 'Gomeisa', 'Pherkad minor', 'Ankaa', 'Deneb algedi', 'Aladfar', 'Asellus primus', 'Bellatrix', 'Achernar', 'Mekbuda', 'Rasalhague', 'Azelfafage', 'Beid', 'Mizar', 'Scheat', 'Sham', 'Aldebaran', 'Shedir', 'Sadalmelik', 'Alniyat', 'Ain', 'Chara', 'Celaeno', 'Castor', 'Alula borealis', 'Al anz', 'Botein', 'Propus', 'Lesath', 'Arrakis', 'Azha', 'Alrisha', 'Tegmen', 'Enif', 'Unukalhai', 'Thabit', 'Peacock', 'Haedi', 'Kraz', 'Trappist', 'Rigel', 'Hoedus II', 'Altarf', 'Kornephoros', 'Nashira', 'Nusakan', 'Merga', 'Becrux', 'Alnilam', 'Grafias', 'Pleione', 'Merak', 'Acrux', 'Marfak', 'Grumium', 'Alpheratz', 'Meissa', 'Talitha', 'Terebellum', 'Kuma', 'Alkes', 'Dabih', 'Kocab', 'Gorgonea tertia', 'Elnath', 'Homam', 'Atik', 'Miaplacidus', 'Nihal', 'Ruchbah', 'Denebola', 'Shaula', 'Fomalhaut', 'Heze', 'Markab', 'Sargas', 'Deneb el okab', 'Garnet', 'Fornacis', 'Ancha', 'Rijl al awwa', 'Procyon', 'Thuban', 'Rasalgethi', 'Sadr', 'Yed posterior', 'Megrez', 'Alshat', 'Kaus borealis', 'Sulafat', 'Alya', 'Zosma', 'Dheneb', 'Phaet', 'Pollux', 'Rotanev', 'Vindemiatrix', 'Hassaleh', 'Mirach', 'Salm', 'Angetenar', 'Jabbah', 'Chort', 'Sadalachbia', 'Alnath', 'Sterope II', 'Asterope', 'Aludra', 'Theemim', 'Rana', 'Algieba', 'Tarazed', 'Gacrux', 'Electra', 'Vega', 'Baham', 'Nekkar', 'Ras elased borealis', 'Regulus', 'Alula australis', 'Albali', 'Seginus', 'Praecipua', 'Mufrid', 'Alrai', 'Alshain']
+
+
+COLOR_HEXES = {
+    'black': '#000000',
+    'white': '#ffffff',
+    'gray': '#aaaaaa',
+    'red': '#ff0000',
+    'green': '#00ff00',
+    'blue': '#4444ff',
+    'navy': '#0000ff',
+    'yellow': '#ffff00',
+    'orange': '#ffbb00',
+    'brown': '#bb5500',
+    'cyan': '#00ffff',
+    'magenta': '#ff00ff',
+    'pink': '#ff00aa',
+    'purple': '#ff00ff',
+}
+COLORS = list(COLOR_HEXES.keys())
+OBJECT_COLORS = COLORS[3:]
+STYLE = {
+    'code': '#44ff00 italic',
+    'h1': '#0044ff bold underline bg:#ffffff',
+    'h2': '#ffffff bold underline bg:#000055',
+    'h3': f'#ffbb00 bold underline',
+    'map': 'bg:#00001a',
+    'bar': 'bg:#1a0000',
+    'highlight': '#000000 bg:#ffffff',
+    'darkbg': 'bg:#000055',
+    **COLOR_HEXES,
+}
+
+
+def tag(tag, s):
+    return f'<{tag}>{s}</{tag}>'
+
+
+def escape_html(s):
+    r = str(s).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+    return r
+
+
+def restart_script():
+    os.execl(sys.executable, sys.executable, *sys.argv)
+
+
+def window_size():
+    return os.get_terminal_size()
+
+
+def format_latlong(v, rounding=1):
+    return ', '.join(f"{f'{round(_, rounding)}°':>7}" for _ in v)
+
+
+def format_vector(v):
+    return ','.join(f'{f"{_:.3e}":>10}' for _ in v)
+
+
+def format_exc(e):
+    return ''.join(str(_) for _ in traceback.format_exception(*sys.exc_info()))
+
+
+def format_exc_short(e):
+    return traceback.format_exception(*sys.exc_info())[-1]
 
 
 def adjustable_sigmoid(x, k):

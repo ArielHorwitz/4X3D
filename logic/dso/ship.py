@@ -6,9 +6,19 @@ import itertools
 from functools import wraps
 from collections import defaultdict, namedtuple
 
+from util import EPSILON
+from util.controller import (
+    ValidationFail,
+    ParseInt,
+    ParseFloat,
+    ParseBool,
+    ParsePush,
+    ParseCollect,
+    ParseConsume,
+    ParserCustom,
+)
 from logic.dso.cockpit import Cockpit
 from logic.dso.dso import DeepSpaceObject
-from logic import EPSILON
 
 
 FlightPlan = namedtuple('FlightPlan', ['cutoff', 'break_burn', 'arrival', 'total'])
@@ -37,14 +47,20 @@ class Ship(DeepSpaceObject):
 
     @property
     def commands(self):
-        return {
-            'fly': self.fly_to,
-            'burn': self.engine_burn,
-            'break': self.engine_break_burn,
-            'cut': self.engine_cut_burn,
-            'patrol': self.command_order_patrol,
-            'cancel': self.order_cancel,
-        }
+        return [
+            ('fly', self.fly_to, self.universe.parsers.oid, ParseFloat(default=10**6)),
+            ('burn', self.engine_burn,
+                ParsePush(default=None),
+                ParseFloat(default=1, min=EPSILON, max=1),
+            ),
+            ('break', self.engine_break_burn,
+                ParseFloat(default=1, min=EPSILON, max=1),
+                ParseBool(default=True),
+            ),
+            ('cut', self.engine_cut_burn),
+            ('patrol', self.command_order_patrol, ParseCollect()),
+            ('cancel', self.order_cancel),
+        ]
 
     # Orders
     def event_callback(f):
@@ -77,7 +93,14 @@ class Ship(DeepSpaceObject):
     def command_order_patrol(self, *oids):
         if not oids:
             oids = random.choices(np.flatnonzero(self.universe.ds_celestials), k=20)
-        self.order_patrol(oids)
+        for oid in oids:
+            try:
+                oid = int(oid)
+                assert 0 <= oid < self.universe.object_count
+            except:
+                self.universe.output_feedback(f'Patrol order expected valid object ID, instead got: {oid}')
+                return
+        self.order_patrol([int(_) for _ in oids])
 
     @event_callback
     def next_patrol(self, uid):
@@ -90,6 +113,9 @@ class Ship(DeepSpaceObject):
 
     # Navigation
     def fly_to(self, oid, cruise_speed, uid=0):
+        if self.thrust == 0:
+            logger.debug(f'{self} ignoring fly_to since we have no thrust')
+            return
         target = self.universe.ds_objects[oid]
         self.cockpit.look(oid)
         travel_vector = target.position - self.position

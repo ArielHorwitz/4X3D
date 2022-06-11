@@ -1,10 +1,9 @@
 from loguru import logger
 import numpy as np
 
-from logic import EPSILON
-from logic._3d import unit_vectors
-from gui import format_latlong, format_vector
-from usr.config import CONFIG_DATA
+from util import format_latlong, format_vector, EPSILON
+from util._3d import AXES_VECTORS
+from util.config import CONFIG_DATA
 
 
 WHITESPACE = '<whitespace> </whitespace>'
@@ -66,9 +65,8 @@ class CharMap:
         return True
 
     def add_projection_axes(self):
-        coords = unit_vectors()
         labels = ['X+', 'X-', 'Y+', 'Y-', 'Z+', 'Z-']
-        pix_pos = self.get_projected_pixels(coords)
+        pix_pos = self.get_projected_pixels(AXES_VECTORS)
         for i, x, y in pix_pos:
             self.write_char(x, y, '╬', 'bold')
             self.write_label(x, y, labels[i])

@@ -2,18 +2,16 @@ from loguru import logger
 
 from prompt_toolkit.layout import Dimension
 from prompt_toolkit.layout.containers import Window, VSplit, HSplit, ConditionalContainer
+from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.formatted_text import HTML
 from prompt_toolkit.widgets import Frame
 from prompt_toolkit.filters import Condition
-from gui import SizeAwareFormattedTextControl, WSub, HSub, VSub
+
+from util.layout import WSubLayout, VSubLayout
 
 
 class ScreenSwitcher(VSplit):
     def __init__(self, app, layout):
-        """
-        Parameter screens is a dictionary with keys of screen names and
-        values of list of window names.
-        """
         self.app = app
         assert len(layout) > 0
         self.screen_names = list(layout.keys())
@@ -50,6 +48,9 @@ class ScreenSwitcher(VSplit):
     def update(self):
         self.current_screen.update()
 
+    def __len__(self):
+        return len(self.screens)
+
 
 class Screen(VSplit):
     def __init__(self, app, name, sublayout):
@@ -74,7 +75,7 @@ class Screen(VSplit):
     def get_sublayout(cls, sublayout):
         width = Dimension(min=1, max=sublayout.width)
         height = Dimension(min=1, max=sublayout.height)
-        if isinstance(sublayout, WSub):
+        if isinstance(sublayout, WSubLayout):
             tc = SizeAwareFormattedTextControl()
             wname = sublayout.window
             win = Window(content=tc, ignore_content_width=True, ignore_content_height=True)
@@ -87,9 +88,19 @@ class Screen(VSplit):
             new_child, tcs = cls.get_sublayout(child)
             all_children.append(new_child)
             all_tcs |= tcs
-        # A VSub is a panel with windows that span vertically
-        # hence horizontal splitter for VSub, and vice versa
-        cls = HSplit if isinstance(sublayout, VSub) else VSplit
+        # A VSubLayout is a panel with windows that span vertically
+        # hence horizontal splitter for VSubLayout, and vice versa
+        cls = HSplit if isinstance(sublayout, VSubLayout) else VSplit
         sb = cls(all_children)
         sb.width, sb.height = width, height
         return sb, all_tcs
+
+
+class SizeAwareFormattedTextControl(FormattedTextControl):
+    def __init__(self, *a, **k):
+        super().__init__(*a, **k)
+        self.last_size = 1, 1
+
+    def create_content(self, width, height):
+        self.last_size = width, height
+        return super().create_content(width, height)

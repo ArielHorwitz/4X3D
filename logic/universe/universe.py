@@ -7,11 +7,21 @@ import itertools
 from functools import partial
 from collections import deque
 from inspect import signature
+from types import SimpleNamespace
 
-from gui import format_vector, format_latlong, escape_html
-from usr.config import CONFIG_DATA
-from logic import CELESTIAL_NAMES, RNG, resolve_prompt_input
-from logic._3d import latlong_single
+from util import format_vector, format_latlong, escape_html
+from util.controller import (
+    ValidationFail,
+    ParseInt,
+    ParseFloat,
+    ParseBool,
+    ParseCollect,
+    ParseConsume,
+    ParserCustom,
+)
+from util import CELESTIAL_NAMES, RNG, EPSILON, resolve_prompt_input
+from util.config import CONFIG_DATA
+from util._3d import latlong_single
 from logic.universe.events import EventQueue
 from logic.universe.engine import Engine
 from logic.dso.dso import DeepSpaceObject
@@ -29,8 +39,18 @@ PROMPT_LINE_SPLIT_ESCAPE = escape_html(PROMPT_LINE_SPLIT)
 
 
 class Universe:
+    silent_commands = {
+        'gui.prompt.focus',
+        'gui.layout.screen',
+    }
     def __init__(self, controller):
+        self.parsers = SimpleNamespace(**{
+            'oid': ParserCustom(self.parse_oid, name='oid', default=self.get_player_oid),
+            'ship_oid': ParserCustom(self.parse_ship_oid, name='ship_oid', default=self.get_player_oid),
+            'player_ship': ParserCustom(self.parse_player_ship, name='player_ship', default=self.get_player_oid),
+        })
         self.controller = controller
+        self.controller.set_feedback(lambda s: self.output_feedback(escape_html(s)))
         self.console_stack = deque()
         self.feedback_stack = deque()
         self.get_content_browser = lambda *a: 'Use "help" command for help.'
@@ -48,20 +68,23 @@ class Universe:
         self.output_console('Need help? Press enter and use the "help" command.')
 
     def register_commands(self, controller):
-        d = {
-            'sim': self.toggle_autosim,
-            'sim.toggle': self.toggle_autosim,
-            'sim.tick': self.do_ticks,
-            'sim.rate': self.set_simrate,
-            'sim.next_event': self.do_next_event,
-            'sim.until_event': self.do_until_event,
-            'uni.debug': self.debug,
-            'inspect': self.inspect,
-            'print': self.print,
-            'help': self.help,
-        }
-        for command, callback in d.items():
-            controller.register_command(command, callback)
+        commands = [
+            ('sim', self.toggle_autosim),
+            ('sim.toggle', self.toggle_autosim),
+            ('sim.tick', self.do_ticks, ParseFloat(min=EPSILON, default=1)),
+            ('sim.rate', self.set_simrate,
+                ParseFloat(default=CONFIG_DATA['DEFAULT_SIMRATE']),
+                ParseBool(default=False)
+            ),
+            ('sim.next_event', self.do_next_event),
+            ('sim.until_event', self.do_until_event),
+            ('uni.debug', self.debug, ParseCollect()),
+            ('inspect', self.inspect, self.parsers.oid),
+            ('print', self.print, ParseCollect()),
+            ('help', self.help, ParseConsume()),
+        ]
+        for command in commands:
+            controller.register_command(*command)
 
     def handle_input(self, input_text, custom_recursion=1):
         if PROMPT_LINE_SPLIT in input_text:
@@ -84,9 +107,12 @@ class Universe:
                 continue
             command, args = resolve_prompt_input(line)
             logger.debug(f'Resolved prompt input: {line} -> {command} {args}')
-            if not command.startswith('gui.'):
+            for silent in self.silent_commands:
+                if command.startswith(silent):
+                    break
+            else:
                 self.output_console(f'<cyan>$</cyan> {line}')
-            self.controller.do_command(command, *args)
+            self.controller.do_command(command, args)
 
     def output_console(self, message):
         self.console_stack.appendleft(str(message))
@@ -102,6 +128,35 @@ class Universe:
 
     def debug(self, *args, **kwargs):
         logger.debug(f'Universe debug() called: {args} {kwargs}')
+
+    # Parsers
+    def parse_oid(self, oid):
+        if oid is None:
+            return self.player.my_ship.oid
+        oid = int(oid)
+        if oid < 0 or oid >= self.object_count:
+            return ValidationFail(f'expected valid object ID, instead got: {oid} (last oid: {self.object_count-1})')
+        return oid
+
+    def parse_ship_oid(self, oid):
+        if oid is None:
+            return self.player.my_ship.oid
+        oid = int(oid)
+        if oid < 0 or oid >= self.object_count:
+            return ValidationFail(f'expected valid ship ID, instead got: {oid} (last oid: {self.object_count-1})')
+        if not self.ds_ships[oid]:
+            return ValidationFail(f'expected valid ship ID, instead got non-ship ID: {oid} (last oid: {self.object_count-1})')
+        return oid
+
+    def parse_player_ship(self, oid):
+        if oid is None:
+            return self.player.my_ship.oid
+        oid = int(oid)
+        if oid not in self.player.fleet_oids and oid != self.player.my_ship.oid:
+            self.output_feedback(f'<underline>oid#{oid} not in my fleet</underline>:')
+            self.player.print_fleet()
+            return ValidationFail(f'expected player ship ID, instead got: {oid}')
+        return oid
 
     # Genesis
     def genesis(self):
@@ -239,6 +294,9 @@ class Universe:
     def player(self):
         return self.admirals[0]
 
+    def get_player_oid(self):
+        return self.player.my_ship.oid
+
     # GUI content
     def get_window_content(self, name, size):
         if hasattr(self, f'get_content_{name}'):
@@ -280,7 +338,6 @@ class Universe:
             name = f'<{ship.color}>{ship.label} ({ship.type_name})</{ship.color}>'
             orders = f'<italic>{ship.current_orders}</italic>'
             object_summaries.append(f'{name:<50} {orders}')
-            # object_summaries.append(self.inspection_content(oid, size, verbose=False))
         event_str = ''
         if len(self.events) > 0:
             ev = self.events.next
@@ -310,16 +367,21 @@ class Universe:
             '\n'.join(event_summaries),
         ])
 
-    def inspection_content(self, oid, size, verbose=True):
+    def get_content_cockpit(self, size):
+        return '\n'.join([
+            self.inspection_content(oid=self.player.my_ship.oid, size=size),
+        ])
+
+    def inspection_content(self, oid, size):
         ob = self.ds_objects[oid]
         ob_type = ob.type_name
         color = ob.color
         ob_rel_vector = ob.position - self.player.position
         dir = latlong_single(ob_rel_vector)
         player_dist = np.linalg.norm(ob_rel_vector)
-        p = f'\n{format_vector(ob.position)}' if verbose else ''
-        v = f'\n{format_vector(ob.velocity)}' if verbose else ''
-        a = f'\n{format_vector(ob.acceleration)}' if verbose else ''
+        p = f'\n{format_vector(ob.position)}'
+        v = f'\n{format_vector(ob.velocity)}'
+        a = f'\n{format_vector(ob.acceleration)}'
         vmag = np.linalg.norm(ob.velocity)
         vdir = format_latlong(latlong_single(ob.velocity))
         amag = np.linalg.norm(ob.acceleration)
@@ -332,9 +394,8 @@ class Universe:
                 f'<red>Current orders</red>:',
                 f'<italic>{ob.current_orders}</italic>',
             ])
-            if verbose:
-                look = latlong_single(ob.cockpit.camera.current_axes[0])
-                extra_lines.append(f'<red>Looking</red>: <code>{format_latlong(look)}</code>')
+            look = latlong_single(ob.cockpit.camera.current_axes[0])
+            extra_lines.append(f'<red>Looking</red>: <code>{format_latlong(look)}</code>')
         title_name = f'<white>#{ob.oid:>3} {escape_html(ob.name)}</white>'
         title_type = f' <{color}>({escape_html(ob_type)})</{color}>'
         return '\n'.join([
@@ -358,11 +419,8 @@ class Universe:
             logger.debug(f'setting browser content print')
             self.output_console(callback((10000, 10000)))
 
-    def inspect(self, oid=None):
-        if oid is None:
-            self.set_browser_content(self.get_content_debug, print=True)
-            return
-        self.set_browser_content(lambda size, oid=int(oid): self.inspection_content(oid, size), print=True)
+    def inspect(self, oid):
+        self.set_browser_content(lambda size, oid=oid: self.inspection_content(oid, size), print=True)
 
     def help(self, *args):
         self.set_browser_content(self.get_content_help, print=True)
@@ -375,7 +433,7 @@ class Universe:
         return self.feedback_stack[0]
 
     def get_content_help(self, *a):
-        return 'Registered commands:\n'+'\n'.join([f'{k:.<20}: {v.__name__} {signature(v)}' for k, v in self.controller.commands.items()])
+        return 'Registered commands:\n'+'\n'.join([f'{n:.<20}: ({escape_html(v.parsers_repr)}) {c.__name__} {signature(c)}' for n, c, v in self.controller.items()])
 
     def get_content_hotkeys(self, *a):
         return 'Registered hotkeys:\n'+'\n'.join([f'{k:>11}: {v}' for k, v in CONFIG_DATA['HOTKEY_COMMANDS'].items()])
