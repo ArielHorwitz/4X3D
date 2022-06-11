@@ -119,7 +119,7 @@ class Universe:
 
     def generate_star(self, parent):
         star = self.add_object(Star, name=random.choice(CELESTIAL_NAMES))
-        star.position_from_parent(parent, CONFIG_DATA['SPAWN_OFFSET']['star'])
+        star.offset_from_parent(parent, CONFIG_DATA['SPAWN_OFFSET']['star'])
         # Generate child rocks
         rock_count = round(random.gauss(*CONFIG_DATA['SPAWN_RATE']['rock']))
         for k in range(rock_count):
@@ -127,7 +127,7 @@ class Universe:
 
     def generate_rock(self, parent):
         rock = self.add_object(Rock, name=random.choice(CELESTIAL_NAMES))
-        rock.position_from_parent(parent, CONFIG_DATA['SPAWN_OFFSET']['rock'])
+        rock.offset_from_parent(parent, CONFIG_DATA['SPAWN_OFFSET']['rock'])
 
     # Simulation
     def update(self):

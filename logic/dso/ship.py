@@ -29,7 +29,7 @@ class Ship(DeepSpaceObject):
         if parent is None:
             parent_oid = random.choice(np.flatnonzero(self.universe.ds_celestials))
             parent = self.universe.ds_objects[parent_oid]
-        self.position_from_parent(parent, 10**2)
+        self.offset_from_parent(parent, 10**2)
         self.label = f'{self.icon}{self.oid} {self.name}'
         self.cockpit = Cockpit(ship=self)
         self.cockpit.follow(self.oid)
