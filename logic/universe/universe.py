@@ -28,10 +28,6 @@ PROMPT_LINE_SPLIT_ESCAPE = escape_html(PROMPT_LINE_SPLIT)
 
 
 class Universe:
-    silent_commands = {
-        'gui.prompt.focus',
-        'gui.layout.screen',
-    }
     def __init__(self, controller):
         self.controller = controller
         self.controller.set_feedback(lambda s: self.output_feedback(escape_html(s)))
@@ -82,7 +78,7 @@ class Universe:
                 continue
             command, *args = line.split(' ')
             logger.debug(f'Resolved prompt input: {line} -> {command} {args}')
-            for silent in self.silent_commands:
+            for silent in CONFIG_DATA['SILENT_COMMANDS']:
                 if command.startswith(silent):
                     break
             else:

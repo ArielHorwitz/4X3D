@@ -33,6 +33,10 @@ DEFAULT_CONFIG_DATA = {
         'rock': (30, 10),
     },
     'COMPUTER_PLAYERS': 5,
+    'SILENT_COMMANDS': [
+        'gui.prompt.focus',
+        'gui.layout.screen',
+    ],
     # Custom commands
     'CUSTOM_COMMANDS': {
         'debug': 'gui.debug && uni.debug',
