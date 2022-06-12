@@ -32,16 +32,17 @@ class ScreenSwitcher(VSplit):
         return self.screens[self.current_index]
 
     def next_screen(self):
+        """Switch to next GUI screen"""
         self.current_index += 1
         self.current_index %= len(self.screens)
 
     def prev_screen(self):
+        """Switch to previous GUI screen"""
         self.current_index -= 1
         self.current_index %= len(self.screens)
 
     def switch_to(self, index):
-        """
-        Switch to a GUI screen.
+        """Switch to a GUI screen
         INDEX screen number/name
         """
         if isinstance(index, str):

@@ -8,15 +8,7 @@ from functools import partial
 from collections import deque
 from inspect import signature
 
-from util import (
-    format_vector,
-    format_latlong,
-    escape_html,
-    CELESTIAL_NAMES,
-    RNG,
-    EPSILON,
-    resolve_prompt_input,
-    )
+from util import format_vector, format_latlong, escape_html, CELESTIAL_NAMES
 from util.config import CONFIG_DATA
 from util._3d import latlong_single
 from logic.universe.events import EventQueue
@@ -94,7 +86,7 @@ class Universe:
                 self.output_console(f'<blue>$</blue> {escape_html(line)} -> {escape_html(line_text)}')
                 self.handle_input(line_text, custom_recursion=custom_recursion-1)
                 continue
-            command, args = resolve_prompt_input(line)
+            command, *args = line.split(' ')
             logger.debug(f'Resolved prompt input: {line} -> {command} {args}')
             for silent in self.silent_commands:
                 if command.startswith(silent):
@@ -116,6 +108,7 @@ class Universe:
             self.output_console(message)
 
     def debug(self, *args, **kwargs):
+        """Developer debug logic"""
         logger.debug(f'Universe debug() called: {args} {kwargs}')
 
     # Parsers
@@ -181,12 +174,17 @@ class Universe:
                 self.do_ticks(ticks)
 
     def do_until_event(self):
+        """Run simulation until but not including next event"""
         self.do_ticks(self.events.next.tick - self.tick - TINY_TICK)
 
     def do_next_event(self):
+        """Run simulation to complete next event"""
         self.do_ticks(self.events.next.tick - self.tick + TINY_TICK)
 
     def do_ticks(self, ticks=1):
+        """Simulate ticks
+        TICKS Number of ticks to simulate
+        """
         assert ticks > 0
         last_tick = self.tick + ticks
         next_event = self.events.pop_next(tick=last_tick)
@@ -205,11 +203,16 @@ class Universe:
         self.__last_tick_time = arrow.now()
 
     def toggle_autosim(self, set_to=None):
+        """Toggle universe simulation"""
         if set_to is None:
             set_to = CONFIG_DATA['DEFAULT_SIMRATE'] if self.auto_simrate == 0 else -self.auto_simrate
         self.set_simrate(set_to)
 
     def set_simrate(self, value, delta=False):
+        """Set simulation speed
+        VALUE Simulation rate
+        --d DELTA Use value as delta
+        """
         sign = -1 if self.auto_simrate < 0 else 1
         if delta:
             self.auto_simrate += value * sign
@@ -396,6 +399,10 @@ class Universe:
         ])
 
     def print(self, content_name, set_browser=False):
+        """Print content to console
+        CONTENT_NAME Content to print
+        --b SET_BROWSER Also open in browser
+        """
         callback = partial(self.get_window_content, content_name)
         self.output_console(callback((10000, 10000)))
         if set_browser:
@@ -409,12 +416,17 @@ class Universe:
             self.output_console(callback((10000, 10000)))
 
     def inspect(self, oid):
+        """Inspect a deep space object
+        OID Object ID
+        """
         self.set_browser_content(lambda size, oid=oid: self.inspection_content(oid, size), print=True)
 
     def help(self, *args):
+        """Show help"""
         self.set_browser_content(self.get_content_help, print=True)
 
     def help_hotkeys(self, *args):
+        """Show hotkeys"""
         self.set_browser_content(self.get_content_help_hotkey, print=True)
 
     @property
@@ -422,7 +434,7 @@ class Universe:
         return self.feedback_stack[0]
 
     def get_content_help(self, *a):
-        return 'Registered commands:\n'+'\n'.join([f'{n:.<20}: ({escape_html(a)}) {c.__name__} {signature(c)}' for n, c, a in self.controller.items()])
+        return 'Registered commands:\n'+'\n'.join([f'<orange>{n:<25}</orange>: <green>{escape_html(a.desc)}</green> <bold>{escape_html(a.spec)}</bold> {c.__name__}{signature(c)}' for n, c, a in self.controller.items()])
 
     def get_content_hotkeys(self, *a):
         return 'Registered hotkeys:\n'+'\n'.join([f'{k:>11}: {v}' for k, v in CONFIG_DATA['HOTKEY_COMMANDS'].items()])

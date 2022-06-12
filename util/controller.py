@@ -1,5 +1,5 @@
 from loguru import logger
-from util import format_exc, format_exc_short
+from util.argparse import ArgSpec, ArgParseError
 
 
 class Controller:
@@ -27,16 +27,28 @@ class Controller:
             self.__feedback(f'Command "{command}" not found in {self}')
             return None
         callback, argspec = self.__commands[command]
-        r = callback(*args)
+        try:
+            parsed = argspec.parse(args)
+        except ArgParseError as e:
+            m = f'Command "{command}" failed: {e.args[0]}'
+            logger.warning(m)
+            self.__feedback(m)
+            return
+        args, kwargs = parsed
+        r = callback(*args, **kwargs)
         return r
 
     def register_command(self, command, callback):
         if command in self.__commands:
             raise ValueError(f'Command "{command}" already registered in {self}')
         assert callable(callback)
-        argspec = callback.__doc__
+        raw_argspec = callback.__doc__
+        try:
+            argspec = ArgSpec(raw_argspec if raw_argspec is not None else '')
+        except ArgParseError as e:
+            raise ValueError(f'Command "{command}" failed to resolve docstring as argspec:\n{e.args[0]}')
         self.__commands[command] = callback, argspec
-        logger.info(f'{self} registered command "{command}" to: {callback.__name__} ({callback})')
+        logger.info(f'{self} registered command "{command}" to {callback} with argspec: <{argspec.spec}>')
 
     @property
     def sorted_commands(self):
@@ -50,4 +62,4 @@ class Controller:
         return self.__commands
 
     def __repr__(self):
-        return f'<{self.name} Controller: {len(self.__commands)} commands>'
+        return f'<{self.name} Controller>'

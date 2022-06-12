@@ -1,3 +1,4 @@
+from loguru import logger
 import os, sys, traceback
 import numpy as np
 
@@ -87,18 +88,12 @@ def adjustable_sigmoid(x, k):
         r = nom/denom * 0.5 + 0.5
         return max(0.5, r)
 
-@staticmethod
-def resolve_prompt_input(s):
-    command, *args = s.split(' ')
-    args = [try_number(a) for a in args]
-    return command, args
 
-@staticmethod
 def try_number(v):
     try:
         r = float(v)
         if r == int(r):
-            r = int(r)
+            return int(r)
         return r
     except ValueError as e:
         return v

@@ -39,7 +39,7 @@ class App(Application):
         self.root_layout = self.get_layout()
         self.register_commands()
         kb = get_keybindings(
-            global_keys={'^ q': self.exit, '^ w': restart_script, 'escape': self.defocus_prompt},
+            global_keys={'^ q': self.exit, '^ w': restart_script, 'escape': self.prompt_window.defocus},
             condition=self.hotkeys_enabled,
             handler=self.handle_hotkey,
         )
@@ -53,15 +53,23 @@ class App(Application):
         )
         logger.debug(f'Terminal color depth: {self.color_depth}')
 
+    def do_quit(self):
+        """Quit the app"""
+        self.exit()
+
+    def do_restart(self):
+        """Restart the app"""
+        restart_script
+
     # Setup
     def register_commands(self):
         d = [
-            ('quit', self.exit),
-            ('gui.restart', restart_script),
+            ('gui.quit', self.do_quit),
+            ('gui.restart', self.do_restart),
             ('gui.debug', self.debug),
             ('gui.prompt.focus', self.focus_prompt),
             ('gui.prompt.defocus', self.defocus_prompt),
-            ('gui.prompt.clear', self.prompt_window.clear),
+            ('gui.prompt.clear', self.clear_prompt),
             ('gui.layout.screen', self.screen_switcher.switch_to),
             ('gui.layout.screen.next', self.screen_switcher.next_screen),
             ('gui.layout.screen.prev', self.screen_switcher.prev_screen),
@@ -80,7 +88,7 @@ class App(Application):
 
     # Handlers
     def handle_prompt_input(self, text):
-        self.defocus_prompt()
+        self.prompt_window.defocus()
         if not text:
             return
         self.universe.handle_input(text)
@@ -96,11 +104,17 @@ class App(Application):
         return self.universe.get_window_content(name, size)
 
     # Miscallaneous
+    def focus_prompt(self):
+        """Focus the prompt"""
+        self.prompt_window.focus()
+
     def defocus_prompt(self):
+        """Defocus the prompt"""
         self.prompt_window.defocus()
 
-    def focus_prompt(self):
-        self.prompt_window.focus()
+    def clear_prompt(self):
+        """Clear the prompt"""
+        self.prompt_window.clear()
 
     def hotkeys_enabled(self):
         return not self.root_layout.buffer_has_focus
@@ -112,6 +126,7 @@ class App(Application):
         return width, height
 
     def debug(self, *a):
+        """Developer debug GUI"""
         logger.debug(f'GUI debug called: {a}')
 
     # Runtime
@@ -133,4 +148,4 @@ class App(Application):
         asyncio.get_event_loop().run_until_complete(self.run_async(pre_run=self.prerun))
 
     def prerun(self):
-        self.defocus_prompt()
+        self.prompt_window.defocus()

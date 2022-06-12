@@ -36,6 +36,9 @@ class Cockpit:
         return self.ship.universe
 
     def follow(self, index=None):
+        """Follow a deep space object
+        INDEX Object ID
+        """
         def get_pos(index):
             return self.universe.positions[index]
         if index is None:
@@ -43,11 +46,19 @@ class Cockpit:
         self.camera.follow(partial(get_pos, index) if index is not None else None)
 
     def track(self, index=None):
+        """Track a deep space object
+        INDEX Object ID
+        """
         def get_pos(index):
             return self.universe.positions[index]
         self.camera.track(partial(get_pos, index) if index is not None else None)
 
     def look(self, index, ms=None, smooth=None):
+        """Turn to look at a deep space object
+        INDEX Object ID
+        --ms MS How long to swivel for in ms
+        --smooth SMOOTH How smoothly to swivel between -1 and 1
+        """
         if ms is None:
             ms = CONFIG_DATA['CAMERA_SMOOTH_TIME']
         if smooth is None:
@@ -55,15 +66,21 @@ class Cockpit:
         self.camera.swivel_to_point(self.universe.ds_objects[index].position, ms, smooth)
 
     def snaplook(self, index):
+        """Instantly turn to look at a deep space object
+        INDEX Object ID
+        """
         self.camera.look_at_point(self.universe.positions[index])
 
     def look_prograde(self):
+        """Turn to look at prograde vector"""
         self.camera.look_at_point(self.ship.velocity * 10 **10)
 
     def look_retrograde(self):
+        """Turn to look at retrograde vector"""
         self.camera.look_at_point(-self.ship.velocity * 10 **10)
 
     def toggle_labels(self):
+        """Toggle labels"""
         self.show_labels = (self.show_labels + 1) % 4
         logger.info(f'Showing labels: {self.show_labels}')
 

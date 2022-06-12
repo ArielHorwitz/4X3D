@@ -46,6 +46,7 @@ class Admiral:
         return '\n'.join(f'{s.label}' for s in self.fleet)
 
     def print_fleet(self):
+        """Print ships in fleet to console"""
         self.universe.output_console(self.fleet_str)
 
     @property
@@ -87,10 +88,18 @@ class Player(Admiral):
             self.add_ship(cls, name=ship_name, parent=self.my_ship)
 
     def order_patrol(self, oid, *target_oids):
+        """Order a ship to patrol between random celestial objects
+        OID Ship ID to order
+        """
         ship = self.universe.ds_objects[oid]
         ship.command_order_patrol(*target_oids)
 
-    def order_fly(self, oid, target_oid, cruise_speed):
+    def order_fly(self, oid, target_oid, cruise_speed=10**10):
+        """Order a ship to fly to a deep space object
+        OID Ship ID to order
+        TARGET_OID Target ID to fly to
+        --speed CRUISE_SPEED Maximum cruising speed
+        """
         ship = self.universe.ds_objects[oid]
         ship.fly_to(target_oid, cruise_speed)
 

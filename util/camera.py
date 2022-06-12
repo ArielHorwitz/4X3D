@@ -45,17 +45,23 @@ class Camera:
         if self.following is not None:
             self.pos = np.copy(self.following())
         if self.tracking is not None:
-            self.look_at_point(self.tracking(), disable_track=False)
+            self.look_at_point(self.tracking(), keep_tracking=True)
 
     def set_position(self, point):
         self.pos = np.asarray(point, dtype=np.float64)
 
     def move(self, d=1, disable_follow=True):
+        """Move camera
+        D Distance to move forward
+        """
         self.pos += self.current_axes[0] * d
         if disable_follow:
             self.follow(None)
 
     def strafe(self, d=1, disable_follow=True):
+        """Move camera
+        D Distance to move right
+        """
         self.pos += self.current_axes[1] * d
         if disable_follow:
             self.follow(None)
@@ -69,15 +75,23 @@ class Camera:
         return Quat.get_rotated_axes(self.rotation)
 
     def reset_zoom(self):
+        """Reset camera zoom"""
         self.__zoom_level = 1
 
-    def reset_rotation(self, disable_track=True):
+    def reset_rotation(self, keep_tracking=False):
+        """Reset camera rotation"""
         self.rotation = np.asarray([1,0,0,0], dtype=np.float64)
-        if disable_track:
+        if not keep_tracking:
             self.track(None)
 
-    def rotate(self, yaw=0, pitch=0, roll=0, consider_zoom=True, disable_track=True):
-        if consider_zoom:
+    def rotate(self, yaw=0, pitch=0, roll=0, zoom_scale=False, keep_tracking=False):
+        """Rotate camera
+        --y YAW Number of degrees to yaw right
+        --p PITCH Number of degrees to pitch up
+        --r ROLL Number of degrees to roll clockwise
+        --scale ZOOM_SCALE Rotate less when zoomed in and more when zoomed out
+        """
+        if zoom_scale:
             yaw /= self.__zoom_level
             pitch /= self.__zoom_level
         if yaw:
@@ -89,32 +103,45 @@ class Camera:
         if roll:
             roll_qrot = Quat.from_vector_angle(self.current_axes[0], roll)
             self.rotation = Quat.multi(self.rotation, roll_qrot)
-        if disable_track:
+        if not keep_tracking:
             self.track(None)
 
     def yaw(self, yaw):
-        self.rotate(yaw=yaw, consider_zoom=False)
+        """Yaw camera
+        YAW Number of degrees to yaw right
+        """
+        self.rotate(yaw=yaw)
 
     def pitch(self, pitch):
-        self.rotate(pitch=pitch, consider_zoom=False)
+        """Pitch camera
+        PITCH Number of degrees to pitch up
+        """
+        self.rotate(pitch=pitch)
 
     def roll(self, roll):
+        """Roll camera
+        ROLL Number of degrees to roll clockwise
+        """
         self.rotate(roll=roll)
 
     def flip(self):
-        self.rotate(yaw=180, consider_zoom=False)
+        """Flip camera"""
+        self.rotate(yaw=180)
         self.track(None)
 
     def adjust_zoom(self, zoom_multiplier):
+        """Adjust camera zoom
+        ZOOM_MULTIPLIER Fraction of current zoom (0.8 = %80 of current zoom)
+        """
         self.__zoom_level = max(0.5, self.__zoom_level * zoom_multiplier)
 
-    def look_at_point(self, point, reset_axes=True, disable_track=True):
+    def look_at_point(self, point, reset_axes=True, keep_tracking=False):
         if reset_axes:
-            self.reset_rotation(disable_track=disable_track)
+            self.reset_rotation(keep_tracking=keep_tracking)
         rotated = Quat.rotate_vector(point - self.pos, self.rotation)
         lat, long = latlong_single(rotated)
-        self.rotate(yaw=lat, consider_zoom=False, disable_track=disable_track)
-        self.rotate(pitch=long, consider_zoom=False, disable_track=disable_track)
+        self.rotate(yaw=lat, keep_tracking=keep_tracking)
+        self.rotate(pitch=long, keep_tracking=keep_tracking)
 
     def swivel_to_point(self, point, total_time_ms, smooth=0):
         self.update()
