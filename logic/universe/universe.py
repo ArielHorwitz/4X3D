@@ -67,7 +67,7 @@ class Universe:
         for command in commands:
             controller.register_command(*command)
 
-    def handle_input(self, input_text, custom_recursion=1):
+    def handle_input(self, input_text, allow_aliases=True):
         if PROMPT_LINE_SPLIT in input_text:
             lines = input_text.split(PROMPT_LINE_SPLIT)
         elif PROMPT_LINE_SPLIT_ESCAPE in input_text:
@@ -75,16 +75,10 @@ class Universe:
         else:
             lines = [input_text]
         for line in lines:
-            if line == '&recursion':
-                custom_recursion += 1
-                continue
-            if line == '&unrecursion':
-                custom_recursion = 0
-                continue
-            if custom_recursion > 0 and line in CONFIG_DATA['CUSTOM_COMMANDS']:
+            if line in CONFIG_DATA['CUSTOM_COMMANDS']:
                 line_text = CONFIG_DATA['CUSTOM_COMMANDS'][line]
                 self.output_console(f'<blue>$</blue> {escape_html(line)} -> {escape_html(line_text)}')
-                self.handle_input(line_text, custom_recursion=custom_recursion-1)
+                self.handle_input(line_text, allow_aliases=False)
                 continue
             command, *args = line.split(' ')
             logger.debug(f'Resolved prompt input: {line} -> {command} {args}')
