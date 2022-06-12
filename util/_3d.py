@@ -218,7 +218,6 @@ def latlong(vectors):
     find the angles to rotate clockwise and pitch up in order to look at
     the vector.
     """
-    logger.debug(str(vectors))
     magnitude = np.linalg.norm(vectors, axis=-1)
     has_mag = magnitude > 0
     has_x = vectors[:, 0] != 0  # Avoid dividing by zero
