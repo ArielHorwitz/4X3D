@@ -7,19 +7,16 @@ import itertools
 from functools import partial
 from collections import deque
 from inspect import signature
-from types import SimpleNamespace
 
-from util import format_vector, format_latlong, escape_html
-from util.controller import (
-    ValidationFail,
-    ParseInt,
-    ParseFloat,
-    ParseBool,
-    ParseCollect,
-    ParseConsume,
-    ParserCustom,
-)
-from util import CELESTIAL_NAMES, RNG, EPSILON, resolve_prompt_input
+from util import (
+    format_vector,
+    format_latlong,
+    escape_html,
+    CELESTIAL_NAMES,
+    RNG,
+    EPSILON,
+    resolve_prompt_input,
+    )
 from util.config import CONFIG_DATA
 from util._3d import latlong_single
 from logic.universe.events import EventQueue
@@ -44,11 +41,6 @@ class Universe:
         'gui.layout.screen',
     }
     def __init__(self, controller):
-        self.parsers = SimpleNamespace(**{
-            'oid': ParserCustom(self.parse_oid, name='oid', default=self.get_player_oid),
-            'ship_oid': ParserCustom(self.parse_ship_oid, name='ship_oid', default=self.get_player_oid),
-            'player_ship': ParserCustom(self.parse_player_ship, name='player_ship', default=self.get_player_oid),
-        })
         self.controller = controller
         self.controller.set_feedback(lambda s: self.output_feedback(escape_html(s)))
         self.console_stack = deque()
@@ -71,17 +63,14 @@ class Universe:
         commands = [
             ('sim', self.toggle_autosim),
             ('sim.toggle', self.toggle_autosim),
-            ('sim.tick', self.do_ticks, ParseFloat(min=EPSILON, default=1)),
-            ('sim.rate', self.set_simrate,
-                ParseFloat(default=CONFIG_DATA['DEFAULT_SIMRATE']),
-                ParseBool(default=False)
-            ),
+            ('sim.tick', self.do_ticks),
+            ('sim.rate', self.set_simrate),
             ('sim.next_event', self.do_next_event),
             ('sim.until_event', self.do_until_event),
-            ('uni.debug', self.debug, ParseCollect()),
-            ('inspect', self.inspect, self.parsers.oid),
-            ('print', self.print, ParseCollect()),
-            ('help', self.help, ParseConsume()),
+            ('uni.debug', self.debug),
+            ('inspect', self.inspect),
+            ('print', self.print),
+            ('help', self.help),
         ]
         for command in commands:
             controller.register_command(*command)
@@ -135,7 +124,7 @@ class Universe:
             return self.player.my_ship.oid
         oid = int(oid)
         if oid < 0 or oid >= self.object_count:
-            return ValidationFail(f'expected valid object ID, instead got: {oid} (last oid: {self.object_count-1})')
+            return f'expected valid object ID, instead got: {oid} (last oid: {self.object_count-1})'
         return oid
 
     def parse_ship_oid(self, oid):
@@ -143,9 +132,9 @@ class Universe:
             return self.player.my_ship.oid
         oid = int(oid)
         if oid < 0 or oid >= self.object_count:
-            return ValidationFail(f'expected valid ship ID, instead got: {oid} (last oid: {self.object_count-1})')
+            return f'expected valid ship ID, instead got: {oid} (last oid: {self.object_count-1})'
         if not self.ds_ships[oid]:
-            return ValidationFail(f'expected valid ship ID, instead got non-ship ID: {oid} (last oid: {self.object_count-1})')
+            return f'expected valid ship ID, instead got non-ship ID: {oid} (last oid: {self.object_count-1})'
         return oid
 
     def parse_player_ship(self, oid):
@@ -155,7 +144,7 @@ class Universe:
         if oid not in self.player.fleet_oids and oid != self.player.my_ship.oid:
             self.output_feedback(f'<underline>oid#{oid} not in my fleet</underline>:')
             self.player.print_fleet()
-            return ValidationFail(f'expected player ship ID, instead got: {oid}')
+            return f'expected player ship ID, instead got: {oid}'
         return oid
 
     # Genesis
@@ -433,7 +422,7 @@ class Universe:
         return self.feedback_stack[0]
 
     def get_content_help(self, *a):
-        return 'Registered commands:\n'+'\n'.join([f'{n:.<20}: ({escape_html(v.parsers_repr)}) {c.__name__} {signature(c)}' for n, c, v in self.controller.items()])
+        return 'Registered commands:\n'+'\n'.join([f'{n:.<20}: ({escape_html(a)}) {c.__name__} {signature(c)}' for n, c, a in self.controller.items()])
 
     def get_content_hotkeys(self, *a):
         return 'Registered hotkeys:\n'+'\n'.join([f'{k:>11}: {v}' for k, v in CONFIG_DATA['HOTKEY_COMMANDS'].items()])

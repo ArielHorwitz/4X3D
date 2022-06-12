@@ -7,16 +7,6 @@ from functools import wraps
 from collections import defaultdict, namedtuple
 
 from util import EPSILON
-from util.controller import (
-    ValidationFail,
-    ParseInt,
-    ParseFloat,
-    ParseBool,
-    ParsePush,
-    ParseCollect,
-    ParseConsume,
-    ParserCustom,
-)
 from logic.dso.cockpit import Cockpit
 from logic.dso.dso import DeepSpaceObject
 
@@ -48,17 +38,11 @@ class Ship(DeepSpaceObject):
     @property
     def commands(self):
         return [
-            ('fly', self.fly_to, self.universe.parsers.oid, ParseFloat(default=10**6)),
-            ('burn', self.engine_burn,
-                ParsePush(default=None),
-                ParseFloat(default=1, min=EPSILON, max=1),
-            ),
-            ('break', self.engine_break_burn,
-                ParseFloat(default=1, min=EPSILON, max=1),
-                ParseBool(default=True),
-            ),
+            ('fly', self.fly_to),
+            ('burn', self.engine_burn),
+            ('break', self.engine_break_burn),
             ('cut', self.engine_cut_burn),
-            ('patrol', self.command_order_patrol, ParseCollect()),
+            ('patrol', self.command_order_patrol),
             ('cancel', self.order_cancel),
         ]
 

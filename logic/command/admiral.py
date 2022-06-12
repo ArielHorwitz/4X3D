@@ -4,7 +4,6 @@ import math
 import random
 import numpy as np
 from util import OBJECT_COLORS, CELESTIAL_NAMES
-from util.controller import ParseCollect, ParseStr, ParseFloat
 from logic.dso.ship import Ship, Tug, Fighter, Escort, Port
 from logic.dso.celestial import CelestialObject
 
@@ -65,12 +64,8 @@ class Player(Admiral):
     def register_commands(self, controller):
         d = {
             ('admiral.fleet', self.print_fleet),
-            ('order.fly', self.order_fly,
-                self.universe.parsers.player_ship,
-                self.universe.parsers.oid, 
-                ParseFloat(default=10**6),
-            ),
-            ('order.patrol', self.order_patrol, self.universe.parsers.player_ship, ParseCollect()),
+            ('order.fly', self.order_fly),
+            ('order.patrol', self.order_patrol),
             *[(f'ship.{n}', *a) for n, *a in self.my_ship.commands],
             *[(f'cockpit.{n}', *a) for n, *a in self.my_ship.cockpit.commands],
         }

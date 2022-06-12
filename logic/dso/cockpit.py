@@ -21,10 +21,10 @@ class Cockpit:
     @property
     def commands(self):
         cockpit_commands = [
-            ('follow', self.follow, self.universe.parsers.oid),
-            ('track', self.track, self.universe.parsers.oid),
-            ('look', self.look, self.universe.parsers.oid),
-            ('snaplook', self.snaplook, self.universe.parsers.oid),
+            ('follow', self.follow),
+            ('track', self.track),
+            ('look', self.look),
+            ('snaplook', self.snaplook),
             ('pro', self.look_prograde),
             ('retro', self.look_retrograde),
             ('labels', self.toggle_labels),

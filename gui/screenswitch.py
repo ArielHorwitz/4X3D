@@ -1,5 +1,4 @@
 from loguru import logger
-
 from prompt_toolkit.layout import Dimension
 from prompt_toolkit.layout.containers import Window, VSplit, HSplit, ConditionalContainer
 from prompt_toolkit.layout.controls import FormattedTextControl
@@ -41,6 +40,10 @@ class ScreenSwitcher(VSplit):
         self.current_index %= len(self.screens)
 
     def switch_to(self, index):
+        """
+        Switch to a GUI screen.
+        INDEX screen number/name
+        """
         if isinstance(index, str):
             index = self.screen_names.index(index)
         self.current_index = index

@@ -17,7 +17,7 @@ from prompt_toolkit.layout.layout import Layout
 
 from util import STYLE, restart_script, window_size, escape_html
 from util.config import CONFIG_DATA
-from util.controller import Controller, ParseInt
+from util.controller import Controller
 from gui.layout import DEFAULT_LAYOUT
 from gui.screenswitch import ScreenSwitcher
 from gui.prompt import Prompt
@@ -62,7 +62,7 @@ class App(Application):
             ('gui.prompt.focus', self.focus_prompt),
             ('gui.prompt.defocus', self.defocus_prompt),
             ('gui.prompt.clear', self.prompt_window.clear),
-            ('gui.layout.screen', self.screen_switcher.switch_to, ParseInt(min=0, max=len(self.screen_switcher)-1)),
+            ('gui.layout.screen', self.screen_switcher.switch_to),
             ('gui.layout.screen.next', self.screen_switcher.next_screen),
             ('gui.layout.screen.prev', self.screen_switcher.prev_screen),
         ]
