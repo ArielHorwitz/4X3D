@@ -78,12 +78,13 @@ class Universe:
                 continue
             command, *args = line.split(' ')
             logger.debug(f'Resolved prompt input: {line} -> {command} {args}')
-            for silent in CONFIG_DATA['SILENT_COMMANDS']:
-                if command.startswith(silent):
-                    break
-            else:
+            is_silent = any(command.startswith(silent) for silent in CONFIG_DATA['SILENT_COMMANDS'])
+            if not is_silent:
                 self.output_console(f'<cyan>$</cyan> {line}')
-            self.controller.do_command(command, args)
+            r = self.controller.do_command(command, args)
+            if not is_silent and isinstance(r, str):
+                self.output_console(f'>> {str(r)[:100]}')
+
 
     def output_console(self, message):
         self.console_stack.appendleft(str(message))

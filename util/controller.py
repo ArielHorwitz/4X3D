@@ -9,23 +9,29 @@ class Controller:
         if feedback is not None:
             self.set_feedback(feedback)
         self.__commands = {}
+        self.__cache = {}
         logger.info(f'Created {self.name} Controller.')
-
-    @property
-    def feedback(self):
-        return self.__feedback
 
     def set_feedback(self, callback):
         assert callable(callback)
         self.__feedback = callback
 
+    def has(self, command):
+        return self.has_command(command) or self.has_cached(command)
+
     def has_command(self, command):
         return command in self.__commands
 
+    def has_cached(self, command):
+        return command in self.__cache
+
     def do_command(self, command, args):
         if not self.has_command(command):
-            self.__feedback(f'Command "{command}" not found in {self}')
-            return None
+            if not self.has_cached(command):
+                self.__feedback(f'Command "{command}" not found in {self}')
+                return None
+            else:
+                return self.__cache[command]
         callback, argspec = self.__commands[command]
         try:
             parsed = argspec.parse(args)
@@ -38,8 +44,13 @@ class Controller:
         r = callback(*args, **kwargs)
         return r
 
+    def cache(self, command, value):
+        if self.has_command(command):
+            raise ValueError(f'Command "{command}" already registered in {self}')
+        self.__cache[command] = value
+
     def register_command(self, command, callback):
-        if command in self.__commands:
+        if self.has_command(command):
             raise ValueError(f'Command "{command}" already registered in {self}')
         assert callable(callback)
         raw_argspec = callback.__doc__
