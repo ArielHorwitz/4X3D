@@ -50,16 +50,9 @@ class Controller:
         self.__commands[command] = callback, argspec
         logger.info(f'{self} registered command "{command}" to {callback} with argspec: <{argspec.spec}>')
 
-    @property
-    def sorted_commands(self):
-        return sorted(list(self.__commands.keys()))
-
-    def items(self):
-        return ((n, *self.__commands[n]) for n in self.sorted_commands)
-
-    @property
-    def commands(self):
-        return self.__commands
+    def sorted_items(self):
+        s = sorted(list(self.__commands.keys()))
+        return ((name, *self.__commands[name]) for name in s)
 
     def __repr__(self):
         return f'<{self.name} Controller>'

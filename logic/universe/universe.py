@@ -424,7 +424,13 @@ class Universe:
         return self.feedback_stack[0]
 
     def get_content_help(self, *a):
-        return 'Registered commands:\n'+'\n'.join([f'<orange>{n:<25}</orange>: <green>{escape_html(a.desc)}</green> <bold>{escape_html(a.spec)}</bold> {c.__name__}{signature(c)}' for n, c, a in self.controller.items()])
+        formatted_commands = '\n'.join([''.join([
+            f'<orange>{name:<25}</orange>: ',
+            f'<green>{escape_html(argspec.desc)}</green> ',
+            f'<bold>{escape_html(argspec.spec)}</bold> ',
+            f'{callback.__name__}{signature(callback)}',
+        ]) for name, callback, argspec in self.controller.sorted_items()])
+        return f'Registered commands:\n{formatted_commands}'
 
     def get_content_hotkeys(self, *a):
         return 'Registered hotkeys:\n'+'\n'.join([f'{k:>11}: {v}' for k, v in CONFIG_DATA['HOTKEY_COMMANDS'].items()])
