@@ -25,7 +25,7 @@ class Controller:
     def has_cached(self, command):
         return command in self.__cache
 
-    def do_command(self, command, args):
+    def do_command(self, command, args=None):
         if not self.has_command(command):
             if not self.has_cached(command):
                 self.__feedback(f'Command "{command}" not found in {self}')
@@ -33,14 +33,17 @@ class Controller:
             else:
                 return self.__cache[command]
         callback, argspec = self.__commands[command]
-        try:
-            parsed = argspec.parse(args)
-        except ArgParseError as e:
-            m = f'Command "{command}" failed: {e.args[0]}'
-            logger.warning(m)
-            self.__feedback(m)
-            return
-        args, kwargs = parsed
+        if args is None:
+            args, kwargs = tuple(), dict()
+        else:
+            try:
+                parsed = argspec.parse(args)
+            except ArgParseError as e:
+                m = f'Command "{command}" failed: {e.args[0]}'
+                logger.warning(m)
+                self.__feedback(m)
+                return
+            args, kwargs = parsed
         r = callback(*args, **kwargs)
         return r
 
@@ -64,6 +67,14 @@ class Controller:
     def sorted_items(self):
         s = sorted(list(self.__commands.keys()))
         return ((name, *self.__commands[name]) for name in s)
+
+    @property
+    def commands(self):
+        return tuple(self.__commands.keys())
+
+    @property
+    def cached(self):
+        return tuple(self.__cache.keys())
 
     def __repr__(self):
         return f'<{self.name} Controller>'
