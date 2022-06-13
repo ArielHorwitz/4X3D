@@ -22,8 +22,7 @@ class Prompt(HSplit):
         super().__init__([prompt, status], height=2)
 
     def handle_buffer_input(self, buffer):
-        text = escape_html(buffer.text)
-        self.handler(text)
+        self.handler(buffer.text)
 
     def update(self):
         s = tag('cyan', f'{tag("orange", "dev")} @ {tag("brown", "Space")} $')

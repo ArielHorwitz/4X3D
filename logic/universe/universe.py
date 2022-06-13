@@ -8,7 +8,13 @@ from functools import partial
 from collections import deque
 from inspect import signature
 
-from util import format_vector, format_latlong, escape_html, CELESTIAL_NAMES
+from util import (
+    format_vector,
+    format_latlong,
+    escape_html,
+    escape_if_malformed,
+    CELESTIAL_NAMES,
+    )
 from util.config import CONFIG_DATA
 from util.controller import Controller
 from util._3d import latlong_single
@@ -62,6 +68,7 @@ class Universe:
             ('sim.until_event', self.do_until_event),
             ('uni.debug', self.debug),
             ('inspect', self.inspect),
+            ('echo', self.echo),
             ('print', self.print),
             ('browse', self.set_browser_content),
             ('help', self.help),
@@ -86,24 +93,31 @@ class Universe:
             logger.debug(f'Resolved prompt input: {line} -> {command} {args}')
             is_silent = any(command.startswith(silent) for silent in CONFIG_DATA['SILENT_COMMANDS'])
             if not is_silent:
-                self.output_console(f'<cyan>$</cyan> {line}')
+                self.output_console(f'<cyan>$</cyan> {escape_html(line)}')
             r = self.controller.do_command(command, args)
             if not is_silent and isinstance(r, str):
                 self.output_console(f'>> {str(r)[:100]}')
 
-
     def output_console(self, message):
-        self.console_stack.appendleft(str(message))
+        message = escape_if_malformed(message)
+        self.console_stack.appendleft(message)
         while len(self.console_stack) > CONSOLE_SCROLLBACK:
             self.console_stack.pop()
 
     def output_feedback(self, message, also_console=True):
         logger.debug(f'output_feedback: {message}')
-        self.feedback_stack.appendleft(str(message))
+        message = escape_if_malformed(message)
+        self.feedback_stack.appendleft(message)
         while len(self.feedback_stack) > FEEDBACK_SCROLLBACK:
             self.feedback_stack.pop()
         if also_console:
             self.output_console(message)
+
+    def echo(self, message):
+        """Echo text in the console
+        MESSAGE Text to echo
+        """
+        self.output_console(message)
 
     def debug(self, *args, **kwargs):
         """Developer debug logic"""
@@ -307,6 +321,8 @@ class Universe:
     def refresh_display_cache(self):
         self.display_controller.cache('__init', 'Use "help" command for help.')
         self.display_controller.cache('__browser_content', '__init')
+        self.display_controller.cache('__easter_egg', 'Ho ho ho, you found me!')
+        self.display_controller.cache('__malformed_html', '<tag')
         self.display_controller.cache('help', self.__get_content_help())
         self.display_controller.cache('hotkeys', self.__get_content_hotkeys())
         commands = self.display_controller.commands
@@ -450,6 +466,9 @@ class Universe:
         """Open content in browser
         CONTENT_NAME Content to open
         """
+        if not self.display_controller.has(content_name):
+            self.output_feedback(f'Couldn\'t find content: {content_name}')
+            return
         self.display_controller.cache('__browser_content', content_name)
 
     def inspect(self, oid):

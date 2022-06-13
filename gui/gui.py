@@ -103,6 +103,9 @@ class App(Application):
         size = self.screen_size if size is None else size
         return self.universe.get_window_content(name, size)
 
+    def user_feedback(self, message):
+        self.universe.output_feedback(message)
+
     # Miscallaneous
     def focus_prompt(self):
         """Focus the prompt"""

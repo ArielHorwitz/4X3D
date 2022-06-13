@@ -6,6 +6,7 @@ from prompt_toolkit.formatted_text import HTML
 from prompt_toolkit.widgets import Frame
 from prompt_toolkit.filters import Condition
 
+from util import escape_if_malformed
 from util.layout import WSubLayout, VSubLayout
 
 
@@ -72,8 +73,10 @@ class Screen(VSplit):
         for name, tc in self.text_controls.items():
             size = tc.last_size
             r = self.app.get_window_content(name, size)
-            if r is not None:
-                tc.text = HTML(r)
+            if r is None:
+                continue
+            h = HTML(escape_if_malformed(r))
+            tc.text = h
 
     @classmethod
     def get_sublayout(cls, sublayout):
