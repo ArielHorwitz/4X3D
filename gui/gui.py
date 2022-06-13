@@ -149,3 +149,4 @@ class App(Application):
 
     def prerun(self):
         self.prompt_window.defocus()
+        self.universe.gui_prepared()

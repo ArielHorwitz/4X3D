@@ -10,6 +10,7 @@ from inspect import signature
 
 from util import format_vector, format_latlong, escape_html, CELESTIAL_NAMES
 from util.config import CONFIG_DATA
+from util.controller import Controller
 from util._3d import latlong_single
 from logic.universe.events import EventQueue
 from logic.universe.engine import Engine
@@ -31,9 +32,9 @@ class Universe:
     def __init__(self, controller):
         self.controller = controller
         self.controller.set_feedback(lambda s: self.output_feedback(escape_html(s)))
+        self.display_controller = Controller('Logic Display', feedback=lambda s: self.output_feedback(escape_html(s)))
         self.console_stack = deque()
         self.feedback_stack = deque()
-        self.get_content_browser = lambda *a: 'Use "help" command for help.'
         self.engine = Engine({'position': 3})
         self.events = EventQueue()
         self.tick = 0
@@ -44,8 +45,12 @@ class Universe:
         self.ds_celestials = self.ds_ships = np.ndarray((0), dtype=np.bool)
         self.genesis()
         self.register_commands(controller)
+        self.register_display_cache()
         self.output_feedback('<orange><bold>Welcome to space.</bold></orange>')
         self.output_console('Need help? Press enter and use the "help" command.')
+
+    def gui_prepared(self):
+        self.refresh_display_cache()
 
     def register_commands(self, controller):
         commands = [
@@ -58,6 +63,7 @@ class Universe:
             ('uni.debug', self.debug),
             ('inspect', self.inspect),
             ('print', self.print),
+            ('browse', self.set_browser_content),
             ('help', self.help),
         ]
         for command in commands:
@@ -92,6 +98,7 @@ class Universe:
             self.console_stack.pop()
 
     def output_feedback(self, message, also_console=True):
+        logger.debug(f'output_feedback: {message}')
         self.feedback_stack.appendleft(str(message))
         while len(self.feedback_stack) > FEEDBACK_SCROLLBACK:
             self.feedback_stack.pop()
@@ -281,6 +288,32 @@ class Universe:
         return self.player.my_ship.oid
 
     # GUI content
+    def register_display_cache(self):
+        for window_name in [
+            'console',
+            'feedback',
+            'debug',
+            'events',
+            'objects',
+            'celestials',
+            'ships',
+            'cockpit',
+        ]:
+            f = getattr(self, f'get_content_{window_name}')
+            c = partial(f, (10000, 10000))  # These functions expect a size
+            self.display_controller.register_command(window_name, c)
+        self.refresh_display_cache()
+
+    def refresh_display_cache(self):
+        self.display_controller.cache('__init', 'Use "help" command for help.')
+        self.display_controller.cache('__browser_content', '__init')
+        self.display_controller.cache('help', self.__get_content_help())
+        self.display_controller.cache('hotkeys', self.__get_content_hotkeys())
+        commands = self.display_controller.commands
+        cached = self.display_controller.cached
+        contents = '\n'.join(str(_) for _ in commands + cached if not str(_).startswith('_'))
+        self.display_controller.cache('contents', contents)
+
     def get_window_content(self, name, size):
         if hasattr(self, f'get_content_{name}'):
             f = getattr(self, f'get_content_{name}')
@@ -307,20 +340,32 @@ class Universe:
         lines = full.split('\n')[-line_count:]
         return '\n'.join(lines)
 
-    def get_content_debug(self, size):
-        t = arrow.get().format('YY-MM-DD, hh:mm:ss')
-        ltt = arrow.now() - self.__last_tick_time
-        object_summaries = []
-        for oid in np.flatnonzero(self.ds_celestials)[:5]:
+    def get_content_objects(self, size):
+        return '\n'.join((
+            self.get_content_celestials(size),
+            self.get_content_ships(size),
+        ))
+
+    def get_content_celestials(self, size, count=30):
+        object_summaries = [f'<h2>Celestial Objects</h2>']
+        for oid in np.flatnonzero(self.ds_celestials)[:count]:
             ob = self.ds_objects[oid]
             line = f'<{ob.color}>{ob.label} ({ob.type_name})</{ob.color}>'
             object_summaries.append(line)
-        object_summaries.append('...')
-        for oid in np.flatnonzero(self.ds_ships)[:30]:
+        return '\n'.join(object_summaries)
+
+    def get_content_ships(self, size, count=30):
+        object_summaries = [f'<h2>Ships</h2>']
+        for oid in np.flatnonzero(self.ds_ships)[:count]:
             ship = self.ds_objects[oid]
             name = f'<{ship.color}>{ship.label} ({ship.type_name})</{ship.color}>'
             orders = f'<italic>{ship.current_orders}</italic>'
             object_summaries.append(f'{name:<50} {orders}')
+        return '\n'.join(object_summaries)
+
+    def get_content_debug(self, size):
+        t = arrow.get().format('YY-MM-DD, hh:mm:ss')
+        ltt = arrow.now() - self.__last_tick_time
         event_str = ''
         if len(self.events) > 0:
             ev = self.events.next
@@ -331,8 +376,6 @@ class Universe:
             f'<red>Tick</red>: <code>{self.tick:.4f}</code>',
             f'<red>Tick time</red>: <code>{ltt}</code>',
             f'<red>Events</red>: <code>{len(self.events)}</code>\n{event_str}',
-            f'<h2>Celestial Objects</h2>',
-            '\n'.join(object_summaries),
         ])
 
     def get_content_events(self, size):
@@ -352,10 +395,14 @@ class Universe:
 
     def get_content_cockpit(self, size):
         return '\n'.join([
-            self.inspection_content(oid=self.player.my_ship.oid, size=size),
+            self.inspection_content(oid=self.player.my_ship.oid),
         ])
 
-    def inspection_content(self, oid, size):
+    def get_content_browser(self, size):
+        content_command = self.display_controller.do_command('__browser_content')
+        return self.display_controller.do_command(content_command)
+
+    def inspection_content(self, oid):
         ob = self.ds_objects[oid]
         ob_type = ob.type_name
         color = ob.color
@@ -389,42 +436,45 @@ class Universe:
             *extra_lines,
         ])
 
-    def print(self, content_name, set_browser=False):
+    def print(self, content_name):
         """Print content to console
         CONTENT_NAME Content to print
-        --b SET_BROWSER Also open in browser
         """
-        callback = partial(self.get_window_content, content_name)
-        self.output_console(callback((10000, 10000)))
-        if set_browser:
-            self.set_browser_content(callback)
+        if not self.display_controller.has(content_name):
+            self.output_feedback(f'Couldn\'t find content: {content_name}')
+            return
+        s = self.display_controller.do_command(content_name)
+        self.output_console(s)
 
-    def set_browser_content(self, callback, print=False):
-        self.get_content_browser = callback
-        logger.debug(f'setting browser content: {callback}')
-        if print:
-            logger.debug(f'setting browser content print')
-            self.output_console(callback((10000, 10000)))
+    def set_browser_content(self, content_name):
+        """Open content in browser
+        CONTENT_NAME Content to open
+        """
+        self.display_controller.cache('__browser_content', content_name)
 
     def inspect(self, oid):
         """Inspect a deep space object
         OID Object ID
         """
-        self.set_browser_content(lambda size, oid=oid: self.inspection_content(oid, size), print=True)
+        self.set_browser_content(lambda oid=oid: self.inspection_content(oid))
 
     def help(self, *args):
         """Show help"""
-        self.set_browser_content(self.get_content_help, print=True)
+        s = self.display_controller.do_command('help')
+        self.output_console(s)
+        self.set_browser_content('help')
 
     def help_hotkeys(self, *args):
         """Show hotkeys"""
-        self.set_browser_content(self.get_content_help_hotkey, print=True)
+        s = self.display_controller.do_command('hotkeys')
+        self.output_console(s)
+        self.set_browser_content('hotkeys')
 
     @property
     def feedback_str(self):
         return self.feedback_stack[0]
 
-    def get_content_help(self, *a):
+    def __get_content_help(self):
         formatted_commands = '\n'.join([''.join([
             f'<orange>{name:<25}</orange>: ',
             f'<green>{escape_html(argspec.desc)}</green> ',
@@ -433,5 +483,5 @@ class Universe:
         ]) for name, callback, argspec in self.controller.sorted_items()])
         return f'Registered commands:\n{formatted_commands}'
 
-    def get_content_hotkeys(self, *a):
+    def __get_content_hotkeys(self):
         return 'Registered hotkeys:\n'+'\n'.join([f'{k:>11}: {v}' for k, v in CONFIG_DATA['HOTKEY_COMMANDS'].items()])
