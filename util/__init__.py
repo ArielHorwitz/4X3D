@@ -1,6 +1,7 @@
 from loguru import logger
 import os, sys, traceback
 import numpy as np
+from prompt_toolkit.formatted_text import HTML
 
 RNG = np.random.default_rng()
 EPSILON = 10**-10
@@ -48,6 +49,29 @@ def tag(tag, s):
 def escape_html(s):
     r = str(s).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
     return r
+
+
+def is_malformed_html(s):
+    s = str(s)
+    try:
+        h = HTML(s)
+    except Exception as e:
+        return e.lineno, e.code
+    return False
+
+
+def escape_if_malformed(s, indicate_escaped=True):
+    s = str(s)
+    mal = is_malformed_html(s)
+    if mal:
+        logger.debug(f'escaping because malformed: {s}')
+        if indicate_escaped:
+            line, col = mal
+            has_nl = '\n' in s
+            nl = '\n' if has_nl else ''
+            return escape_html(f'<MALFORMED @ line {line} col {col}>{nl}{s}{nl}</MALFORMED>')
+        return escape_html(s)
+    return s
 
 
 def restart_script():
