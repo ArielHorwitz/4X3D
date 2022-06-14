@@ -323,6 +323,7 @@ class Universe:
             'ships',
             'cockpit',
             'inspect',
+            'command',
         ]:
             func = getattr(self, f'get_content_{window_name}')
             self.display_controller.register_command(window_name, func)
@@ -337,6 +338,7 @@ class Universe:
         self.display_controller.cache('help', self.__get_content_help())
         self.display_controller.cache('hotkeys', self.__get_content_hotkeys())
         self.display_controller.cache('contents', self.__get_content_contents())
+        self.display_controller.cache('all_commands', self.__get_content_commands())
 
     def get_window_content(self, name, size=NO_SIZE_LIMIT):
         if hasattr(self, f'get_content_{name}'):
@@ -473,6 +475,12 @@ class Universe:
             *extra_lines,
         ])
 
+    def get_content_command(self, size=NO_SIZE_LIMIT, command=None):
+        if command is None or not self.controller.has_command(command):
+            return self.display_controller.do_command('all_commands')
+        callback, argspec = self.controller.get_command(command)
+        return argspec.help_verbose
+
     def print(self, content_name, **options):
         """ArgSpec
         Print content to console
@@ -520,14 +528,17 @@ class Universe:
     def __get_content_help(self):
         formatted_contents = self.__get_content_contents()
         contents = f'<h2>Content sources</h2>\n{formatted_contents}'
-        formatted_commands = '\n'.join([''.join([
+        formatted_commands = self.__get_content_commands()
+        commands = f'<h2>Registered commands</h2>\n{formatted_commands}'
+        return '\n'.join((contents, commands))
+
+    def __get_content_commands(self):
+        return '\n'.join([''.join([
             f'<orange>{name:<25}</orange>: ',
             f'<green>{escape_html(argspec.desc)}</green> ',
             f'<bold>{escape_html(argspec.spec)}</bold> ',
             f'{callback.__name__}{signature(callback)}',
         ]) for name, callback, argspec in self.controller.sorted_items()])
-        commands = f'<h2>Registered commands</h2>\n{formatted_commands}'
-        return '\n'.join((contents, commands))
 
     def __get_content_hotkeys(self):
         return 'Registered hotkeys:\n'+'\n'.join([f'{k:>11}: {v}' for k, v in CONFIG_DATA['HOTKEY_COMMANDS'].items()])
