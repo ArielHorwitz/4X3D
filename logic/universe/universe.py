@@ -434,11 +434,8 @@ class Universe:
 
     def get_content_browser(self, size=NO_SIZE_LIMIT):
         command = self.display_controller.do_command('__browser_content')
-        # Cannot pass options since each option (keyword argument) is packed as a tuple by the argparser
-        # This should hopefully be fixed in the util.argparse
-        # options = self.display_controller.do_command('__browser_options')
-        # return self.display_controller.do_command(command, custom_kwargs=options)
-        return self.display_controller.do_command(command)
+        options = self.display_controller.do_command('__browser_options')
+        return self.display_controller.do_command(command, custom_kwargs=options)
 
     def get_content_inspect(self, size=NO_SIZE_LIMIT, oid=None):
         if oid is None:
@@ -476,7 +473,7 @@ class Universe:
             *extra_lines,
         ])
 
-    def print(self, content_name, options=None):
+    def print(self, content_name, **options):
         """ArgSpec
         Print content to console
         ___
@@ -486,7 +483,7 @@ class Universe:
         if not self.display_controller.has(content_name):
             self.output_feedback(f'Couldn\'t find content: {content_name}')
             return
-        s = self.display_controller.do_command(content_name)
+        s = self.display_controller.do_command(content_name, custom_kwargs=options)
         self.output_console(s)
 
     def set_browser_content(self, content_name, **options):
