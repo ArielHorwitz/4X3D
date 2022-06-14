@@ -332,7 +332,8 @@ class Universe:
     def refresh_display_cache(self):
         self.display_controller.cache('__init', 'Use "help" command for help.')
         self.display_controller.cache('__browser_content', '__init')
-        self.display_controller.cache('__browser_options', {})
+        self.display_controller.cache('__browser_options', tuple())
+        self.display_controller.cache('__browser_koptions', {})
         self.display_controller.cache('__easter_egg', 'Ho ho ho, you found me!')
         self.display_controller.cache('__malformed_html', '<tag')
         self.display_controller.cache('help', self.__get_content_help())
@@ -372,7 +373,7 @@ class Universe:
             self.get_content_ships(size),
         ))
 
-    def get_content_celestials(self, size=NO_SIZE_LIMIT, count=30):
+    def get_content_celestials(self, count=30, size=NO_SIZE_LIMIT):
         """ArgSpec
         Retrieve info on celestial objects
         ___
@@ -385,7 +386,7 @@ class Universe:
             object_summaries.append(line)
         return '\n'.join(object_summaries)
 
-    def get_content_ships(self, size=NO_SIZE_LIMIT, count=30):
+    def get_content_ships(self, count=30, size=NO_SIZE_LIMIT):
         """ArgSpec
         Retrieve info on ships
         ___
@@ -437,9 +438,11 @@ class Universe:
     def get_content_browser(self, size=NO_SIZE_LIMIT):
         command = self.display_controller.do_command('__browser_content')
         options = self.display_controller.do_command('__browser_options')
-        return self.display_controller.do_command(command, custom_kwargs=options)
+        koptions = self.display_controller.do_command('__browser_koptions')
+        return self.display_controller.do_command(command,
+            custom_args=options, custom_kwargs=koptions)
 
-    def get_content_inspect(self, size=NO_SIZE_LIMIT, oid=None):
+    def get_content_inspect(self, oid=None, size=NO_SIZE_LIMIT):
         if oid is None:
             oid = self.player.my_ship.oid
         ob = self.ds_objects[oid]
@@ -475,37 +478,41 @@ class Universe:
             *extra_lines,
         ])
 
-    def get_content_command(self, size=NO_SIZE_LIMIT, command=None):
+    def get_content_command(self, command=None, size=NO_SIZE_LIMIT):
         if command is None or not self.controller.has_command(command):
             return self.display_controller.do_command('all_commands')
         callback, argspec = self.controller.get_command(command)
         return argspec.help_verbose
 
-    def print(self, content_name, **options):
+    def print(self, content_name, options=tuple(), **koptions):
         """ArgSpec
         Print content to console
         ___
         CONTENT_NAME Content to print
-        **OPTIONS Parameters for content
+        *OPTIONS Positional parameters for content
+        **KOPTIONS Keyword parameters for content
         """
         if not self.display_controller.has(content_name):
             self.output_feedback(f'Couldn\'t find content: {content_name}')
             return
-        s = self.display_controller.do_command(content_name, custom_kwargs=options)
+        s = self.display_controller.do_command(content_name,
+            custom_args=options, custom_kwargs=koptions)
         self.output_console(s)
 
-    def set_browser_content(self, content_name, **options):
+    def set_browser_content(self, content_name, options=tuple(), **koptions):
         """ArgSpec
         Open content in browser
         ___
         CONTENT_NAME Content to open
-        **OPTIONS Content options (arguments)
+        *OPTIONS Positional parameters for content
+        **KOPTIONS Keyword parameters for content
         """
         if not self.display_controller.has(content_name):
             self.output_feedback(f'Couldn\'t find content: {content_name}')
             return
         self.display_controller.cache('__browser_content', content_name)
         self.display_controller.cache('__browser_options', options)
+        self.display_controller.cache('__browser_koptions', koptions)
 
     def inspect(self, oid=None):
         """ArgSpec
@@ -552,10 +559,8 @@ class Universe:
             if name.startswith('_'):
                 continue
             spec = ''
-            logger.debug(f'looking up display controller: {name}')
             if self.display_controller.has_command(name):
                 callback, argspec = self.display_controller.get_command(name)
                 spec = argspec.spec
-                logger.debug(f'found {name}: {argspec} -> {spec}')
             strs.append(f'<orange>{name:>25} </orange><bold>{spec}</bold>')
         return '\n'.join(strs)

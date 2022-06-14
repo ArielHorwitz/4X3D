@@ -25,7 +25,7 @@ class Controller:
     def has_cached(self, command):
         return command in self.__cache
 
-    def do_command(self, command, arg_string=None, custom_kwargs=None):
+    def do_command(self, command, arg_string=None, custom_args=(), custom_kwargs={}):
         if not self.has_command(command):
             if not self.has_cached(command):
                 self.__feedback(f'Command "{command}" not found in {self}')
@@ -34,8 +34,9 @@ class Controller:
                 return self.__cache[command]
         callback, argspec = self.__commands[command]
         if arg_string is None:
-            if custom_kwargs is not None:
-                return callback(**custom_kwargs)
+            if custom_args or custom_kwargs:
+                logger.debug(f'custom args kwargs for {command}: {custom_args} {custom_kwargs}')
+                return callback(*custom_args, **custom_kwargs)
             arg_string = ''
         try:
             r = argspec.parse_and_call(arg_string, callback)
@@ -51,13 +52,17 @@ class Controller:
             raise ValueError(f'Command "{command}" already registered in {self}')
         self.__cache[command] = value
 
-    def register_command(self, command, callback):
+    def register_command(self, command, callback, spec_name=None):
         if self.has_command(command):
             raise ValueError(f'Command "{command}" already registered in {self}')
         assert callable(callback)
         raw_argspec = callback.__doc__
+        if raw_argspec is None:
+            raw_argspec = ''
+        if spec_name is None:
+            spec_name = callback.__name__
         try:
-            argspec = ArgSpec(raw_argspec if raw_argspec is not None else '')
+            argspec = ArgSpec(raw_argspec, name=spec_name)
         except ArgParseError as e:
             raise ValueError(f'Command "{command}" failed to resolve docstring as argspec:\n{e.args[0]}')
         self.__commands[command] = callback, argspec
