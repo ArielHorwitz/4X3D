@@ -43,7 +43,9 @@ class ScreenSwitcher(VSplit):
         self.current_index %= len(self.screens)
 
     def switch_to(self, index):
-        """Switch to a GUI screen
+        """ArgSpec
+        Switch to a GUI screen
+        ___
         INDEX screen number/name
         """
         if isinstance(index, str):

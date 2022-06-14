@@ -36,8 +36,10 @@ class Cockpit:
         return self.ship.universe
 
     def follow(self, index=None):
-        """Follow a deep space object
-        INDEX Object ID
+        """ArgSpec
+        Follow a deep space object
+        ___
+        +INDEX Object ID
         """
         def get_pos(index):
             return self.universe.positions[index]
@@ -46,18 +48,22 @@ class Cockpit:
         self.camera.follow(partial(get_pos, index) if index is not None else None)
 
     def track(self, index=None):
-        """Track a deep space object
-        INDEX Object ID
+        """ArgSpec
+        Track a deep space object
+        ___
+        +INDEX Object ID
         """
         def get_pos(index):
             return self.universe.positions[index]
         self.camera.track(partial(get_pos, index) if index is not None else None)
 
     def look(self, index, ms=None, smooth=None):
-        """Turn to look at a deep space object
+        """ArgSpec
+        Turn to look at a deep space object
+        ___
         INDEX Object ID
-        --ms MS How long to swivel for in ms
-        --smooth SMOOTH How smoothly to swivel between -1 and 1
+        +MS How long to swivel for in ms
+        -+s SMOOTH How smoothly to swivel between -1 and 1
         """
         if ms is None:
             ms = CONFIG_DATA['CAMERA_SMOOTH_TIME']
@@ -66,7 +72,9 @@ class Cockpit:
         self.camera.swivel_to_point(self.universe.ds_objects[index].position, ms, smooth)
 
     def snaplook(self, index):
-        """Instantly turn to look at a deep space object
+        """ArgSpec
+        Instantly turn to look at a deep space object
+        ___
         INDEX Object ID
         """
         self.camera.look_at_point(self.universe.positions[index])

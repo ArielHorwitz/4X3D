@@ -1,20 +1,22 @@
-from loguru import logger
 from collections import namedtuple
-from util import try_number
 
 
-PositionalArg = namedtuple('PositionalArg', ['name', 'desc'])
-OptionalArg = namedtuple('OptionalArg', ['flag', 'name', 'desc'])
+def _try_number(v):
+    try:
+        r = float(v)
+        if r == int(r):
+            return int(r)
+        return r
+    except ValueError as e:
+        return v
 
-FLAG_PREFIX = '--'
 
-EXAMPLE_DOCSTRING = f"""
-Description of the command.
-VARNAME1 Description of first positional argument
-VARNAME1 Description of second positional argument
---flag OPTIONAL1 Description of first optional argument
---foo OPTIONAL2 Description of second optional argument
-"""
+SPEC_VERSION = 'ArgSpec'
+ArgumentSpec = namedtuple('ArgumentSpec', ['flag', 'name', 'desc', 'required', 'sequence'])
+
+
+class ArgSpecError(Exception):
+    pass
 
 
 class ArgParseError(Exception):
@@ -22,96 +24,440 @@ class ArgParseError(Exception):
 
 
 class ArgSpec:
-    def __init__(self, docstring):
-        self.desc, self.pos, self.opt = self._resolve_spec(docstring)
-        self.spec = self.__format_spec()
-        self.help = self.__format_help_verbose()
+    def __init__(self, spec_string, name='unnamed_command'):
+        self.name = name
+        self._resolve_spec(spec_string)
 
-    def parse(self, args):
-        astack = list(args)
-        pos = []
-        opt = {}
-        # Parse positionals first
+    def parse(self, args_string):
+        astack = list(a for a in args_string.split(' ') if a != '')
+        parsed_pos = []
+        remaining_pos = []
+        parsed_key = {}
+        remaining_key = {}
+        missing_keys = list(self.required_keys)
+        pos_required_count = len(self.pos)
+        pos_expected_count = pos_required_count + len(self.pos_optional)
+
+        # Start parsing words
         while astack:
-            if astack[0].startswith(FLAG_PREFIX):
-                break  # Move on to optionals
-            value = try_number(astack.pop(0))
-            pos.append(value)
-        missing_args = len(self.pos) - len(pos)
-        if missing_args > 0:
-            list_pos = ', '.join(spec.name for spec in self.pos[-missing_args:])
-            raise ArgParseError(f'missing positional arguments: {list_pos}')
-        if missing_args < 0:
-            extra_args = ', '.join(str(_) for _ in pos[missing_args:])
-            raise ArgParseError(f'unexpected positional arguments: {extra_args} (only want: {self.spec})')
-        # Parse optionals after positionals
-        while astack:
-            flag = astack.pop(0).lower()
-            if not flag.startswith(FLAG_PREFIX):
-                raise ArgParseError(f'unexpected argument: {flag}')
-            if flag not in self.opt:
-                raise ArgParseError(f'unexpected optional argument: {flag} (only want: {self.spec})')
-            # Find the variable name for keyword argument
-            key = self.opt[flag].name.lower()
-            # If no value supplied to this flag supply True
-            if not astack or astack[0].startswith(FLAG_PREFIX):
+            a = astack.pop(0)
+            # Handle new positional argument
+            if not self.is_flag(a):
+                # Ensure we expect this arg (and have not yet started to parse key arguments)
+                expected = len(parsed_pos) < pos_expected_count
+                allowed = expected or self.remaining_pos is not None
+                if parsed_key or not allowed:
+                    raise ArgParseError(f'Unexpected argument: {a}')
+                if expected:
+                    parsed_pos.append(_try_number(a))
+                else:
+                    remaining_pos.append(_try_number(a))
+            # Handle new key argument
+            else:
+                flag = name = self._get_flag_name(a)
+                # Find details of this flag
+                expected = flag in self.keys
+                spec = self.keys[flag] if expected else ArgumentSpec(flag, name, None, False, True)
+                if not expected and self.remaining_key is None:
+                    raise ArgParseError(f'Unexpected flag: {flag}')
+                if spec.required:
+                    missing_keys.remove(flag)
+                # Find value for this key
                 value = True
-            else:
-                value = try_number(astack.pop(0))
-            opt[key] = value
-        return tuple(pos), opt
+                if not spec.sequence:
+                    if astack and not self.is_flag(astack[0]):
+                        value = _try_number(astack.pop(0))
+                else:
+                    value = []
+                    while astack:
+                        if self.is_flag(astack[0]):
+                            break
+                        value.append(_try_number(astack.pop(0)))
+                    value = tuple(value)
+                if expected:
+                    parsed_key[spec.name.lower()] = value
+                else:
+                    remaining_key[spec.name.lower()] = value
 
-    @classmethod
-    def _resolve_spec(cls, docstring):
-        pos = []
-        opt = {}
-        lines = docstring.split('\n')
-        lines = [l.lstrip() for l in lines]
-        lines = [l for l in lines if l != '']
-        # Description
-        if not lines:
-            desc = '__MISSING DESCRIPTION__'
+        # Check that required arguments parsed
+        if len(parsed_pos) < pos_required_count:
+            raise ArgParseError(f'Missing arguments: {", ".join(s.name for s in self.pos[len(parsed_pos):])}')
+        if missing_keys:
+            raise ArgParseError(f'Missing arguments: {", ".join(f"-{_}" for _ in missing_keys)}')
+        return tuple(parsed_pos), tuple(remaining_pos), parsed_key, remaining_key
+
+    def dict_from_parsed(self, pos, pos_rem, key, key_rem):
+        pos = {self.all_pos[i].name.lower(): value for i, value in enumerate(pos)}
+        if self.remaining_pos is not None:
+            pos_rem = {self.remaining_pos.name.lower(): pos_rem}
         else:
-            desc = lines.pop(0)
-        # Arguments
-        for i, line in enumerate(lines):
-            # Positional arguments
-            if not line.startswith(FLAG_PREFIX):
-                # Ensure positional arguments are not defined after optional arguments
-                if opt:
-                    raise ArgParseError(f'found positional argument after optional arguments: line #{i} "{line}" in docstring:\n{docstring}')
-                spec = cls._resolve_positional_argspec(line)
-                pos.append(spec)
-            # Optional arguments
-            else:
-                spec = cls._resolve_optional_argspec(line)
-                opt[spec.flag] = spec
-        return desc, tuple(pos), opt
+            pos_rem = {}
+        return {
+            **pos,
+            **pos_rem,
+            **key,
+            **key_rem,
+        }
 
-    @staticmethod
-    def _resolve_positional_argspec(line):
-        assert not line.startswith(FLAG_PREFIX)
-        split = line.split(' ', 1)
-        if len(split) != 2:
-            raise ArgParseError(f'positional argument requires varname and description, instead got: {split}')
-        varname, desc = split
-        return PositionalArg(varname.upper(), desc)
+    def parse_and_call(self, args_string, func):
+        parsed = self.parse(args_string)
+        kwargs = self.dict_from_parsed(*parsed)
+        return func(**kwargs)
 
-    @staticmethod
-    def _resolve_optional_argspec(line):
-        assert line.startswith(FLAG_PREFIX)
-        flag, varname, desc = line.split(' ', 2)
-        return OptionalArg(flag, varname.upper(), desc)
+    def _resolve_spec(self, spec_string):
+        self.desc = '__MISSING DESCRIPTION__'
+        self.desc_long = ''
+        self.pos = []
+        self.pos_optional = []
+        self.remaining_pos = None
+        self.keys = {}
+        self.required_keys = []
+        self.remaining_key = None
+        current_stage_types = {'pos'}
+        remaining_stages = [
+            {'pos-opt'},
+            {'pos-rem'},
+            {'key', 'key-list', 'key-opt', 'key-opt-list'},
+            {'key-rem'},
+        ]
+        current_stage = 0
+
+        lines = [l.lstrip() for l in spec_string.split('\n')]
+        if lines[0].startswith(SPEC_VERSION):
+            lines.pop(0)
+
+        # Find the description (while dicarding empty lines)
+        while lines:
+            line = lines.pop(0)
+            if line == '':
+                continue
+            self.desc = line
+            break
+        # Discard empty lines until long description starts
+        while lines:
+            if lines[0] == '':
+                lines.pop(0)
+            break
+        # Long description (all lines until "___")
+        desc_long_lines = []
+        while lines:
+            line = lines.pop(0)
+            if line == '___':
+                break
+            desc_long_lines.append(line)
+        # Remove trailing empty lines
+        while desc_long_lines:
+            if desc_long_lines[-1] != '':
+                break
+            desc_long_lines.pop()
+        self.desc_long = '\n'.join(desc_long_lines)
+        # From now on we ignore all empty lines
+        lines = [l for l in lines if l != '']
+        # Parse argument specs
+        while lines:
+            line = lines.pop(0)
+            arg_type, spec_chars = self._resolve_line_type(line)
+            # Keep track of current stage, keeping order of argument types
+            try:
+                while arg_type not in current_stage_types:
+                    current_stage_types = remaining_stages.pop(0)
+                    current_stage = 4 - len(remaining_stages)
+            except IndexError:
+                raise ArgSpecError(f'Unknown (or wrong order of) argument type: {arg_type}')
+            # Positionals
+            if current_stage <= 2:
+                try:
+                    name, desc = line[spec_chars:].split(' ', 1)
+                    name = self._get_name(name)
+                except ValueError:
+                    raise ArgSpecError(f'ArgSpec expecting space-delimited name and description, got: "{line}"')
+                if not self.legal_varname(name):
+                    raise ArgSpecError(f'Variable name must start with alphabetic character or underscore')
+                if current_stage == 0:
+                    self.pos.append(ArgumentSpec('', name, desc, required=True, sequence=False))
+                elif current_stage == 1:
+                    self.pos_optional.append(ArgumentSpec('', name, desc, required=False, sequence=False))
+                else:
+                    self.remaining_pos = ArgumentSpec('', name, desc, required=False, sequence=True)
+            # Keys
+            elif current_stage == 3:
+                try:
+                    flag, name, desc = line[spec_chars:].split(' ', 2)
+                except ValueError:
+                    raise ArgSpecError(f'ArgSpec expecting space-delimited flag, name, and description, got: "{line}"')
+                name = self._get_name(name)
+                if not self.legal_varname(name):
+                    raise ArgSpecError(f'Variable name must start with alphabetic character or underscore, got: {name}')
+                if not self.legal_varname(flag):
+                    raise ArgSpecError(f'Flag name must start with alphabetic character or underscore, got: {flag}')
+                required, sequence = self._resolve_key_type(arg_type)
+                if required:
+                    self.required_keys.append(flag)
+                self.keys[flag] = ArgumentSpec(flag, name, desc, required, sequence)
+            elif current_stage == 4:
+                try:
+                    name, desc = line[spec_chars:].split(' ', 1)
+                except ValueError:
+                    raise ArgSpecError(f'ArgSpec expecting space-delimited name and description, got: "{line}"')
+                self.remaining_key = ArgumentSpec('', name, desc, required=False, sequence=2)
+        self.pos = tuple(self.pos)
+        self.pos_optional = tuple(self.pos_optional)
+        self.all_pos = self.pos + self.pos_optional
+        self.spec = self.__format_spec()
+        self.spec_verbose = self.__format_spec_verbose()
+        self.help = self.__format_help()
+        self.help_verbose = self.__format_help_verbose()
 
     def __format_spec(self):
-        pos = ' '.join(a.name for a in self.pos)
-        opt = ' '.join(f'{spec.flag} {spec.name}' for spec in self.opt.values())
-        space = ' ' if opt else ''
-        return f'{pos}{space}{opt}'
+        pos = ' '.join(a.name.upper() for a in self.pos)
+        pos_opt = ' '.join(f'[{a.name.upper()}]' for a in self.pos_optional)
+        pos_rem = ''
+        if self.remaining_pos:
+            pos_rem = f'*{self.remaining_pos.name.upper()}'
+        keys = ' '.join(f'-{spec.flag} {"*" if spec.sequence else ""}{spec.name.upper()}' for spec in self.keys.values() if spec.required)
+        keys_opt = ' '.join(f'[-{spec.flag} {"*" if spec.sequence else ""}{spec.name.upper()}]' for spec in self.keys.values() if not spec.required)
+        key_rem = ''
+        if self.remaining_key:
+            key_rem = f'**{self.remaining_key.name.upper()}'
+        return ' '.join(p for p in [
+            pos, pos_opt, pos_rem, keys, keys_opt, key_rem
+            ] if p)
+
+    def __format_spec_verbose(self):
+        def format_spec(s):
+            flag = s.flag
+            if flag:
+                flag = f'-{s.flag}'
+            many = '*' * s.sequence
+            name = f'{many}{s.name.upper()}'
+            if not s.required:
+                name = f'[{name}]'
+            return f'{flag:>15}{name:>15}\t{s.desc}'
+
+        pos = '\n'.join(format_spec(s) for s in self.pos)
+        pos_opt = '\n'.join(f'{format_spec(s)}' for s in self.pos_optional)
+        pos_rem = ''
+        if self.remaining_pos:
+            pos_rem = format_spec(self.remaining_pos)
+        keys = '\n'.join(f'{format_spec(s)}' for s in self.keys.values() if s.required)
+        keys_opt = '\n'.join(f'{format_spec(s)}' for s in self.keys.values() if not s.required)
+        key_rem = ''
+        if self.remaining_key:
+            key_rem = format_spec(self.remaining_key)
+        return '\n'.join(p for p in [
+            pos, pos_opt, pos_rem, keys, keys_opt, key_rem
+            ] if p)
+
+    def __format_help(self):
+        return '\n'.join([
+            f'### {self.desc}',
+            '',
+            f'{self.name} {self.__format_spec()}',
+            '',
+            f'{self.__format_spec_verbose()}',
+        ])
 
     def __format_help_verbose(self):
-        s = [self.desc]
-        s.extend([f'{pos.name}\t\t{pos.desc}' for pos in self.pos])
-        for opt in self.opt.values():
-            s.append(f'{opt.flag} {opt.name}\t\t{opt.desc}')
-        return '\n'.join(s)
+        return '\n'.join([
+            f'{self.__format_help()}',
+            '',
+            f'{self.desc_long}',
+        ])
+
+    @staticmethod
+    def _get_name(name):
+        return name.lower().replace('-', '_')
+
+    @staticmethod
+    def _resolve_key_type(key_type):
+        return ('opt' not in key_type, 'list' in key_type)
+
+    @staticmethod
+    def _resolve_line_type(line):
+        first = line[0]
+        two = line[:2]
+        if line[:3] == '-+*':
+            return 'key-opt-list', 3
+        if two == '-*':
+            return 'key-list', 2
+        if two == '-+':
+            return 'key-opt', 2
+        if two == '**':
+            return 'key-rem', 2
+        if first == '+':
+            return 'pos-opt', 1
+        if first == '*':
+            return 'pos-rem', 1
+        if first == '-':
+            return 'key', 1
+        return 'pos', 0
+
+    @staticmethod
+    def legal_varname(name):
+        assert isinstance(name, str)
+        if not name:
+            return False
+        fc = name[0]
+        legal_fc = fc.isalpha() or fc == '_'
+        if name != name.lower():
+            return False
+        return fc.isalpha() or fc == '_'
+
+    @classmethod
+    def is_flag(cls, flag):
+        return flag.startswith('-') and cls.legal_varname(cls._get_flag_name(flag))
+
+    @classmethod
+    def _get_flag_name(cls, flag):
+        if flag.startswith('--'):
+            return cls._get_name(flag[2:])
+        if flag.startswith('-'):
+            return cls._get_name(flag[1:])
+
+    def debug(self):
+        return '\n'.join([
+            f'<<desc>>: {self.desc}',
+            f'<<desclong>>: {self.desc_long[:50]}...',
+            f'<<spec>>: {self.spec}',
+            f'<<pos>>:',
+            *[f'  {s}' for s in self.pos],
+            f'<<posopt>>:',
+            *[f'  {s}' for s in self.pos_optional],
+            f'<<posrem>>: {self.remaining_pos}',
+            f'<<keys>>:',
+            *[f'  {s}' for s in self.keys.values()],
+            f'<<keysreq>>: {self.required_keys}',
+            f'<<keysrem>>: {self.remaining_key}',
+        ])
+
+
+def __func(branch, refspec, signature, set_upstream, repository=None, force=False, tags=None, **options):
+    print(',\n'.join([
+        f'branch={repr(branch)}',
+        f'repository={repr(repository)}',
+        f'refspec={repr(refspec)}',
+        f'signature={repr(signature)}',
+        f'set_upstream={repr(set_upstream)}',
+        f'force={repr(force)}',
+        f'tags={repr(tags)}',
+        *[f'{k}={repr(v)}' for k, v in options.items()],
+    ]))
+
+
+def interactive_test():
+    argspec = ArgSpec(EXAMPLE_SPECSTRING, 'example_command')
+    print(argspec.help)
+    while True:
+        uinput = input(f'\n{argspec.name} >> ')
+        if uinput == 'q':
+            quit()
+        elif uinput == 'h':
+            print(argspec.help)
+        elif uinput == 'hv':
+            print(argspec.help_verbose)
+        else:
+            try:
+                print(f'\t\t{argspec.spec}')
+                parsed = argspec.parse(uinput)
+                print('\n___ parse() ___')
+                for p in parsed:
+                    print(p)
+                print('\n___ dict_from_parsed() ___')
+                d = argspec.dict_from_parsed(*parsed)
+                print(',\n'.join(f'{k}={repr(v)}' for k, v in d.items()))
+                print('\n___ parse_and_call() ___')
+                argspec.parse_and_call(uinput, __func)
+                print('___')
+            except ArgParseError as e:
+                print(e.args[0])
+                print(argspec.spec)
+
+
+EXAMPLE_SPECSTRING = """ArgSpec v.__
+Description of the example command in one line.
+
+This is the long-form description of the command, a more verbose description that can have multiple, interspersed lines. Only the first line is used for the one-line description and all others until the "___" line are part of the verbose description.
+
+
+### Defining the argspec
+
+A command can specify as many arguments of any type except for * and ** arguments, which must have at most one of each. This example command specifically takes one of each type of argument.
+
+The requirements for an argspec are as follows:
+1. Arguments are ordered by type, such that you have in order: positionals, optional positionals, remaining positionals, keys, remaining keys
+2. There is no more than one of each: remaining positionals and remaining keys
+3. There is a line with nothing but "___" (three underscores) between the descriptions and the argument specs
+4. Argument names start with alphabetic characters
+5. Positional arguments are specified with a space-delimited (" ") name and description
+6. Key arguments are specified with a space-delimited (" ") flag, name, and description
+
+The very first line of the spec string may start with "ArgSpec", if so it the first line will be ignored.
+
+Note that although variable names are printed in caps, they are handled in lower case using str.lower() method, dashes replaced with underscores using str.replace().
+
+
+### Parsing with the argspec with Argspec.parse(args_string)
+
+An ArgParseError will be raised during parsing if any of the following occurs:
+- We receive too few positionals
+- We receive too many positionals (if *NAME not specified)
+- We lack non-optional key arguments
+- We receive unexpected key arguments (if **NAME not specified)
+
+Any key argument parsed without a corresponding value will be simply given a value of True. Otherwise, values are parsed as numbers (if possible) otherwise as strings.
+
+When parsing, we will resolve the following:
+1. tuple of positional arguments (at least as long as required)
+2. tuple of extra positional arguments (empty if *NAME not specified)
+3. dictionary of key arguments (with keys corresponding to the NAME)
+4. dictionary of extra key arguments with keys corresponding to the NAME (empty if **NAME not specified)
+
+The following example input passed to the parse() method:
+`test test2 test3 test4 -sign foobar --force -u 42 69 --random_key -fizzbuzz -1 -2 negative-fizz -3 negative-buzz`
+
+Returns a tuple with the following values:
+('test', 'test2')
+('test3', 'test4')
+{'signature': 'foobar', 'force': True, 'set_upstream': (42, 69)}
+{'random_key': (), 'fizzbuzz': (-1, -2, 'negative-fizz', -3, 'negative-buzz')}
+
+### Using the parsed arguments with Argspec.parse_and_call(args_string, func)
+
+The method parse_and_call() will first parse the arguments using parse(), convert the result to using dict_from_parsed(), and then call the func with using the dictionary as keyword arguments.
+
+Each value will be assigned a keyword argument name, based on the NAME.
+
+It should be expected in this example that these arguments will be passed to a signature that looks like this:
+`func(branch, refspec, signature, set_upstream, repository=None, force=False, tags=None, **options)`
+
+Note that the required parameters come before the optional parameters regardless of order in the spec, since optional parameters must have a default value and must be specified last as per by python's function definitions (https://docs.python.org/3/reference/compound_stmts.html#function-definitions).
+
+Using the same example input from above, the final call will look like this:
+func(
+branch='test',
+repository='test2',
+refspec=('test3', 'test4'),
+signature='foobar',
+force=True,
+set_upstream=(42, 69),
+random_key=(),
+fizzbuzz=(-1, -2, 'negative-fizz', -3, 'negative-buzz'),
+)
+
+There is no further type checking, so a function using this argspec is expected to do any further required checks and raise an ArgParseError if they fail.
+
+___
+
+BRANCH Description of first positional argument
++REPOSITORY Description of optional second positional argument
+*REFSPEC Description of remaining optional positional arguments
+-sign SIGNATURE Description of key argument
+-*u SET-UPSTREAM Description of key argument taking a list of values
+-+force FORCE Description of optional key argument
+-+*tags TAGS Description of optional key argument taking a list of values
+**OPTIONS Description of remaining optional key arguments
+"""
+
+
+if __name__ == '__main__':
+    interactive_test()

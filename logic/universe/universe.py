@@ -89,12 +89,15 @@ class Universe:
                 self.output_console(f'<blue>$</blue> {escape_html(line)} -> {escape_html(line_text)}')
                 self.handle_input(line_text, allow_aliases=False)
                 continue
-            command, *args = line.split(' ')
-            logger.debug(f'Resolved prompt input: {line} -> {command} {args}')
+            if ' ' in line:
+                command, arg_string = line.split(' ', 1)
+            else:
+                command, arg_string = line, ''
+            logger.debug(f'Resolved prompt input: {line} -> {command} {arg_string}')
             is_silent = any(command.startswith(silent) for silent in CONFIG_DATA['SILENT_COMMANDS'])
             if not is_silent:
                 self.output_console(f'<cyan>$</cyan> {escape_html(line)}')
-            r = self.controller.do_command(command, args)
+            r = self.controller.do_command(command, arg_string)
             if not is_silent and isinstance(r, str):
                 self.output_console(f'>> {str(r)[:100]}')
 
@@ -114,7 +117,9 @@ class Universe:
             self.output_console(message)
 
     def echo(self, message):
-        """Echo text in the console
+        """ArgSpec
+        Echo text in the console
+        ___
         MESSAGE Text to echo
         """
         self.output_console(message)
@@ -194,7 +199,9 @@ class Universe:
         self.do_ticks(self.events.next.tick - self.tick + TINY_TICK)
 
     def do_ticks(self, ticks=1):
-        """Simulate ticks
+        """ArgSpec
+        Simulate ticks
+        ___
         TICKS Number of ticks to simulate
         """
         assert ticks > 0
@@ -221,9 +228,11 @@ class Universe:
         self.set_simrate(set_to)
 
     def set_simrate(self, value, delta=False):
-        """Set simulation speed
+        """ArgSpec
+        Set simulation speed
+        ___
         VALUE Simulation rate
-        --d DELTA Use value as delta
+        -+d DELTA Use value as delta
         """
         sign = -1 if self.auto_simrate < 0 else 1
         if delta:
@@ -312,6 +321,7 @@ class Universe:
             'celestials',
             'ships',
             'cockpit',
+            'inspect',
         ]:
             f = getattr(self, f'get_content_{window_name}')
             c = partial(f, (10000, 10000))  # These functions expect a size
@@ -321,6 +331,7 @@ class Universe:
     def refresh_display_cache(self):
         self.display_controller.cache('__init', 'Use "help" command for help.')
         self.display_controller.cache('__browser_content', '__init')
+        self.display_controller.cache('__browser_options', {})
         self.display_controller.cache('__easter_egg', 'Ho ho ho, you found me!')
         self.display_controller.cache('__malformed_html', '<tag')
         self.display_controller.cache('help', self.__get_content_help())
@@ -411,14 +422,19 @@ class Universe:
 
     def get_content_cockpit(self, size):
         return '\n'.join([
-            self.inspection_content(oid=self.player.my_ship.oid),
+            self.get_content_inspect(oid=self.player.my_ship.oid),
         ])
 
     def get_content_browser(self, size):
-        content_command = self.display_controller.do_command('__browser_content')
-        return self.display_controller.do_command(content_command)
+        command = self.display_controller.do_command('__browser_content')
+        # Cannot pass options since each option (keyword argument) is packed as a tuple by the argparser
+        # options = self.display_controller.do_command('__browser_options')
+        # return self.display_controller.do_command(command, custom_kwargs=options)
+        return self.display_controller.do_command(command)
 
-    def inspection_content(self, oid):
+    def get_content_inspect(self, size=None, oid=None):
+        if oid is None:
+            oid = self.player.my_ship.oid
         ob = self.ds_objects[oid]
         ob_type = ob.type_name
         color = ob.color
@@ -452,9 +468,12 @@ class Universe:
             *extra_lines,
         ])
 
-    def print(self, content_name):
-        """Print content to console
+    def print(self, content_name, options=None):
+        """ArgSpec
+        Print content to console
+        ___
         CONTENT_NAME Content to print
+        **OPTIONS Parameters for content
         """
         if not self.display_controller.has(content_name):
             self.output_feedback(f'Couldn\'t find content: {content_name}')
@@ -462,20 +481,26 @@ class Universe:
         s = self.display_controller.do_command(content_name)
         self.output_console(s)
 
-    def set_browser_content(self, content_name):
-        """Open content in browser
+    def set_browser_content(self, content_name, **options):
+        """ArgSpec
+        Open content in browser
+        ___
         CONTENT_NAME Content to open
+        **OPTIONS Content options (arguments)
         """
         if not self.display_controller.has(content_name):
             self.output_feedback(f'Couldn\'t find content: {content_name}')
             return
         self.display_controller.cache('__browser_content', content_name)
+        self.display_controller.cache('__browser_options', options)
 
-    def inspect(self, oid):
-        """Inspect a deep space object
-        OID Object ID
+    def inspect(self, oid=None):
+        """ArgSpec
+        Inspect a deep space object
+        ___
+        +OID Object ID
         """
-        self.set_browser_content(lambda oid=oid: self.inspection_content(oid))
+        self.set_browser_content('inspect', oid=oid)
 
     def help(self, *args):
         """Show help"""
@@ -494,13 +519,17 @@ class Universe:
         return self.feedback_stack[0]
 
     def __get_content_help(self):
+        formatted_contents = '\n'.join(
+            f'  - <code>{n}</code>' for n, c, s in self.display_controller.sorted_items())
+        contents = f'<h2>Contents</h2>\n{formatted_contents}'
         formatted_commands = '\n'.join([''.join([
             f'<orange>{name:<25}</orange>: ',
             f'<green>{escape_html(argspec.desc)}</green> ',
             f'<bold>{escape_html(argspec.spec)}</bold> ',
             f'{callback.__name__}{signature(callback)}',
         ]) for name, callback, argspec in self.controller.sorted_items()])
-        return f'Registered commands:\n{formatted_commands}'
+        commands = f'<h2>Registered commands</h2>\n{formatted_commands}'
+        return '\n'.join((contents, commands))
 
     def __get_content_hotkeys(self):
         return 'Registered hotkeys:\n'+'\n'.join([f'{k:>11}: {v}' for k, v in CONFIG_DATA['HOTKEY_COMMANDS'].items()])

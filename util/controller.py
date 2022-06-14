@@ -25,7 +25,7 @@ class Controller:
     def has_cached(self, command):
         return command in self.__cache
 
-    def do_command(self, command, args=None):
+    def do_command(self, command, arg_string=None, custom_kwargs=None):
         if not self.has_command(command):
             if not self.has_cached(command):
                 self.__feedback(f'Command "{command}" not found in {self}')
@@ -33,18 +33,17 @@ class Controller:
             else:
                 return self.__cache[command]
         callback, argspec = self.__commands[command]
-        if args is None:
-            args, kwargs = tuple(), dict()
-        else:
-            try:
-                parsed = argspec.parse(args)
-            except ArgParseError as e:
-                m = f'Command "{command}" failed: {e.args[0]}'
-                logger.warning(m)
-                self.__feedback(m)
-                return
-            args, kwargs = parsed
-        r = callback(*args, **kwargs)
+        if arg_string is None:
+            if custom_kwargs is not None:
+                return callback(**custom_kwargs)
+            arg_string = ''
+        try:
+            r = argspec.parse_and_call(arg_string, callback)
+        except ArgParseError as e:
+            m = f'Command "{command}" failed: {e.args[0]} (expected: {argspec.spec})'
+            logger.warning(m)
+            self.__feedback(m)
+            return
         return r
 
     def cache(self, command, value):

@@ -51,7 +51,9 @@ class Camera:
         self.pos = np.asarray(point, dtype=np.float64)
 
     def move(self, d=1, disable_follow=True):
-        """Move camera
+        """ArgSpec
+        Move camera
+        ___
         D Distance to move forward
         """
         self.pos += self.current_axes[0] * d
@@ -59,7 +61,9 @@ class Camera:
             self.follow(None)
 
     def strafe(self, d=1, disable_follow=True):
-        """Move camera
+        """ArgSpec
+        Move camera
+        ___
         D Distance to move right
         """
         self.pos += self.current_axes[1] * d
@@ -84,14 +88,16 @@ class Camera:
         if not keep_tracking:
             self.track(None)
 
-    def rotate(self, yaw=0, pitch=0, roll=0, zoom_scale=False, keep_tracking=False):
-        """Rotate camera
-        --y YAW Number of degrees to yaw right
-        --p PITCH Number of degrees to pitch up
-        --r ROLL Number of degrees to roll clockwise
-        --scale ZOOM_SCALE Rotate less when zoomed in and more when zoomed out
+    def rotate(self, yaw=0, pitch=0, roll=0, scale=False, keep_tracking=False):
+        """ArgSpec
+        Rotate camera
+        ___
+        -+y YAW Number of degrees to yaw right
+        -+p PITCH Number of degrees to pitch up
+        -+r ROLL Number of degrees to roll clockwise
+        -+scale SCALE Rotate less when zoomed in and more when zoomed out
         """
-        if zoom_scale:
+        if scale:
             yaw /= self.__zoom_level
             pitch /= self.__zoom_level
         if yaw:
@@ -107,19 +113,25 @@ class Camera:
             self.track(None)
 
     def yaw(self, yaw):
-        """Yaw camera
+        """ArgSpec
+        Yaw camera
+        ___
         YAW Number of degrees to yaw right
         """
         self.rotate(yaw=yaw)
 
     def pitch(self, pitch):
-        """Pitch camera
+        """ArgSpec
+        Pitch camera
+        ___
         PITCH Number of degrees to pitch up
         """
         self.rotate(pitch=pitch)
 
     def roll(self, roll):
-        """Roll camera
+        """ArgSpec
+        Roll camera
+        ___
         ROLL Number of degrees to roll clockwise
         """
         self.rotate(roll=roll)
@@ -130,7 +142,9 @@ class Camera:
         self.track(None)
 
     def adjust_zoom(self, zoom_multiplier):
-        """Adjust camera zoom
+        """ArgSpec
+        Adjust camera zoom
+        ___
         ZOOM_MULTIPLIER Fraction of current zoom (0.8 = %80 of current zoom)
         """
         self.__zoom_level = max(0.5, self.__zoom_level * zoom_multiplier)

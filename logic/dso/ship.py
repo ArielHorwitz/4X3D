@@ -99,9 +99,11 @@ class Ship(DeepSpaceObject):
 
     # Navigation
     def fly_to(self, oid, cruise_speed=10**10, uid=0):
-        """Automatically schedule flight plan to a deep space object
+        """ArgSpec
+        Automatically schedule flight plan to a deep space object
+        ___
         OID Engine power throttle (0 < throttle <= 1)
-        --speed CRUISE_SPEED Maximum cruising speed
+        +CRUISE_SPEED Maximum cruising speed
         """
         if self.thrust == 0:
             logger.debug(f'{self} ignoring fly_to since we have no thrust')
@@ -160,8 +162,10 @@ class Ship(DeepSpaceObject):
 
     # Engine
     def engine_burn(self, vector=None, throttle=1):
-        """Run the engine
-        --t THROTTLE Engine power throttle (0 < throttle <= 1)
+        """ArgSpec
+        Run the engine
+        ___
+        +THROTTLE Engine power throttle (0 < throttle <= 1)
         """
         if vector is None:
             self.cockpit.camera.update()
@@ -181,9 +185,11 @@ class Ship(DeepSpaceObject):
         self.universe.engine.get_derivative_second('position')[self.oid] = 0
 
     def engine_break_burn(self, throttle=1, auto_cutoff=False):
-        """Engine burn to break velocity
-        --t THROTTLE Engine power throttle (0 < throttle <= 1)
-        --auto AUTO_CUTOFF Schedule automatic engine cut when breaking done
+        """ArgSpec
+        Engine burn to break velocity
+        ___
+        +THROTTLE Engine power throttle (0 < throttle <= 1)
+        -+cut AUTO_CUTOFF Schedule automatic engine cut when breaking done
         """
         v = self.universe.velocities[self.oid]
         mag = np.linalg.norm(v)
