@@ -34,17 +34,16 @@ class Controller:
                 return self.__cache[command]
         callback, argspec = self.__commands[command]
         if arg_string is None:
-            if custom_args or custom_kwargs:
-                logger.debug(f'custom args kwargs for {command}: {custom_args} {custom_kwargs}')
-                return callback(*custom_args, **custom_kwargs)
             arg_string = ''
         try:
+            if custom_args or custom_kwargs:
+                return callback(*custom_args, **custom_kwargs)
             r = argspec.parse_and_call(arg_string, callback)
         except ArgParseError as e:
             m = f'Command "{command}" failed: {e.args[0]} (expected: {argspec.spec})'
             logger.warning(m)
             self.__feedback(m)
-            return
+            return m
         return r
 
     def cache(self, command, value):
