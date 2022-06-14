@@ -57,7 +57,12 @@ class ArgSpec:
                 flag = name = self._get_flag_name(a)
                 # Find details of this flag
                 expected = flag in self.keys
-                spec = self.keys[flag] if expected else ArgumentSpec(flag, name, None, False, True)
+                if expected:
+                    spec = self.keys[flag]
+                else:
+                    is_sequence = self._get_flag_sequence(a)
+                    required = False
+                    spec = ArgumentSpec(flag, name, 'extra flag', required, is_sequence)
                 if not expected and self.remaining_key is None:
                     raise ArgParseError(f'Unexpected flag: {flag}')
                 if spec.required:
@@ -308,6 +313,14 @@ class ArgSpec:
         return flag.startswith('-') and cls.legal_varname(cls._get_flag_name(flag))
 
     @classmethod
+    def _get_flag_sequence(cls, flag):
+        assert cls.is_flag(flag)
+        if flag.startswith('--'):
+            return True
+        assert flag.startswith('-')
+        return False
+
+    @classmethod
     def _get_flag_name(cls, flag):
         if flag.startswith('--'):
             return cls._get_name(flag[2:])
@@ -406,7 +419,7 @@ An ArgParseError will be raised during parsing if any of the following occurs:
 - We lack non-optional key arguments
 - We receive unexpected key arguments (if **NAME not specified)
 
-Any key argument parsed without a corresponding value will be simply given a value of True. Otherwise, values are parsed as numbers (if possible) otherwise as strings.
+Any key argument parsed without a corresponding value will be simply given a value of True. Otherwise, values are parsed as numbers (if possible) otherwise as strings. Only in the case of specifying **NAME, unexpected key arguments will take a single value if the flag is used with "-" and will take a sequence of values if the flag is used with "--".
 
 When parsing, we will resolve the following:
 1. tuple of positional arguments (at least as long as required)
@@ -415,7 +428,7 @@ When parsing, we will resolve the following:
 4. dictionary of extra key arguments with keys corresponding to the NAME (empty if **NAME not specified)
 
 The following example input passed to the parse() method:
-`test test2 test3 test4 -sign foobar --force -u 42 69 --random_key -fizzbuzz -1 -2 negative-fizz -3 negative-buzz`
+`test test2 test3 test4 -sign foobar --force -u 42 69 -random_key --fizzbuzz -1 -2 negative-fizz -3 negative-buzz`
 
 Returns a tuple with the following values:
 ('test', 'test2')
