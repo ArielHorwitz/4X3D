@@ -67,6 +67,10 @@ class Controller:
         s = sorted(list(self.__commands.keys()))
         return ((name, *self.__commands[name]) for name in s)
 
+    def get_command(self, command):
+        assert self.has_command(command)
+        return self.__commands[command]
+
     @property
     def commands(self):
         return tuple(self.__commands.keys())

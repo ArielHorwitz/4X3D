@@ -30,6 +30,7 @@ UNIVERSE_SIZE = 10**6
 TINY_TICK = 0.00001
 CONSOLE_SCROLLBACK = 1000
 FEEDBACK_SCROLLBACK = 20
+NO_SIZE_LIMIT = 10_000, 10_000
 PROMPT_LINE_SPLIT = ' && '
 PROMPT_LINE_SPLIT_ESCAPE = escape_html(PROMPT_LINE_SPLIT)
 
@@ -323,9 +324,8 @@ class Universe:
             'cockpit',
             'inspect',
         ]:
-            f = getattr(self, f'get_content_{window_name}')
-            c = partial(f, (10000, 10000))  # These functions expect a size
-            self.display_controller.register_command(window_name, c)
+            func = getattr(self, f'get_content_{window_name}')
+            self.display_controller.register_command(window_name, func)
         self.refresh_display_cache()
 
     def refresh_display_cache(self):
@@ -336,12 +336,9 @@ class Universe:
         self.display_controller.cache('__malformed_html', '<tag')
         self.display_controller.cache('help', self.__get_content_help())
         self.display_controller.cache('hotkeys', self.__get_content_hotkeys())
-        commands = self.display_controller.commands
-        cached = self.display_controller.cached
-        contents = '\n'.join(str(_) for _ in commands + cached if not str(_).startswith('_'))
-        self.display_controller.cache('contents', contents)
+        self.display_controller.cache('contents', self.__get_content_contents())
 
-    def get_window_content(self, name, size):
+    def get_window_content(self, name, size=NO_SIZE_LIMIT):
         if hasattr(self, f'get_content_{name}'):
             f = getattr(self, f'get_content_{name}')
             return f(size)
@@ -351,29 +348,34 @@ class Universe:
                 f'<code>{size}</code>',
             ])
 
-    def get_content_display(self, size):
+    def get_content_display(self, size=NO_SIZE_LIMIT):
         return self.player.get_charmap(size)
 
-    def get_content_console(self, size):
+    def get_content_console(self, size=NO_SIZE_LIMIT):
         return self.stack_content(self.console_stack, size)
 
-    def get_content_feedback(self, size):
+    def get_content_feedback(self, size=NO_SIZE_LIMIT):
         return self.stack_content(self.feedback_stack, size)
 
-    def stack_content(self, stack, size):
+    def stack_content(self, stack, size=NO_SIZE_LIMIT):
         line_count = size[1]
         sliced = itertools.islice(stack, 0, line_count)
         full = '\n'.join(reversed(list(sliced)))
         lines = full.split('\n')[-line_count:]
         return '\n'.join(lines)
 
-    def get_content_objects(self, size):
+    def get_content_objects(self, size=NO_SIZE_LIMIT):
         return '\n'.join((
             self.get_content_celestials(size),
             self.get_content_ships(size),
         ))
 
-    def get_content_celestials(self, size, count=30):
+    def get_content_celestials(self, size=NO_SIZE_LIMIT, count=30):
+        """ArgSpec
+        Retrieve info on celestial objects
+        ___
+        +COUNT Number of objects to show
+        """
         object_summaries = [f'<h2>Celestial Objects</h2>']
         for oid in np.flatnonzero(self.ds_celestials)[:count]:
             ob = self.ds_objects[oid]
@@ -381,7 +383,12 @@ class Universe:
             object_summaries.append(line)
         return '\n'.join(object_summaries)
 
-    def get_content_ships(self, size, count=30):
+    def get_content_ships(self, size=NO_SIZE_LIMIT, count=30):
+        """ArgSpec
+        Retrieve info on ships
+        ___
+        +COUNT Number of ships to show
+        """
         object_summaries = [f'<h2>Ships</h2>']
         for oid in np.flatnonzero(self.ds_ships)[:count]:
             ship = self.ds_objects[oid]
@@ -390,7 +397,7 @@ class Universe:
             object_summaries.append(f'{name:<50} {orders}')
         return '\n'.join(object_summaries)
 
-    def get_content_debug(self, size):
+    def get_content_debug(self, size=NO_SIZE_LIMIT):
         t = arrow.get().format('YY-MM-DD, hh:mm:ss')
         ltt = arrow.now() - self.__last_tick_time
         event_str = ''
@@ -405,7 +412,7 @@ class Universe:
             f'<red>Events</red>: <code>{len(self.events)}</code>\n{event_str}',
         ])
 
-    def get_content_events(self, size):
+    def get_content_events(self, size=NO_SIZE_LIMIT):
         event_count = len(self.events)
         event_summaries = []
         for i in range(min(20, event_count)):
@@ -420,19 +427,20 @@ class Universe:
             '\n'.join(event_summaries),
         ])
 
-    def get_content_cockpit(self, size):
+    def get_content_cockpit(self, size=NO_SIZE_LIMIT):
         return '\n'.join([
             self.get_content_inspect(oid=self.player.my_ship.oid),
         ])
 
-    def get_content_browser(self, size):
+    def get_content_browser(self, size=NO_SIZE_LIMIT):
         command = self.display_controller.do_command('__browser_content')
         # Cannot pass options since each option (keyword argument) is packed as a tuple by the argparser
+        # This should hopefully be fixed in the util.argparse
         # options = self.display_controller.do_command('__browser_options')
         # return self.display_controller.do_command(command, custom_kwargs=options)
         return self.display_controller.do_command(command)
 
-    def get_content_inspect(self, size=None, oid=None):
+    def get_content_inspect(self, size=NO_SIZE_LIMIT, oid=None):
         if oid is None:
             oid = self.player.my_ship.oid
         ob = self.ds_objects[oid]
@@ -508,20 +516,13 @@ class Universe:
         self.output_console(s)
         self.set_browser_content('help')
 
-    def help_hotkeys(self, *args):
-        """Show hotkeys"""
-        s = self.display_controller.do_command('hotkeys')
-        self.output_console(s)
-        self.set_browser_content('hotkeys')
-
     @property
     def feedback_str(self):
         return self.feedback_stack[0]
 
     def __get_content_help(self):
-        formatted_contents = '\n'.join(
-            f'  - <code>{n}</code>' for n, c, s in self.display_controller.sorted_items())
-        contents = f'<h2>Contents</h2>\n{formatted_contents}'
+        formatted_contents = self.__get_content_contents()
+        contents = f'<h2>Content sources</h2>\n{formatted_contents}'
         formatted_commands = '\n'.join([''.join([
             f'<orange>{name:<25}</orange>: ',
             f'<green>{escape_html(argspec.desc)}</green> ',
@@ -533,3 +534,20 @@ class Universe:
 
     def __get_content_hotkeys(self):
         return 'Registered hotkeys:\n'+'\n'.join([f'{k:>11}: {v}' for k, v in CONFIG_DATA['HOTKEY_COMMANDS'].items()])
+
+    def __get_content_contents(self):
+        commands = self.display_controller.commands
+        cached = self.display_controller.cached
+        all_names = sorted(commands + cached)
+        strs = []
+        for name in all_names:
+            if name.startswith('_'):
+                continue
+            spec = ''
+            logger.debug(f'looking up display controller: {name}')
+            if self.display_controller.has_command(name):
+                callback, argspec = self.display_controller.get_command(name)
+                spec = argspec.spec
+                logger.debug(f'found {name}: {argspec} -> {spec}')
+            strs.append(f'<orange>{name:>25} </orange><bold>{spec}</bold>')
+        return '\n'.join(strs)

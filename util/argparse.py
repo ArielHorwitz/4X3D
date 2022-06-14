@@ -330,6 +330,8 @@ class ArgSpec:
             f'<<keysrem>>: {self.remaining_key}',
         ])
 
+    def __repr__(self):
+        return f'<ArgSpec <{self.spec}>>'
 
 def __func(branch, refspec, signature, set_upstream, repository=None, force=False, tags=None, **options):
     print(',\n'.join([
