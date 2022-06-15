@@ -1,8 +1,8 @@
-# Space (looking for name)
-A 4X game in 3D space that runs in your terminal. Still in early development.
+# 4X3D
+A 4X game in 3D space that runs in your 2D terminal. In early development.
 
 ### Getting started
-Requires python version 3.9 or higher.
+Requires Python 3.10+ and a decent terminal.
 
 Install requirements (consider using a [virtual environment](https://docs.python.org/3/tutorial/venv.html)):
 
