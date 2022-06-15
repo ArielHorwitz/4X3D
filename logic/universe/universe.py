@@ -10,11 +10,14 @@ from inspect import signature
 
 from util import (
     format_vector,
+    is_number,
+    is_index,
     format_latlong,
     escape_html,
     escape_if_malformed,
     CELESTIAL_NAMES,
     )
+from util.argparse import arg_validation
 from util.config import CONFIG_DATA
 from util.controller import Controller
 from util._3d import latlong_single
@@ -121,42 +124,13 @@ class Universe:
         """ArgSpec
         Echo text in the console
         ___
-        MESSAGE Text to echo
+        *MESSAGE Text to echo
         """
-        self.output_console(message)
+        self.output_console(' '.join(str(_) for _ in message))
 
     def debug(self, *args, **kwargs):
         """Developer debug logic"""
         logger.debug(f'Universe debug() called: {args} {kwargs}')
-
-    # Parsers
-    def parse_oid(self, oid):
-        if oid is None:
-            return self.player.my_ship.oid
-        oid = int(oid)
-        if oid < 0 or oid >= self.object_count:
-            return f'expected valid object ID, instead got: {oid} (last oid: {self.object_count-1})'
-        return oid
-
-    def parse_ship_oid(self, oid):
-        if oid is None:
-            return self.player.my_ship.oid
-        oid = int(oid)
-        if oid < 0 or oid >= self.object_count:
-            return f'expected valid ship ID, instead got: {oid} (last oid: {self.object_count-1})'
-        if not self.ds_ships[oid]:
-            return f'expected valid ship ID, instead got non-ship ID: {oid} (last oid: {self.object_count-1})'
-        return oid
-
-    def parse_player_ship(self, oid):
-        if oid is None:
-            return self.player.my_ship.oid
-        oid = int(oid)
-        if oid not in self.player.fleet_oids and oid != self.player.my_ship.oid:
-            self.output_feedback(f'<underline>oid#{oid} not in my fleet</underline>:')
-            self.player.print_fleet()
-            return f'expected player ship ID, instead got: {oid}'
-        return oid
 
     # Genesis
     def genesis(self):
@@ -205,7 +179,11 @@ class Universe:
         ___
         TICKS Number of ticks to simulate
         """
-        assert ticks > 0
+        with arg_validation(f'Ticks must be a positive number: {ticks}'):
+            assert ticks >= 0
+        if ticks == 0:
+            return
+
         last_tick = self.tick + ticks
         next_event = self.events.pop_next(tick=last_tick)
         while next_event:
@@ -228,22 +206,25 @@ class Universe:
             set_to = CONFIG_DATA['DEFAULT_SIMRATE'] if self.auto_simrate == 0 else -self.auto_simrate
         self.set_simrate(set_to)
 
-    def set_simrate(self, value, delta=False):
+    def set_simrate(self, simrate, delta=False):
         """ArgSpec
         Set simulation speed
         ___
-        VALUE Simulation rate
-        -+d DELTA Use value as delta
+        SIMRATE Simulation rate
+        -+d DELTA Add this number to simulation rate (as delta)
         """
+        with arg_validation(f'Simulation speed must be a number: {simrate}'):
+            assert is_number(simrate)
+
         sign = -1 if self.auto_simrate < 0 else 1
         if delta:
-            self.auto_simrate += value * sign
+            self.auto_simrate += simrate * sign
             if sign > 0:
                 self.auto_simrate = max(1, self.auto_simrate)
             else:
                 self.auto_simrate = min(-1, self.auto_simrate)
-        elif value != 0:
-            self.auto_simrate = value
+        elif simrate != 0:
+            self.auto_simrate = simrate
         if self.auto_simrate > 0:
             self.__last_tick_time = arrow.now()
         s = 'in progress' if self.auto_simrate > 0 else 'paused'
@@ -291,6 +272,13 @@ class Universe:
     @property
     def object_count(self):
         return self.engine.object_count
+
+    def is_oid(self, oid):
+        if not is_index(oid):
+            return False
+        if oid < 0 or oid >= self.object_count:
+            return False
+        return True
 
     # Admirals
     def add_player(self, name):
@@ -379,6 +367,10 @@ class Universe:
         ___
         +COUNT Number of objects to show
         """
+        with arg_validation(f'Count must be a positive integer: {oid}'):
+            assert isinstance(count, int)
+            assert count > 0
+
         object_summaries = [f'<h2>Celestial Objects</h2>']
         for oid in np.flatnonzero(self.ds_celestials)[:count]:
             ob = self.ds_objects[oid]
@@ -392,6 +384,10 @@ class Universe:
         ___
         +COUNT Number of ships to show
         """
+        with arg_validation(f'Count must be a positive integer: {oid}'):
+            assert isinstance(count, int)
+            assert count > 0
+
         object_summaries = [f'<h2>Ships</h2>']
         for oid in np.flatnonzero(self.ds_ships)[:count]:
             ship = self.ds_objects[oid]
@@ -443,8 +439,16 @@ class Universe:
             custom_args=options, custom_kwargs=koptions)
 
     def get_content_inspect(self, oid=None, size=NO_SIZE_LIMIT):
+        """ArgSpec
+        Retrieve info on a deep space object
+        ___
+        +OID Object ID
+        """
         if oid is None:
             oid = self.player.my_ship.oid
+        with arg_validation(f'Invalid object ID: {oid}'):
+            assert self.is_oid(oid)
+
         ob = self.ds_objects[oid]
         ob_type = ob.type_name
         color = ob.color
@@ -492,9 +496,9 @@ class Universe:
         *OPTIONS Positional parameters for content
         **KOPTIONS Keyword parameters for content
         """
-        if not self.display_controller.has(content_name):
-            self.output_feedback(f'Couldn\'t find content: {content_name}')
-            return
+        with arg_validation(f'Couldn\'t find content: {content_name}'):
+            assert self.display_controller.has(content_name)
+
         s = self.display_controller.do_command(content_name,
             custom_args=options, custom_kwargs=koptions)
         self.output_console(s)
@@ -507,9 +511,9 @@ class Universe:
         *OPTIONS Positional parameters for content
         **KOPTIONS Keyword parameters for content
         """
-        if not self.display_controller.has(content_name):
-            self.output_feedback(f'Couldn\'t find content: {content_name}')
-            return
+        with arg_validation(f'Couldn\'t find content: {content_name}'):
+            assert self.display_controller.has(content_name)
+
         self.display_controller.cache('__browser_content', content_name)
         self.display_controller.cache('__browser_options', options)
         self.display_controller.cache('__browser_koptions', koptions)
@@ -520,6 +524,9 @@ class Universe:
         ___
         +OID Object ID
         """
+        with arg_validation(f'Invalid object ID: {oid}'):
+            assert self.is_oid(oid)
+
         self.set_browser_content('inspect', oid=oid)
 
     def help(self, *args):

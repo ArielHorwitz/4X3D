@@ -7,6 +7,7 @@ from prompt_toolkit.widgets import Frame
 from prompt_toolkit.filters import Condition
 
 from util import escape_if_malformed
+from util.argparse import arg_validation
 from util.layout import WSubLayout, VSubLayout
 
 
@@ -48,8 +49,10 @@ class ScreenSwitcher(VSplit):
         ___
         INDEX screen number/name
         """
-        if isinstance(index, str):
-            index = self.screen_names.index(index)
+        with arg_validation(f'Index must be an integer between 0 and {len(self.screens)-1}, got {index}'):
+            index -= 1
+            assert isinstance(index, int)
+            assert 0 <= index < len(self.screens)
         self.current_index = index
 
     def update(self):

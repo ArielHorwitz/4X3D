@@ -3,6 +3,7 @@ from loguru import logger
 from collections import deque, namedtuple
 from operator import attrgetter
 import bisect
+from util import is_number
 
 
 Event = namedtuple('Event', ('uid', 'tick', 'callback', 'description'))
@@ -13,7 +14,7 @@ class EventQueue:
         self.queue = deque()
 
     def add(self, uid, tick, callback, description=None):
-        assert isinstance(tick, float) or isinstance(tick, int)
+        assert is_number(tick)
         assert callable(callback)
         if description is None:
             description = 'Event description not available.'

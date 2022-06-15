@@ -2,7 +2,8 @@ from loguru import logger
 import arrow
 import numpy as np
 
-from util import adjustable_sigmoid
+from util import adjustable_sigmoid, is_number
+from util.argparse import arg_validation
 from util._3d import latlong_single, latlong, Quaternion as Quat
 
 
@@ -56,6 +57,9 @@ class Camera:
         ___
         D Distance to move forward
         """
+        with arg_validation(f'Distance must be a number: {d}'):
+            assert is_number(d)
+
         self.pos += self.current_axes[0] * d
         if disable_follow:
             self.follow(None)
@@ -66,6 +70,9 @@ class Camera:
         ___
         D Distance to move right
         """
+        with arg_validation(f'Distance must be a number: {d}'):
+            assert is_number(d)
+
         self.pos += self.current_axes[1] * d
         if disable_follow:
             self.follow(None)
@@ -97,6 +104,13 @@ class Camera:
         -+r ROLL Number of degrees to roll clockwise
         -+scale SCALE Rotate less when zoomed in and more when zoomed out
         """
+        with arg_validation(f'Yaw must be a number: {yaw}'):
+            assert is_number(yaw)
+        with arg_validation(f'Pitch must be a number: {pitch}'):
+            assert is_number(pitch)
+        with arg_validation(f'Roll must be a number: {roll}'):
+            assert is_number(roll)
+
         if scale:
             yaw /= self.__zoom_level
             pitch /= self.__zoom_level
@@ -118,6 +132,8 @@ class Camera:
         ___
         YAW Number of degrees to yaw right
         """
+        with arg_validation(f'Yaw must be a number: {yaw}'):
+            assert is_number(yaw)
         self.rotate(yaw=yaw)
 
     def pitch(self, pitch):
@@ -126,6 +142,8 @@ class Camera:
         ___
         PITCH Number of degrees to pitch up
         """
+        with arg_validation(f'Pitch must be a number: {pitch}'):
+            assert is_number(pitch)
         self.rotate(pitch=pitch)
 
     def roll(self, roll):
@@ -134,6 +152,8 @@ class Camera:
         ___
         ROLL Number of degrees to roll clockwise
         """
+        with arg_validation(f'Roll must be a number: {roll}'):
+            assert is_number(roll)
         self.rotate(roll=roll)
 
     def flip(self):
@@ -147,6 +167,9 @@ class Camera:
         ___
         ZOOM_MULTIPLIER Fraction of current zoom (0.8 = %80 of current zoom)
         """
+        with arg_validation(f'Zoom multiplier must be a non-zero number: {zoom_multiplier}'):
+            assert is_number(zoom_multiplier)
+            assert zoom_multiplier != 0
         self.__zoom_level = max(0.5, self.__zoom_level * zoom_multiplier)
 
     def look_at_point(self, point, reset_axes=True, keep_tracking=False):

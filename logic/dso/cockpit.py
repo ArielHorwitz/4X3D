@@ -4,6 +4,7 @@ from functools import partial
 
 from util.config import CONFIG_DATA
 from util import OBJECT_COLORS, CELESTIAL_NAMES
+from util.argparse import arg_validation
 from util.camera import Camera
 from util.charmap import CharMap
 
@@ -35,33 +36,39 @@ class Cockpit:
     def universe(self):
         return self.ship.universe
 
-    def follow(self, index=None):
+    def follow(self, oid=None):
         """ArgSpec
         Follow a deep space object
         ___
-        +INDEX Object ID
+        +OID Object ID
         """
-        def get_pos(index):
-            return self.universe.positions[index]
-        if index is None:
-            index = self.ship.oid
-        self.camera.follow(partial(get_pos, index) if index is not None else None)
+        if oid is None:
+            oid = self.ship.oid
+        with arg_validation(f'Invalid object ID: {oid}'):
+            assert self.universe.is_oid(oid)
 
-    def track(self, index=None):
+        def get_pos(oid):
+            return self.universe.positions[oid]
+        self.camera.follow(partial(get_pos, oid))
+
+    def track(self, oid=None):
         """ArgSpec
         Track a deep space object
         ___
-        +INDEX Object ID
+        +OID Object ID
         """
-        def get_pos(index):
-            return self.universe.positions[index]
-        self.camera.track(partial(get_pos, index) if index is not None else None)
+        with arg_validation(f'Invalid object ID: {oid}'):
+            assert self.universe.is_oid(oid)
 
-    def look(self, index, ms=None, smooth=None):
+        def get_pos(oid):
+            return self.universe.positions[oid]
+        self.camera.track(partial(get_pos, oid) if oid is not None else None)
+
+    def look(self, oid, ms=None, smooth=None):
         """ArgSpec
         Turn to look at a deep space object
         ___
-        INDEX Object ID
+        OID Object ID
         +MS How long to swivel for in ms
         -+s SMOOTH How smoothly to swivel between -1 and 1
         """
@@ -69,15 +76,25 @@ class Cockpit:
             ms = CONFIG_DATA['CAMERA_SMOOTH_TIME']
         if smooth is None:
             smooth = CONFIG_DATA['CAMERA_SMOOTH_CURVE']
-        self.camera.swivel_to_point(self.universe.ds_objects[index].position, ms, smooth)
+        with arg_validation(f'Invalid object ID: {oid}'):
+            assert self.universe.is_oid(oid)
+        with arg_validation(f'Duration in ms must be a positive number: {ms}'):
+            assert ms > 0
+        with arg_validation(f'Smoothness must be a number between -1 and 1: {smooth}'):
+            assert -1 <= smooth <= 1
 
-    def snaplook(self, index):
+        self.camera.swivel_to_point(self.universe.ds_objects[oid].position, ms, smooth)
+
+    def snaplook(self, oid):
         """ArgSpec
         Instantly turn to look at a deep space object
         ___
-        INDEX Object ID
+        OID Object ID
         """
-        self.camera.look_at_point(self.universe.positions[index])
+        with arg_validation(f'Invalid object ID: {oid}'):
+            assert self.universe.is_oid(oid)
+
+        self.camera.look_at_point(self.universe.positions[oid])
 
     def look_prograde(self):
         """Turn to look at prograde vector"""

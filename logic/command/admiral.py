@@ -4,6 +4,7 @@ import math
 import random
 import numpy as np
 from util import OBJECT_COLORS, CELESTIAL_NAMES
+from util.argparse import arg_validation
 from logic.dso.ship import Ship, Tug, Fighter, Escort, Port
 from logic.dso.celestial import CelestialObject
 
@@ -87,15 +88,22 @@ class Player(Admiral):
             ship_name = random.choice(CELESTIAL_NAMES)
             self.add_ship(cls, name=ship_name, parent=self.my_ship)
 
-    def order_patrol(self, oid, target_oids):
+    def order_patrol(self, oid, target_oids, auto_look=False):
         """ArgSpec
         Order a ship to patrol between celestial objects
         ___
         OID Ship ID to order
         *TARGET_OIDS Objects to patrol between
+        -+look AUTO_LOOK Automatically turn camera to look at target before flying
         """
+        with arg_validation(f'Ordered ship must be in fleet, instead ordered ID: {oid}'):
+            assert oid in self.fleet_oids
+        for check_oid in target_oids:
+            with arg_validation(f'Invalid target ID: {check_oid}'):
+                assert self.universe.is_oid(check_oid)
+
         ship = self.universe.ds_objects[oid]
-        ship.command_order_patrol(*target_oids)
+        ship.command_order_patrol(target_oids, auto_look)
 
     def order_fly(self, oid, target_oid, cruise_speed=10**10):
         """ArgSpec
@@ -105,6 +113,13 @@ class Player(Admiral):
         TARGET_OID Target ID to fly to
         -+s CRUISE_SPEED Maximum cruising speed
         """
+        with arg_validation(f'Ordered ship must be in fleet, instead ordered ID: {oid}'):
+            assert oid in self.fleet_oids
+        with arg_validation(f'Invalid target ID: {target_oid}'):
+            assert self.universe.is_oid(target_oid)
+        with arg_validation(f'Cruise speed must be a positive number'):
+            assert cruise_speed > 0
+
         ship = self.universe.ds_objects[oid]
         ship.fly_to(target_oid, cruise_speed)
 

@@ -1,4 +1,5 @@
 from loguru import logger
+from util import escape_html
 from util.argparse import ArgSpec, ArgParseError
 
 
@@ -40,7 +41,7 @@ class Controller:
                 return callback(*custom_args, **custom_kwargs)
             r = argspec.parse_and_call(arg_string, callback)
         except ArgParseError as e:
-            m = f'Command "{command}" failed: {e.args[0]} (expected: {argspec.spec})'
+            m = f'Command "{command}" failed: {escape_html(e.args[0])}'
             logger.warning(m)
             self.__feedback(m)
             return m

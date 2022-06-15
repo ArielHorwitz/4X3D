@@ -7,6 +7,7 @@ from functools import wraps
 from collections import defaultdict, namedtuple
 
 from util import EPSILON
+from util.argparse import arg_validation
 from logic.dso.cockpit import Cockpit
 from logic.dso.dso import DeepSpaceObject
 
@@ -21,6 +22,7 @@ class Ship(DeepSpaceObject):
     color = 'green'
     current_order_uid = None
     current_flight = None
+    patrol_look = False
 
     def setup(self, fid, name, parent=None):
         self.fid = fid
@@ -75,41 +77,50 @@ class Ship(DeepSpaceObject):
         self.universe.add_event(uid, None, self.next_patrol,
             f'{self.label} start patrol.')
 
-    def command_order_patrol(self, *oids):
-        """Patrol between random celestial objects"""
+    def command_order_patrol(self, oids, auto_look=False):
+        """ArgSpec
+        Patrol between random celestial objects
+        ___
+        *OIDS list of object IDs to patrol between (leave empty for 5 random targets)
+        -+look AUTO_LOOK Automatically turn camera to look at target before flying
+        """
         if not oids:
             oids = random.choices(np.flatnonzero(self.universe.ds_celestials), k=20)
-        for oid in oids:
-            try:
-                oid = int(oid)
-                assert 0 <= oid < self.universe.object_count
-            except:
-                self.universe.output_feedback(f'Patrol order expected valid object ID, instead got: {oid}')
-                return
-        self.order_patrol([int(_) for _ in oids])
+        for check_oid in oids:
+            with arg_validation(f'Invalid target ID: {check_oid}'):
+                assert self.universe.is_oid(check_oid)
+        self.patrol_look = auto_look
+        self.order_patrol(oids)
 
     @event_callback
     def next_patrol(self, uid):
         oid = next(self.patrol_cycle)
         logger.debug(f'{self} next_patrol oid: {oid}')
-        self.current_flight = self.fly_to(oid, 10**8, uid)
+        self.current_flight = self.fly_to(oid, 10**8, self.patrol_look, uid)
         next_patrol = self.current_flight.arrival + 200
         self.universe.add_event(uid, next_patrol, self.next_patrol,
             f'{self.label} next patrol.')
 
     # Navigation
-    def fly_to(self, oid, cruise_speed=10**10, uid=0):
+    def fly_to(self, oid, cruise_speed=10**10, look=False, uid=0):
         """ArgSpec
         Automatically schedule flight plan to a deep space object
         ___
-        OID Engine power throttle (0 < throttle <= 1)
+        OID Target object ID
         +CRUISE_SPEED Maximum cruising speed
+        -+LOOK Turn camera to look at target before flying
         """
+        with arg_validation(f'Invalid object ID: {oid}'):
+            assert self.universe.is_oid(oid)
+        with arg_validation(f'Cruise speed must be a positive number: {cruise_speed}'):
+            assert cruise_speed > 0
         if self.thrust == 0:
             logger.debug(f'{self} ignoring fly_to since we have no thrust')
             return
+
+        if look:
+            self.cockpit.look(oid)
         target = self.universe.ds_objects[oid]
-        self.cockpit.look(oid)
         travel_vector = target.position - self.position
         travel_dist = np.linalg.norm(travel_vector)
         plan = self._simple_flight_plan(
@@ -170,8 +181,12 @@ class Ship(DeepSpaceObject):
         if vector is None:
             self.cockpit.camera.update()
             vector = self.cockpit.camera.current_axes[0]
-        assert isinstance(vector, np.ndarray)
-        assert vector.shape == (3, )
+        with arg_validation(f'Throttle must be a positive number between 0 and 1: {throttle}'):
+            assert 0 < throttle <= 1
+        with arg_validation(f'Invalid vector: {vector}'):
+            assert isinstance(vector, np.ndarray)
+            assert vector.shape == (3, )
+
         mag = np.linalg.norm(vector)
         if mag == 0:
             m = f'{self} trying to engine burn without direction: {vector}'
@@ -191,6 +206,9 @@ class Ship(DeepSpaceObject):
         +THROTTLE Engine power throttle (0 < throttle <= 1)
         -+cut AUTO_CUTOFF Schedule automatic engine cut when breaking done
         """
+        with arg_validation(f'Throttle must be a positive number between 0 and 1: {throttle}'):
+            assert 0 < throttle <= 1
+
         v = self.universe.velocities[self.oid]
         mag = np.linalg.norm(v)
         if mag == 0:

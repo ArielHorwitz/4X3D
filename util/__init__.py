@@ -40,6 +40,7 @@ STYLE = {
     'darkbg': 'bg:#000055',
     **COLOR_HEXES,
 }
+__TEST_FOR_INDEXING = tuple()
 
 
 def tag(tag, s):
@@ -121,3 +122,24 @@ def try_number(v):
         return r
     except ValueError as e:
         return v
+
+
+def is_index(n):
+    try:
+        try:
+            __TEST_FOR_INDEXING[n]
+        except TypeError:
+            return False
+    except IndexError:
+        return True
+    raise RuntimeError(f'Unknown error with is_index for variable: {n} {type(n)} {repr(n)}')
+
+
+def is_number(n):
+    try:
+        n < 0
+        n == 0
+        n + 1
+    except:
+        return False
+    return True

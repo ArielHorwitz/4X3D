@@ -1,4 +1,7 @@
+from loguru import logger
 from collections import namedtuple
+from contextlib import contextmanager
+from util import format_exc
 
 
 def _try_number(v):
@@ -21,6 +24,16 @@ class ArgSpecError(Exception):
 
 class ArgParseError(Exception):
     pass
+
+
+@contextmanager
+def arg_validation(m, exceptions=(Exception,)):
+    """A context manager to "replace" arbitrary exceptions with an ArgParseError."""
+    try:
+        yield
+    except exceptions as e:
+        logger.debug(f'arg_validation caught:\n{format_exc(e)}\nReplaced with: ArgParseError(\'{m}\')')
+        raise ArgParseError(m)
 
 
 class ArgSpec:
@@ -47,7 +60,7 @@ class ArgSpec:
                 expected = len(parsed_pos) < pos_expected_count
                 allowed = expected or self.remaining_pos is not None
                 if parsed_key or not allowed:
-                    raise ArgParseError(f'Unexpected argument: {a}')
+                    raise ArgParseError(f'Unexpected argument: {a} (expected: <{self.spec}>)')
                 if expected:
                     parsed_pos.append(_try_number(a))
                 else:
@@ -64,7 +77,7 @@ class ArgSpec:
                     required = False
                     spec = ArgumentSpec(flag, name, 'extra flag', required, is_sequence)
                 if not expected and self.remaining_key is None:
-                    raise ArgParseError(f'Unexpected flag: {flag}')
+                    raise ArgParseError(f'Unexpected flag: {flag} (expected: <{self.spec}>)')
                 if spec.required:
                     missing_keys.remove(flag)
                 # Find value for this key
@@ -86,9 +99,9 @@ class ArgSpec:
 
         # Check that required arguments parsed
         if len(parsed_pos) < pos_required_count:
-            raise ArgParseError(f'Missing arguments: {", ".join(s.name for s in self.pos[len(parsed_pos):])}')
+            raise ArgParseError(f'Missing arguments: {", ".join(s.name.upper() for s in self.pos[len(parsed_pos):])}')
         if missing_keys:
-            raise ArgParseError(f'Missing arguments: {", ".join(f"-{_}" for _ in missing_keys)}')
+            raise ArgParseError(f'Missing arguments: {", ".join(f"-{_} {self.keys[_].name.upper()}" for _ in missing_keys)}')
         return tuple(parsed_pos), tuple(remaining_pos), parsed_key, remaining_key
 
     def dict_from_parsed(self, pos, pos_rem, key, key_rem):
@@ -160,8 +173,9 @@ class ArgSpec:
         lines = [l for l in lines if l != '']
         # Parse argument specs
         while lines:
-            line = lines.pop(0)
-            arg_type, spec_chars = self._resolve_line_type(line)
+            raw_line = lines.pop(0)
+            arg_type, spec_chars = self._resolve_line_type(raw_line)
+            line = raw_line[spec_chars:]
             # Keep track of current stage, keeping order of argument types
             try:
                 while arg_type not in current_stage_types:
@@ -172,7 +186,7 @@ class ArgSpec:
             # Positionals
             if current_stage <= 2:
                 try:
-                    name, desc = line[spec_chars:].split(' ', 1)
+                    name, desc = line.split(' ', 1)
                     name = self._get_name(name)
                 except ValueError:
                     raise ArgSpecError(f'ArgSpec expecting space-delimited name and description, got: "{line}"')
@@ -187,21 +201,22 @@ class ArgSpec:
             # Keys
             elif current_stage == 3:
                 try:
-                    flag, name, desc = line[spec_chars:].split(' ', 2)
+                    flag, name, desc = line.split(' ', 2)
+                    flag = self._get_name(flag)
+                    name = self._get_name(name)
                 except ValueError:
                     raise ArgSpecError(f'ArgSpec expecting space-delimited flag, name, and description, got: "{line}"')
-                name = self._get_name(name)
-                if not self.legal_varname(name):
-                    raise ArgSpecError(f'Variable name must start with alphabetic character or underscore, got: {name}')
                 if not self.legal_varname(flag):
                     raise ArgSpecError(f'Flag name must start with alphabetic character or underscore, got: {flag}')
+                if not self.legal_varname(name):
+                    raise ArgSpecError(f'Variable name must start with alphabetic character or underscore, got: {name}')
                 required, sequence = self._resolve_key_type(arg_type)
                 if required:
                     self.required_keys.append(flag)
                 self.keys[flag] = ArgumentSpec(flag, name, desc, required, sequence)
             elif current_stage == 4:
                 try:
-                    name, desc = line[spec_chars:].split(' ', 1)
+                    name, desc = line.split(' ', 1)
                 except ValueError:
                     raise ArgSpecError(f'ArgSpec expecting space-delimited name and description, got: "{line}"')
                 self.remaining_key = ArgumentSpec('', name, desc, required=False, sequence=2)
@@ -237,7 +252,7 @@ class ArgSpec:
             name = f'{many}{s.name.upper()}'
             if not s.required:
                 name = f'[{name}]'
-            return f'{flag:>15}{name:>15}\t{s.desc}'
+            return f'{flag:>15}{name:>15}  {s.desc}'
 
         pos = '\n'.join(format_spec(s) for s in self.pos)
         pos_opt = '\n'.join(f'{format_spec(s)}' for s in self.pos_optional)
@@ -302,10 +317,9 @@ class ArgSpec:
         assert isinstance(name, str)
         if not name:
             return False
-        fc = name[0]
-        legal_fc = fc.isalpha() or fc == '_'
         if name != name.lower():
             return False
+        fc = name[0]
         return fc.isalpha() or fc == '_'
 
     @classmethod
