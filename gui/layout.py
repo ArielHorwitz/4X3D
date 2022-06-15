@@ -6,34 +6,40 @@ from util.config import CONFIG_DATA
 aspect_ratio = CONFIG_DATA['ASPECT_RATIO']
 
 DEFAULT_LAYOUT = {
+    'home': HSub([
+        VSub(children=[
+            WSub('browser'),
+            WSub('console', height=11),
+        ]),
+        VSub(width=75, children=[
+            WSub('display'),
+            WSub('cockpit', height=11),
+        ]),
+    ]),
+    'cockpit': HSub([
+        VSub(width=75, children=[
+            WSub('cockpit', height=11),
+            WSub('browser'),
+            WSub('feedback', height=2),
+        ]),
+        WSub('display'),
+    ]),
     'console': HSub([
         WSub('console'),
-        VSub(width=70, children=[
+        VSub(width=75, children=[
             WSub('browser'),
             WSub('feedback', height=15),
         ]),
     ]),
-    'cockpit': HSub([
-        VSub(width=50, children=[
-            WSub('cockpit', height=15),
+    'debug': HSub([
+        VSub(children=[
+            HSub(height=20, children=[
+                WSub('debug'),
+                WSub('browser'),
+            ]),
             WSub('console'),
         ]),
-        WSub('display'),
-    ]),
-    'home': HSub([
-        VSub(width=50, children=[
-            WSub('display', height=round(50*aspect_ratio)),
-            WSub('debug'),
-        ]),
-        VSub(children=[
-            WSub('events'),
-            WSub('browser', height=10),
-        ]),
-    ]),
-    'debug': HSub([
-        WSub('debug'),
-        WSub('events'),
-        WSub('console'),
+        WSub('events', width=100),
     ]),
 }
 

@@ -92,7 +92,7 @@ class Screen(VSplit):
             wname = sublayout.window
             win = Window(content=tc, ignore_content_width=True, ignore_content_height=True)
             win.width, win.height = width, height
-            return Frame(title=f'Window: {wname}', body=win), {wname: tc}
+            return Frame(title=f'{wname.capitalize()}', body=win), {wname: tc}
         # Is splitter, recursively get child sublayouts
         all_children = []
         all_tcs =  {}
