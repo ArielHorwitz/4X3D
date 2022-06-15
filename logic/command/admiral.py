@@ -46,10 +46,6 @@ class Admiral:
     def fleet_str(self):
         return '\n'.join(f'{s.label}' for s in self.fleet)
 
-    def print_fleet(self):
-        """Print ships in fleet to console"""
-        self.universe.output_console(self.fleet_str)
-
     @property
     def position(self):
         return self.my_ship.position
@@ -65,7 +61,6 @@ class Player(Admiral):
 
     def register_commands(self, controller):
         d = {
-            ('admiral.fleet', self.print_fleet),
             ('order.fly', self.order_fly),
             ('order.patrol', self.order_patrol),
             *[(f'ship.{n}', *a) for n, *a in self.my_ship.commands],

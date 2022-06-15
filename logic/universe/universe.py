@@ -279,6 +279,23 @@ class Universe:
             return False
         return True
 
+    def search_oids(self, filter_name=None, fleet_id=None):
+        objects = set()
+        if filter_name is not None:
+            assert isinstance(filter_name, str)
+            filter_name = filter_name.lower()
+        for ob in self.ds_objects:
+            if fleet_id is not None:
+                if not isinstance(ob, Ship):
+                    continue
+                if not ob.oid in self.admirals[fleet_id].fleet_oids:
+                    continue
+            if filter_name is not None:
+                if filter_name not in ob.label.lower():
+                    continue
+            objects.add(ob.oid)
+        return objects
+
     # Admirals
     def add_player(self, name):
         assert len(self.admirals) == 0
@@ -298,6 +315,20 @@ class Universe:
     def get_player_oid(self):
         return self.player.my_ship.oid
 
+    @property
+    def admiral_count(self):
+        return len(self.admirals)
+
+    def is_fid(self, fid):
+        logger.debug(f'is_fid: {fid} {type(fid)}')
+        if not is_index(fid):
+            logger.debug(f'is_fid: not index')
+            return False
+        if fid < 0 or fid >= self.admiral_count:
+            logger.debug(f'is_fid: not in range')
+            return False
+        return True
+
     # GUI content
     def register_display_cache(self):
         for window_name in [
@@ -305,12 +336,11 @@ class Universe:
             'feedback',
             'debug',
             'events',
-            'objects',
-            'celestials',
-            'ships',
-            'cockpit',
-            'inspect',
             'command',
+            'content',
+            'objects',
+            'inspect',
+            'cockpit',
         ]:
             func = getattr(self, f'get_content_{window_name}')
             self.display_controller.register_command(window_name, func)
@@ -325,7 +355,7 @@ class Universe:
         self.display_controller.cache('__malformed_html', '<tag')
         self.display_controller.cache('help', self.__get_content_help())
         self.display_controller.cache('hotkeys', self.__get_content_hotkeys())
-        self.display_controller.cache('contents', self.__get_content_contents())
+        self.display_controller.cache('all_contents', self.__get_content_contents())
         self.display_controller.cache('all_commands', self.__get_content_commands())
 
     def get_window_content(self, name, size=NO_SIZE_LIMIT):
@@ -347,52 +377,35 @@ class Universe:
     def get_content_feedback(self, size=NO_SIZE_LIMIT):
         return self.stack_content(self.feedback_stack, size)
 
-    def stack_content(self, stack, size=NO_SIZE_LIMIT):
-        line_count = size[1]
-        sliced = itertools.islice(stack, 0, line_count)
-        full = '\n'.join(reversed(list(sliced)))
-        lines = full.split('\n')[-line_count:]
-        return '\n'.join(lines)
-
-    def get_content_objects(self, size=NO_SIZE_LIMIT):
-        return '\n'.join((
-            self.get_content_celestials(size),
-            self.get_content_ships(size),
-        ))
-
-    def get_content_celestials(self, count=30, size=NO_SIZE_LIMIT):
+    def get_content_objects(self,
+            filter_name=None, fleet_id=None,
+            max_entries=30, size=NO_SIZE_LIMIT):
         """ArgSpec
-        Retrieve info on celestial objects
+        Retrieve info on deep space objects
         ___
-        +COUNT Number of objects to show
+        +FILTER_NAME Text in object names to filter for
+        -+fleet FLEET_ID Fleet ID to filter for
+        -+max MAX_ENTRIES Maximum number of objects to show
         """
-        with arg_validation(f'Count must be a positive integer: {oid}'):
-            assert isinstance(count, int)
-            assert count > 0
-
-        object_summaries = [f'<h2>Celestial Objects</h2>']
-        for oid in np.flatnonzero(self.ds_celestials)[:count]:
+        if filter_name is not None:
+            filter_name = str(filter_name)
+        if fleet_id is not None:
+            with arg_validation(f'Invalid fleet ID'):
+                assert self.is_fid(fleet_id)
+        with arg_validation(f'MAX_ENTRIES must be a positive integer'):
+            assert isinstance(max_entries, int)
+            assert max_entries > 0
+        filtered_oids = self.search_oids(filter_name=filter_name, fleet_id=fleet_id)
+        object_summaries = [f'<h2>Deep Space Objects</h2>']
+        for i, oid in enumerate(filtered_oids):
+            if i >= max_entries:
+                break
             ob = self.ds_objects[oid]
             line = f'<{ob.color}>{ob.label} ({ob.type_name})</{ob.color}>'
+            if isinstance(ob, Ship):
+                orders = f'<italic>{ob.current_orders}</italic>'
+                line = f'{line:<50} {orders}'
             object_summaries.append(line)
-        return '\n'.join(object_summaries)
-
-    def get_content_ships(self, count=30, size=NO_SIZE_LIMIT):
-        """ArgSpec
-        Retrieve info on ships
-        ___
-        +COUNT Number of ships to show
-        """
-        with arg_validation(f'Count must be a positive integer: {oid}'):
-            assert isinstance(count, int)
-            assert count > 0
-
-        object_summaries = [f'<h2>Ships</h2>']
-        for oid in np.flatnonzero(self.ds_ships)[:count]:
-            ship = self.ds_objects[oid]
-            name = f'<{ship.color}>{ship.label} ({ship.type_name})</{ship.color}>'
-            orders = f'<italic>{ship.current_orders}</italic>'
-            object_summaries.append(f'{name:<50} {orders}')
         return '\n'.join(object_summaries)
 
     def get_content_debug(self, size=NO_SIZE_LIMIT):
@@ -481,10 +494,30 @@ class Universe:
             *extra_lines,
         ])
 
-    def get_content_command(self, command=None, size=NO_SIZE_LIMIT):
-        if command is None or not self.controller.has_command(command):
+    def get_content_command(self, command_name=None, size=NO_SIZE_LIMIT):
+        """ArgSpec
+        Show info on a command or all commands
+        ___
+        +COMMAND_NAME Command name
+        """
+        if command_name is None:
             return self.display_controller.do_command('all_commands')
-        callback, argspec = self.controller.get_command(command)
+        with arg_validation(f'Couldn\'t find command: {command_name}'):
+            assert self.controller.has_command(command_name)
+        callback, argspec = self.controller.get_command(command_name)
+        return argspec.help_verbose
+
+    def get_content_content(self, content_name=None, size=NO_SIZE_LIMIT):
+        """ArgSpec
+        Show info on a content source or all sources
+        ___
+        +CONTENT_NAME Content name
+        """
+        if content_name is None:
+            return self.display_controller.do_command('all_contents')
+        with arg_validation(f'Couldn\'t find content: {content_name}'):
+            assert self.display_controller.has_command(content_name)
+        callback, argspec = self.display_controller.get_command(content_name)
         return argspec.help_verbose
 
     def print(self, content_name, options=tuple(), **koptions):
@@ -533,6 +566,13 @@ class Universe:
         s = self.display_controller.do_command('help')
         self.output_console(s)
         self.set_browser_content('help')
+
+    def stack_content(self, stack, size=NO_SIZE_LIMIT):
+        line_count = size[1]
+        sliced = itertools.islice(stack, 0, line_count)
+        full = '\n'.join(reversed(list(sliced)))
+        lines = full.split('\n')[-line_count:]
+        return '\n'.join(lines)
 
     @property
     def feedback_str(self):
