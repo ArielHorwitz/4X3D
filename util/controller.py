@@ -51,6 +51,7 @@ class Controller:
         if self.has_command(command):
             raise ValueError(f'Command "{command}" already registered in {self}')
         self.__cache[command] = value
+        logger.debug(f'{self} cached {command}')
 
     def register_command(self, command, callback, spec_name=None):
         if self.has_command(command):
@@ -60,7 +61,6 @@ class Controller:
         if raw_argspec is None:
             raw_argspec = ''
         if spec_name is None:
-            logger.info(f'Command "{command}" missing spec_name, using command name')
             spec_name = command
         try:
             argspec = ArgSpec(raw_argspec, name=spec_name)

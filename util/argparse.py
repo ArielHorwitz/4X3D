@@ -272,7 +272,7 @@ class ArgSpec:
         return '\n'.join([
             f'### {self.desc}',
             '',
-            f'{self.name} {self.__format_spec()}',
+            f'TO USE: {self.name} {self.__format_spec()}',
             '',
             f'{self.__format_spec_verbose()}',
         ])

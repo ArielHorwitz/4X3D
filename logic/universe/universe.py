@@ -21,6 +21,7 @@ from util import (
     )
 from util.argparse import arg_validation
 from util.config import CONFIG_DATA
+from util.argparse import EXAMPLE_SPECSTRING
 from util.controller import Controller
 from util._3d import latlong_single
 from logic.universe.events import EventQueue
@@ -59,7 +60,7 @@ class Universe:
         self.register_commands(controller)
         self.register_display_cache()
         self.output_feedback('<orange><bold>Welcome to space.</bold></orange>')
-        self.output_console('Need help? Press enter and use the "help" command.')
+        self.output_console('Need help? Press enter and use the <code>help</code> command.')
 
     def gui_prepared(self):
         self.refresh_display_cache()
@@ -73,10 +74,10 @@ class Universe:
             ('sim.next_event', self.do_next_event),
             ('sim.until_event', self.do_until_event),
             ('uni.debug', self.debug),
-            ('inspect', self.inspect),
             ('echo', self.echo),
             ('print', self.print),
-            ('browse', self.set_browser_content),
+            ('print.clear', self.clear_console),
+            ('browse', self.browse),
             ('help', self.help),
         ]
         for command in commands:
@@ -107,7 +108,7 @@ class Universe:
                 self.output_console(f'>> {str(r)[:100]}')
 
     def output_console(self, message):
-        message = escape_if_malformed(message)
+        message = escape_if_malformed(message, indicate_escaped=True)
         self.console_stack.appendleft(message)
         while len(self.console_stack) > CONSOLE_SCROLLBACK:
             self.console_stack.pop()
@@ -120,6 +121,10 @@ class Universe:
             self.feedback_stack.pop()
         if also_console:
             self.output_console(message)
+
+    def clear_console(self):
+        """Clear the console"""
+        self.console_stack.clear()
 
     def echo(self, message):
         """ArgSpec
@@ -338,8 +343,10 @@ class Universe:
             'feedback',
             'debug',
             'events',
+            'commands',
             'command',
-            'content',
+            'pages',
+            'page',
             'sim',
             'objects',
             'inspect',
@@ -351,15 +358,16 @@ class Universe:
 
     def refresh_display_cache(self):
         self.display_controller.cache('__init', 'Use "help" command for help.')
-        self.display_controller.cache('__browser_content', '__init')
+        self.display_controller.cache('__browser_page', '__init')
         self.display_controller.cache('__browser_options', tuple())
         self.display_controller.cache('__browser_koptions', {})
         self.display_controller.cache('__easter_egg', 'Ho ho ho, you found me!')
         self.display_controller.cache('__malformed_html', '<tag')
+        self.display_controller.cache('__all_commands', self.get_content_commands())
+        self.display_controller.cache('__all_pages', self.get_content_pages())
         self.display_controller.cache('help', self.__get_content_help())
+        self.display_controller.cache('help.commandline', EXAMPLE_SPECSTRING)
         self.display_controller.cache('hotkeys', self.__get_content_hotkeys())
-        self.display_controller.cache('all_contents', self.__get_content_contents())
-        self.display_controller.cache('all_commands', self.__get_content_commands())
 
     def get_window_content(self, name, size=NO_SIZE_LIMIT):
         if hasattr(self, f'get_content_{name}'):
@@ -452,7 +460,7 @@ class Universe:
         ])
 
     def get_content_browser(self, size=NO_SIZE_LIMIT):
-        command = self.display_controller.do_command('__browser_content')
+        command = self.display_controller.do_command('__browser_page')
         options = self.display_controller.do_command('__browser_options')
         koptions = self.display_controller.do_command('__browser_koptions')
         return self.display_controller.do_command(command,
@@ -502,78 +510,120 @@ class Universe:
             *extra_lines,
         ])
 
+    def get_content_commands(self, filter=None, first_level=False, debug=False, size=NO_SIZE_LIMIT):
+        """ArgSpec
+        Show list of commands
+        ___
+        +FILTER Show only commands with this filter
+        -+first-level FIRST_LEVEL Show only first level commands
+        -+debug DEBUG Show extra debug information
+        """
+        def filter_(nca, filter=filter, first=first_level):
+            name, callback, argspec = nca
+            if filter is not None and filter not in name:
+                    return False
+            if first and '.' in  name:
+                return False
+            return True
+        items = [_ for _ in self.controller.sorted_items() if filter_(_)]
+        return '\n'.join([''.join([
+            f'<orange>{name:<25}</orange>: ',
+            f'<green>{escape_html(argspec.desc)}</green> ',
+            f'<bold>{escape_html(argspec.spec)}</bold> ',
+            f'{callback.__name__}{signature(callback)}' if debug else '',
+        ]) for name, callback, argspec in items])
+
     def get_content_command(self, command_name=None, size=NO_SIZE_LIMIT):
         """ArgSpec
-        Show info on a command or all commands
+        Show info on commands
         ___
         +COMMAND_NAME Command name
         """
         if command_name is None:
-            return self.display_controller.do_command('all_commands')
+            return self.display_controller.do_command('__all_commands')
         with arg_validation(f'Couldn\'t find command: {command_name}'):
             assert self.controller.has_command(command_name)
         callback, argspec = self.controller.get_command(command_name)
         return argspec.help_verbose
 
-    def get_content_content(self, content_name=None, size=NO_SIZE_LIMIT):
+    def get_content_pages(self, filter=None):
         """ArgSpec
-        Show info on a content source or all sources
+        Show list of pages
         ___
-        +CONTENT_NAME Content name
+        +FILTER Show only pages with this filter
         """
-        if content_name is None:
-            return self.display_controller.do_command('all_contents')
-        with arg_validation(f'Couldn\'t find content: {content_name}'):
-            assert self.display_controller.has_command(content_name)
-        callback, argspec = self.display_controller.get_command(content_name)
+        commands = self.display_controller.commands
+        cached = self.display_controller.cached
+        if filter is not None:
+            all_names = [_ for _ in sorted(commands + cached) if filter in _]
+        else:
+            all_names = sorted(commands + cached)
+        strs = []
+        for name in all_names:
+            if name.startswith('_'):
+                continue
+            spec = ''
+            if self.display_controller.has_command(name):
+                callback, argspec = self.display_controller.get_command(name)
+                spec = argspec.spec
+            strs.append(f'<cyan>{name:>25}</cyan> <bold>{spec}</bold>')
+        return '\n'.join(strs)
+
+    def get_content_page(self, page=None, size=NO_SIZE_LIMIT):
+        """ArgSpec
+        Show info on pages
+        ___
+        +PAGE Page to show
+        """
+        if page is None:
+            return self.display_controller.do_command('__all_pages')
+        with arg_validation(f'Couldn\'t find page: {page}'):
+            assert self.display_controller.has(page)
+        if not self.display_controller.has_command(page):
+            return f'Page {page} takes no arguments'
+        callback, argspec = self.display_controller.get_command(page)
         return argspec.help_verbose
 
-    def print(self, content_name, options=tuple(), **koptions):
+    def print(self, page, options=tuple(), **koptions):
         """ArgSpec
-        Print content to console
-        ___
-        CONTENT_NAME Content to print
-        *OPTIONS Positional parameters for content
-        **KOPTIONS Keyword parameters for content
-        """
-        with arg_validation(f'Couldn\'t find content: {content_name}'):
-            assert self.display_controller.has(content_name)
+        Print a page in the console
 
-        s = self.display_controller.do_command(content_name,
+        Similar to browse command, but instead prints in console.
+        See pages for what can be printed.
+        ___
+        PAGE Page to print
+        *OPTIONS Positional parameters for page
+        **KOPTIONS Keyword parameters for page
+        """
+        with arg_validation(f'Couldn\'t find page: {page}'):
+            assert self.display_controller.has(page)
+
+        s = self.display_controller.do_command(page,
             custom_args=options, custom_kwargs=koptions)
         self.output_console(s)
 
-    def set_browser_content(self, content_name, options=tuple(), **koptions):
+    def browse(self, page, options=tuple(), **koptions):
         """ArgSpec
-        Open content in browser
-        ___
-        CONTENT_NAME Content to open
-        *OPTIONS Positional parameters for content
-        **KOPTIONS Keyword parameters for content
-        """
-        with arg_validation(f'Couldn\'t find content: {content_name}'):
-            assert self.display_controller.has(content_name)
+        Open a page in the browser
 
-        self.display_controller.cache('__browser_content', content_name)
+        Opens a page in the browser, which will automatically refresh.
+        See pages for what can be printed.
+        ___
+        PAGE Page to open
+        *OPTIONS Positional parameters for page
+        **KOPTIONS Keyword parameters for page
+        """
+        with arg_validation(f'Couldn\'t find page: {page}'):
+            assert self.display_controller.has(page)
+
+        self.display_controller.cache('__browser_page', page)
         self.display_controller.cache('__browser_options', options)
         self.display_controller.cache('__browser_koptions', koptions)
 
-    def inspect(self, oid=None):
-        """ArgSpec
-        Inspect a deep space object
-        ___
-        +OID Object ID
-        """
-        with arg_validation(f'Invalid object ID: {oid}'):
-            assert self.is_oid(oid)
-
-        self.set_browser_content('inspect', oid=oid)
-
     def help(self, *args):
         """Show help"""
-        s = self.display_controller.do_command('help')
-        self.output_console(s)
-        self.set_browser_content('help')
+        self.print('help')
+        self.browse('help')
 
     def stack_content(self, stack, size=NO_SIZE_LIMIT):
         line_count = size[1]
@@ -587,34 +637,19 @@ class Universe:
         return self.feedback_stack[0]
 
     def __get_content_help(self):
-        formatted_contents = self.__get_content_contents()
-        contents = f'<h2>Content sources</h2>\n{formatted_contents}'
-        formatted_commands = self.__get_content_commands()
-        commands = f'<h2>Registered commands</h2>\n{formatted_commands}'
-        return '\n'.join((contents, commands))
-
-    def __get_content_commands(self):
-        return '\n'.join([''.join([
-            f'<orange>{name:<25}</orange>: ',
-            f'<green>{escape_html(argspec.desc)}</green> ',
-            f'<bold>{escape_html(argspec.spec)}</bold> ',
-            f'{callback.__name__}{signature(callback)}',
-        ]) for name, callback, argspec in self.controller.sorted_items()])
+        return HELP
 
     def __get_content_hotkeys(self):
-        return 'Registered hotkeys:\n'+'\n'.join([f'{k:>11}: {v}' for k, v in CONFIG_DATA['HOTKEY_COMMANDS'].items()])
+        return 'Registered hotkeys:\n'+'\n'.join([
+            f'<green>{k:>11}</green>: <orange>{v}</orange>' for k, v in CONFIG_DATA['HOTKEY_COMMANDS'].items()])
 
-    def __get_content_contents(self):
-        commands = self.display_controller.commands
-        cached = self.display_controller.cached
-        all_names = sorted(commands + cached)
-        strs = []
-        for name in all_names:
-            if name.startswith('_'):
-                continue
-            spec = ''
-            if self.display_controller.has_command(name):
-                callback, argspec = self.display_controller.get_command(name)
-                spec = argspec.spec
-            strs.append(f'<orange>{name:>25} </orange><bold>{spec}</bold>')
-        return '\n'.join(strs)
+
+
+HELP = """<orange><bold>Welcome to space.</bold></orange>
+
+To show this help, press enter to activate the prompt and use the command: <code>help</code>
+
+To see available commands, use: <code>print commands</code>
+To learn about a command (e.g. <i>cockpit.rotate</i>), use: <code>print command cockpit.rotate</code>
+To see more printables, use: <code>print pages</code>
+"""

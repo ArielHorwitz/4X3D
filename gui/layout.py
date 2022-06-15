@@ -6,6 +6,13 @@ from util.config import CONFIG_DATA
 aspect_ratio = CONFIG_DATA['ASPECT_RATIO']
 
 DEFAULT_LAYOUT = {
+    'console': HSub([
+        WSub('console'),
+        VSub(width=75, children=[
+            WSub('browser'),
+            WSub('feedback', height=15),
+        ]),
+    ]),
     'home': HSub([
         VSub(children=[
             WSub('browser'),
@@ -23,13 +30,6 @@ DEFAULT_LAYOUT = {
             WSub('feedback', height=2),
         ]),
         WSub('display'),
-    ]),
-    'console': HSub([
-        WSub('console'),
-        VSub(width=75, children=[
-            WSub('browser'),
-            WSub('feedback', height=15),
-        ]),
     ]),
     'debug': HSub([
         VSub(children=[

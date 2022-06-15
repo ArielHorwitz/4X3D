@@ -108,7 +108,7 @@ class Ship(DeepSpaceObject):
         ___
         OID Target object ID
         +CRUISE_SPEED Maximum cruising speed
-        -+LOOK Turn camera to look at target before flying
+        -+look LOOK Turn camera to look at target before flying
         """
         with arg_validation(f'Invalid object ID: {oid}'):
             assert self.universe.is_oid(oid)
