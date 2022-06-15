@@ -43,8 +43,8 @@ PROMPT_LINE_SPLIT_ESCAPE = escape_html(PROMPT_LINE_SPLIT)
 class Universe:
     def __init__(self, controller):
         self.controller = controller
-        self.controller.set_feedback(lambda s: self.output_feedback(escape_html(s)))
-        self.display_controller = Controller('Logic Display', feedback=lambda s: self.output_feedback(escape_html(s)))
+        self.controller.set_feedback(self.output_feedback)
+        self.display_controller = Controller('Logic Display', feedback=self.output_feedback)
         self.console_stack = deque()
         self.feedback_stack = deque()
         self.engine = Engine({'position': 3})
@@ -414,7 +414,7 @@ class Universe:
     def get_content_debug(self, size=NO_SIZE_LIMIT):
         logfile = file_load(Path.cwd() / 'debug.log')
         log_lines = logfile.split('\n')
-        return escape_html('\n'.join(log_lines[-size[1]:]))
+        return '\n'.join(escape_if_malformed(l) for l in log_lines[-size[1]:])
 
     def get_content_sim(self, size=NO_SIZE_LIMIT):
         t = arrow.get().format('YY-MM-DD, hh:mm:ss')
@@ -492,7 +492,7 @@ class Universe:
             ])
             look = latlong_single(ob.cockpit.camera.current_axes[0])
             extra_lines.append(f'<red>Looking</red>: <code>{format_latlong(look)}</code>')
-        title_name = f'<white>#{ob.oid:>3} {escape_html(ob.name)}</white>'
+        title_name = f'<white>#{ob.oid:>3} {escape_if_malformed(ob.name)}</white>'
         title_type = f' <{color}>({escape_html(ob_type)})</{color}>'
         return '\n'.join([
             f'<bold><underline>{title_name}{title_type}</underline></bold>',

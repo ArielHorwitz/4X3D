@@ -72,7 +72,7 @@ def is_malformed_html(s):
     return False
 
 
-def escape_if_malformed(s, indicate_escaped=True):
+def escape_if_malformed(s, indicate_escaped=False):
     s = str(s)
     mal = is_malformed_html(s)
     if mal:

@@ -15,7 +15,7 @@ from prompt_toolkit.widgets import VerticalLine, HorizontalLine, Frame, TextArea
 from prompt_toolkit.layout.controls import BufferControl, FormattedTextControl
 from prompt_toolkit.layout.layout import Layout
 
-from util import STYLE, restart_script, window_size, escape_html
+from util import STYLE, restart_script, window_size
 from util.config import CONFIG_DATA
 from util.controller import Controller
 from gui.layout import DEFAULT_LAYOUT

@@ -29,7 +29,7 @@ class Controller:
     def do_command(self, command, arg_string=None, custom_args=(), custom_kwargs={}):
         if not self.has_command(command):
             if not self.has_cached(command):
-                self.__feedback(f'Command "{command}" not found in {self}')
+                self.__feedback(f'Command "{command}" not found')
                 return None
             else:
                 return self.__cache[command]
@@ -41,7 +41,7 @@ class Controller:
                 return callback(*custom_args, **custom_kwargs)
             r = argspec.parse_and_call(arg_string, callback)
         except ArgParseError as e:
-            m = f'Command "{command}" failed: {escape_html(e.args[0])}'
+            m = f'Command "{command}" failed: {e.args[0]}'
             logger.warning(m)
             self.__feedback(m)
             return m
