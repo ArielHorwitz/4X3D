@@ -60,7 +60,8 @@ class Controller:
         if raw_argspec is None:
             raw_argspec = ''
         if spec_name is None:
-            spec_name = callback.__name__
+            logger.info(f'Command "{command}" missing spec_name, using command name')
+            spec_name = command
         try:
             argspec = ArgSpec(raw_argspec, name=spec_name)
         except ArgParseError as e:

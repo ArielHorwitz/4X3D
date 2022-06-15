@@ -32,7 +32,7 @@ def arg_validation(m, exceptions=(Exception,)):
     try:
         yield
     except exceptions as e:
-        logger.debug(f'arg_validation caught:\n{format_exc(e)}\nReplaced with: ArgParseError(\'{m}\')')
+        logger.info(f'arg_validation caught:\n{format_exc(e)}\nReplaced with: ArgParseError(\'{m}\')')
         raise ArgParseError(m)
 
 

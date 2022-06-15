@@ -65,7 +65,6 @@ def escape_if_malformed(s, indicate_escaped=True):
     s = str(s)
     mal = is_malformed_html(s)
     if mal:
-        logger.debug(f'escaping because malformed: {s}')
         if indicate_escaped:
             line, col = mal
             has_nl = '\n' in s

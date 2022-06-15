@@ -107,7 +107,6 @@ class Cockpit:
     def toggle_labels(self):
         """Toggle labels"""
         self.show_labels = (self.show_labels + 1) % 4
-        logger.info(f'Showing labels: {self.show_labels}')
 
     # Display
     def draw_charmap(self, size):

@@ -97,7 +97,6 @@ class Universe:
                 command, arg_string = line.split(' ', 1)
             else:
                 command, arg_string = line, ''
-            logger.debug(f'Resolved prompt input: {line} -> {command} {arg_string}')
             is_silent = any(command.startswith(silent) for silent in CONFIG_DATA['SILENT_COMMANDS'])
             if not is_silent:
                 self.output_console(f'<cyan>$</cyan> {escape_html(line)}')

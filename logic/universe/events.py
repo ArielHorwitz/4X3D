@@ -21,7 +21,6 @@ class EventQueue:
         event = Event(uid, tick, callback, description)
         insert_idx = bisect.bisect_right(self.queue, event.tick, key=attrgetter('tick'))
         self.queue.insert(insert_idx, event)
-        # logger.debug(f'Added {event} at index {insert_idx} of event queue')
         return insert_idx
 
     @property
