@@ -1,4 +1,5 @@
 from loguru import logger
+from pathlib import Path
 import arrow
 import math
 import numpy as np
@@ -9,9 +10,10 @@ from collections import deque
 from inspect import signature
 
 from util import (
-    format_vector,
+    file_load,
     is_number,
     is_index,
+    format_vector,
     format_latlong,
     escape_html,
     escape_if_malformed,
@@ -338,6 +340,7 @@ class Universe:
             'events',
             'command',
             'content',
+            'sim',
             'objects',
             'inspect',
             'cockpit',
@@ -409,6 +412,11 @@ class Universe:
         return '\n'.join(object_summaries)
 
     def get_content_debug(self, size=NO_SIZE_LIMIT):
+        logfile = file_load(Path.cwd() / 'debug.log')
+        log_lines = logfile.split('\n')
+        return escape_html('\n'.join(log_lines[-size[1]:]))
+
+    def get_content_sim(self, size=NO_SIZE_LIMIT):
         t = arrow.get().format('YY-MM-DD, hh:mm:ss')
         ltt = arrow.now() - self.__last_tick_time
         event_str = ''

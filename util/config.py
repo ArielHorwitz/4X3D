@@ -1,16 +1,7 @@
 from loguru import logger
 import json
 from pathlib import Path
-
-
-def file_dump(file, d, clear=True):
-    with open(file, 'w' if clear else 'a') as f:
-        f.write(d)
-
-def file_load(file):
-    with open(file, 'r') as f:
-        d = f.read()
-    return d
+from util import file_dump, file_load
 
 
 DEFAULT_CONFIG_DATA = {
