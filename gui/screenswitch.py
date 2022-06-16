@@ -49,7 +49,7 @@ class ScreenSwitcher(VSplit):
         ___
         INDEX screen number/name
         """
-        with arg_validation(f'Index must be an integer between 0 and {len(self.screens)-1}, got {index}'):
+        with arg_validation(f'Index must be an integer between 1 and {len(self.screens)}, got {index}'):
             index -= 1
             assert isinstance(index, int)
             assert 0 <= index < len(self.screens)
