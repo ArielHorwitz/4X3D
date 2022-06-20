@@ -26,9 +26,10 @@ class Engine:
 
     def __apply_derivatives(self, ticks):
         for stat_table in self.stats.values():
-            # First derivative (add velocity to position)
-            stat_table[0] += stat_table[1] * ticks
-            # Second derivative (add acceleration to velocity)
+            # Adjust position - add velocity over time
+            # Integration: c2 += c0 * t**2 / 2 + t * c1
+            stat_table[0] += stat_table[2] * (ticks ** 2) / 2 + (ticks * stat_table[1])
+            # Adjust velocity - add acceleration over time
             stat_table[1] += stat_table[2] * ticks
 
     def add_objects(self, count=1):
