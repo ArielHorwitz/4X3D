@@ -1,6 +1,8 @@
 # 4X3D
 A 4X game in 3D space that runs in your 2D terminal. In early development.
 
+![](https://ariel.ninja/other/4X3D.gif)
+
 ### Getting started
 Requires Python 3.10+ and a decent terminal.
 
