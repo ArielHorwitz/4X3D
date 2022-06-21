@@ -41,7 +41,7 @@ class Ship(DeepSpaceObject):
             ('burn', self.engine_burn),
             ('break', self.engine_break_burn),
             ('cut', self.engine_cut_burn),
-            ('patrol', self.command_order_patrol),
+            ('patrol', self.order_patrol),
             ('cancel', self.order_cancel),
         ]
 
@@ -51,7 +51,7 @@ class Ship(DeepSpaceObject):
         self.current_order_uid = None
         self.navigation = None
 
-    def command_order_patrol(self, oids, auto_look=False):
+    def order_patrol(self, oids, auto_look=False):
         """ArgSpec
         Patrol between random celestial objects
         ___
@@ -64,41 +64,38 @@ class Ship(DeepSpaceObject):
             with arg_validation(f'Invalid target ID: {check_oid}'):
                 assert self.universe.is_oid(check_oid)
         self.patrol_look = auto_look
-        self.order_patrol(oids)
+        self._do_order_patrol(oids)
 
-    def order_patrol(self, oids):
+    def _do_order_patrol(self, oids):
         if self.thrust == 0:
             logger.debug(f'{self} ignoring order_patrol since we have no thrust')
             return
         self.current_order_uid = uid = random.random()
         self.patrol_cycle = itertools.cycle(oids)
-        self.universe.add_event(uid, None, self.next_patrol,
+        self.universe.add_event(uid, None, self._next_patrol,
             f'{self.label} start patrol.')
 
-    def next_patrol(self, uid):
+    def _next_patrol(self, uid):
         if 0 != uid != self.current_order_uid:
             logger.debug(f'next_patrol with obsolete uid: {uid} {f}')
             return
         oid = next(self.patrol_cycle)
-        self.fly_to(oid, 10**8, self.patrol_look, uid)
+        self.fly_to(oid, self.patrol_look, uid)
         assert self.navigation is not None
         next_patrol = self.universe.tick + self.navigation.total_ticks + 200
-        self.universe.add_event(uid, next_patrol, self.next_patrol,
+        self.universe.add_event(uid, next_patrol, self._next_patrol,
             f'{self.label} next patrol.')
 
     # Navigation
-    def fly_to(self, oid, cruise_speed=10**10, look=False, uid=0):
+    def fly_to(self, oid, look=False, uid=0):
         """ArgSpec
         Automatically schedule flight plan to a deep space object
         ___
         OID Target object ID
-        +CRUISE_SPEED Maximum cruising speed
         -+look LOOK Turn camera to look at target before flying
         """
         with arg_validation(f'Invalid object ID: {oid}'):
             assert self.universe.is_oid(oid)
-        with arg_validation(f'Cruise speed must be a positive number: {cruise_speed}'):
-            assert cruise_speed > 0
         if self.thrust == 0:
             logger.debug(f'{self} ignoring fly_to since we have no thrust')
             return
@@ -112,14 +109,14 @@ class Ship(DeepSpaceObject):
             target_vector, self.thrust, self.velocity,
             uid=uid, starting_tick=self.universe.tick,
             description=f'Flying to {oid}')
-        self.universe.add_event(uid, None, self.start_navigation,
+        self.universe.add_event(uid, None, self._start_navigation,
             f'{self.label} start flight to: {oid}.')
 
-    def start_navigation(self, uid):
+    def _start_navigation(self, uid):
         assert not self.navigation.started
-        self.do_next_navstage(uid)
+        self._do_next_navstage(uid)
 
-    def do_next_navstage(self, uid):
+    def _do_next_navstage(self, uid):
         if self.navigation is None:
             logger.debug(f'do_next_navstage with obsolete uid: {uid} (no navigation configured)')
             return
@@ -135,19 +132,19 @@ class Ship(DeepSpaceObject):
             # Queue up next event
             next_tick = self.universe.tick + self.navigation.stage.ticks
             next_desc = self.navigation.next_stage.description
-            self.universe.add_event(uid, next_tick, self.do_next_navstage,
+            self.universe.add_event(uid, next_tick, self._do_next_navstage,
                 f'{self.label} {next_desc}')
         else:
             # Increment to show the navigation has ended
             self.navigation.increment_stage()
 
-    # Engine
     def __apply_thrust(self, vector):
         mag = np.linalg.norm(vector)
         if mag > self.thrust:
             vector *= self.thrust / mag
         self.universe.engine.get_derivative_second('position')[self.oid] = vector
 
+    # Engine
     def engine_burn(self, vector=None, throttle=1):
         """ArgSpec
         Run the engine

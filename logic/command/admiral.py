@@ -116,7 +116,7 @@ class Player(Admiral):
             assert cruise_speed > 0
 
         ship = self.universe.ds_objects[oid]
-        ship.fly_to(target_oid, cruise_speed)
+        ship.fly_to(target_oid)
 
 
 class Agent(Admiral):
