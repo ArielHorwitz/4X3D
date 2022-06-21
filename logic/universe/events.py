@@ -25,9 +25,12 @@ class EventQueue:
 
     @property
     def next(self):
+        assert self.queue
         return self.queue[0]
 
     def pop_next(self, tick=float('inf')):
+        if not self.queue:
+            return None
         if self.queue[0].tick <= tick:
             return self.queue.popleft()
         return None
