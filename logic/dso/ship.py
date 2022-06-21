@@ -3,16 +3,13 @@ import math
 import random
 import numpy as np
 import itertools
-from functools import wraps
-from collections import defaultdict, namedtuple
+from collections import defaultdict
 
 from util import EPSILON
 from util.argparse import arg_validation
+from util.navigation import Navigation
 from logic.dso.cockpit import Cockpit
 from logic.dso.dso import DeepSpaceObject
-
-
-FlightPlan = namedtuple('FlightPlan', ['cutoff', 'break_burn', 'arrival', 'total'])
 
 
 class Ship(DeepSpaceObject):
@@ -21,7 +18,7 @@ class Ship(DeepSpaceObject):
     icon = '·'
     color = 'green'
     current_order_uid = None
-    current_flight = None
+    navigation = None
     patrol_look = False
 
     def setup(self, fid, name, parent=None):
@@ -49,33 +46,10 @@ class Ship(DeepSpaceObject):
         ]
 
     # Orders
-    def event_callback(f):
-        @wraps(f)
-        def event_callback_wrapper(self, uid):
-            # Ignore event callback if uid is obsolete
-            # uid of 0 means ignore uid check (force callback)
-            if uid != 0 and self.check_obsolete_order(uid):
-                logger.debug(f'event_callback with obsolete uid: {uid} {f}')
-                return
-            f(self, uid)
-        return event_callback_wrapper
-
-    def check_obsolete_order(self, uid):
-        return uid != self.current_order_uid
-
     def order_cancel(self):
         """Cancel scheduled flight plan operations"""
         self.current_order_uid = None
-        self.current_flight = None
-
-    def order_patrol(self, oids):
-        if self.thrust == 0:
-            logger.debug(f'{self} ignoring order_patrol since we have no thrust')
-            return
-        self.current_order_uid = uid = random.random()
-        self.patrol_cycle = itertools.cycle(oids)
-        self.universe.add_event(uid, None, self.next_patrol,
-            f'{self.label} start patrol.')
+        self.navigation = None
 
     def command_order_patrol(self, oids, auto_look=False):
         """ArgSpec
@@ -92,12 +66,23 @@ class Ship(DeepSpaceObject):
         self.patrol_look = auto_look
         self.order_patrol(oids)
 
-    @event_callback
+    def order_patrol(self, oids):
+        if self.thrust == 0:
+            logger.debug(f'{self} ignoring order_patrol since we have no thrust')
+            return
+        self.current_order_uid = uid = random.random()
+        self.patrol_cycle = itertools.cycle(oids)
+        self.universe.add_event(uid, None, self.next_patrol,
+            f'{self.label} start patrol.')
+
     def next_patrol(self, uid):
+        if 0 != uid != self.current_order_uid:
+            logger.debug(f'next_patrol with obsolete uid: {uid} {f}')
+            return
         oid = next(self.patrol_cycle)
-        logger.debug(f'{self} next_patrol oid: {oid}')
-        self.current_flight = self.fly_to(oid, 10**8, self.patrol_look, uid)
-        next_patrol = self.current_flight.arrival + 200
+        self.fly_to(oid, 10**8, self.patrol_look, uid)
+        assert self.navigation is not None
+        next_patrol = self.universe.tick + self.navigation.total_ticks + 200
         self.universe.add_event(uid, next_patrol, self.next_patrol,
             f'{self.label} next patrol.')
 
@@ -117,61 +102,52 @@ class Ship(DeepSpaceObject):
         if self.thrust == 0:
             logger.debug(f'{self} ignoring fly_to since we have no thrust')
             return
-
+        # Look at the target
         if look:
             self.cockpit.look(oid)
+        # Plan navigation
         target = self.universe.ds_objects[oid]
-        travel_vector = target.position - self.position
-        travel_dist = np.linalg.norm(travel_vector)
-        plan = self._simple_flight_plan(
-            travel_dist=travel_dist,
-            cruise_speed=cruise_speed,
-            thrust=self.thrust,
-            tick_offset=self.universe.tick,
-        )
-        # Cruise burn, cruise cutoff, break burn, break cutoff
-        self.engine_burn(travel_vector)
-        self.universe.add_event(uid, plan.cutoff, self.fly_cruise_cutoff,
-            f'{self.label}: Cruise burn cutoff')
-        self.current_flight = plan
-        return plan
+        target_vector = target.position - self.position
+        self.navigation = Navigation(
+            target_vector, self.thrust, self.velocity,
+            uid=uid, starting_tick=self.universe.tick,
+            description=f'Flying to {oid}')
+        self.universe.add_event(uid, None, self.start_navigation,
+            f'{self.label} start flight to: {oid}.')
 
-    @event_callback
-    def fly_cruise_cutoff(self, uid):
-        self.engine_cut_burn()
-        self.universe.add_event(uid, self.current_flight.break_burn, self.fly_break_burn,
-        f'{self.label}: break burn ignition')
+    def start_navigation(self, uid):
+        assert not self.navigation.started
+        self.do_next_navstage(uid)
 
-    @event_callback
-    def fly_break_burn(self, uid):
-        self.engine_break_burn()
-        self.universe.add_event(uid, self.current_flight.arrival, self.fly_end,
-            f'{self.label}: break burn cutoff, arrival.')
-
-    @event_callback
-    def fly_end(self, uid):
-        self.engine_cut_burn()
-        self.current_flight = None
-
-    @staticmethod
-    def _simple_flight_plan(travel_dist, cruise_speed, thrust, tick_offset=0):
-        burn_time = cruise_speed / thrust
-        burn_distance = burn_time * (burn_time + 1) // 2 * thrust
-        while burn_distance >= travel_dist / 2:
-            cruise_speed *= 0.95
-            burn_time = cruise_speed / thrust
-            burn_distance = burn_time * (burn_time + 1) // 2 * thrust
-        cruise_dist = travel_dist - (burn_distance * 2)
-        cruise_time = cruise_dist / cruise_speed
-        total = burn_time * 2 + cruise_time
-        cutoff = tick_offset + burn_time
-        break_burn = cutoff + cruise_time
-        arrival = break_burn + burn_time
-        fp = FlightPlan(cutoff, break_burn, arrival, total)
-        assert arrival / (tick_offset + total) - 1 < EPSILON
-        return fp
+    def do_next_navstage(self, uid):
+        if self.navigation is None:
+            logger.debug(f'do_next_navstage with obsolete uid: {uid} (no navigation configured)')
+            return
+        if 0 != uid != self.navigation.uid:
+            logger.debug(f'do_next_navstage with obsolete uid: {uid} != {self.navigation.uid}')
+            return
+        # Do next stage
+        assert not self.navigation.is_last_stage
+        self.navigation.increment_stage()
+        assert self.navigation.in_progress
+        self.__apply_thrust(self.navigation.stage.acceleration)
+        if not self.navigation.is_last_stage:
+            # Queue up next event
+            next_tick = self.universe.tick + self.navigation.stage.ticks
+            next_desc = self.navigation.next_stage.description
+            self.universe.add_event(uid, next_tick, self.do_next_navstage,
+                f'{self.label} {next_desc}')
+        else:
+            # Increment to show the navigation has ended
+            self.navigation.increment_stage()
 
     # Engine
+    def __apply_thrust(self, vector):
+        mag = np.linalg.norm(vector)
+        if mag > self.thrust:
+            vector *= self.thrust / mag
+        self.universe.engine.get_derivative_second('position')[self.oid] = vector
+
     def engine_burn(self, vector=None, throttle=1):
         """ArgSpec
         Run the engine
@@ -227,19 +203,16 @@ class Ship(DeepSpaceObject):
 
     @property
     def current_orders(self):
-        if self.current_flight:
-            return self.format_fp(self.current_flight)
-        elif self.current_order_uid is not None:
-            return 'Docked.'
-        return 'Idle.'
-
-    def format_fp(self, fp):
-        remaining = self.universe.tick - fp.arrival
-        if self.universe.tick < fp.cutoff:
-            return f'Cruise burn: {self.universe.tick - fp.cutoff:.4f} ({remaining:.4f})'
-        elif self.universe.tick < fp.break_burn:
-            return f'Cruising: {self.universe.tick - fp.break_burn:.4f} ({remaining:.4f})'
-        return f'Break burn: {self.universe.tick - fp.arrival:.4f}'
+        if self.navigation is not None:
+            stage = self.navigation.current_description
+            nav = self.navigation.description
+            if not self.navigation.ended:
+                elapsed = self.universe.tick - self.navigation.starting_tick
+                ticks = f'{round(elapsed)}/{round(self.navigation.total_ticks)} t'
+            else:
+                ticks = 'arrived'
+            return f'{nav} ({ticks}): {stage}'
+        return 'Docked.'
 
 
 class Tug(Ship):
