@@ -77,7 +77,7 @@ class Ship(DeepSpaceObject):
 
     def _next_patrol(self, uid):
         if 0 != uid != self.current_order_uid:
-            logger.debug(f'next_patrol with obsolete uid: {uid} {f}')
+            logger.debug(f'next_patrol with obsolete uid: {uid}')
             return
         oid = next(self.patrol_cycle)
         self.fly_to(oid, self.patrol_look, uid)
