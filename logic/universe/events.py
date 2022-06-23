@@ -1,39 +1,50 @@
-
-from loguru import logger
-from collections import deque, namedtuple
-from operator import attrgetter
-import bisect
+import random
+from heapq import heappush, heappop
+from dataclasses import dataclass, field
 from util import is_number
+from typing import Callable, NewType
+
+EventCallback = Callable[[int], None]
+EventUid = NewType('EventUid', float)
+
+NULL_EVENT_UID = EventUid(-1.)
+NO_DESCRIPTION = 'Event description not available.'
+
+def get_event_uid() -> EventUid:
+    return EventUid(random.random())
 
 
-Event = namedtuple('Event', ('uid', 'tick', 'callback', 'description'))
+@dataclass(order=True, slots=True)
+class Event:
+    tick : int
+    callback : EventCallback = field(compare=False, repr=False)
+    description : str = field(compare=False)
+    uid : EventUid= field(default_factory=get_event_uid, compare=False, repr=False)
 
 
 class EventQueue:
     def __init__(self):
-        self.queue = deque()
+        self.__queue = []
 
-    def add(self, uid, tick, callback, description=None):
+    def add(self, tick: int, 
+            callback: EventCallback, 
+            description: str=NO_DESCRIPTION, 
+            uid: EventUid=NULL_EVENT_UID):
         assert is_number(tick)
         assert callable(callback)
-        if description is None:
-            description = 'Event description not available.'
-        event = Event(uid, tick, callback, description)
-        insert_idx = bisect.bisect_right(self.queue, event.tick, key=attrgetter('tick'))
-        self.queue.insert(insert_idx, event)
-        return insert_idx
+        if uid is NULL_EVENT_UID:
+            uid = get_event_uid()
+        event = Event(tick, callback, description, uid)
+        heappush(self.__queue, event)
 
     @property
     def next(self):
-        assert self.queue
-        return self.queue[0]
+        return self.__queue[0]
 
     def pop_next(self, tick=float('inf')):
-        if not self.queue:
-            return None
-        if self.queue[0].tick <= tick:
-            return self.queue.popleft()
+        if self.__queue[0].tick <= tick:
+            return heappop(self.__queue)
         return None
 
     def __len__(self):
-        return len(self.queue)
+        return len(self.__queue)

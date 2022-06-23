@@ -24,7 +24,7 @@ from util.config import CONFIG_DATA
 from util.argparse import EXAMPLE_SPECSTRING
 from util.controller import Controller
 from util._3d import latlong_single
-from logic.universe.events import EventQueue
+from logic.universe.events import EventQueue, EventUid, EventCallback, NULL_EVENT_UID, NO_DESCRIPTION
 from logic.universe.engine import Engine
 from logic.dso.dso import DeepSpaceObject
 from logic.dso.celestial import CelestialObject, SMBH, Star, Rock
@@ -243,14 +243,14 @@ class Universe:
         td = arrow.now() - self.__last_tick_time
         return td.total_seconds() * self.auto_simrate
 
-    def add_event(self, uid, tick, callback, description=None):
+    def add_event(self, tick: int, callback: EventCallback, description:str=NO_DESCRIPTION, uid: EventUid=NULL_EVENT_UID):
         if tick is None:
             tick = self.tick + TINY_TICK
         if tick < self.tick:
             m = f'Cannot add to universe events at past tick {tick} (currently: {self.tick})'
             logger.error(m)
             raise ValueError(m)
-        self.events.add(uid, tick, callback, description)
+        self.events.add(tick, callback, description, uid)
 
     @property
     def positions(self):

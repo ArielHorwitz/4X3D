@@ -122,7 +122,7 @@ class Player(Admiral):
 class Agent(Admiral):
     def setup(self, *a, **k):
         super().setup()
-        self.universe.add_event(0, None, self.first_order, 'Start first order')
+        self.universe.add_event(None, self.first_order, 'Start first order', 0)
 
     def get_new_destination(self):
         oid = random.randint(0, self.universe.object_count-1)

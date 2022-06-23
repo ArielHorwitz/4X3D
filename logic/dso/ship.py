@@ -10,6 +10,7 @@ from util.argparse import arg_validation
 from util.navigation import Navigation
 from logic.dso.cockpit import Cockpit
 from logic.dso.dso import DeepSpaceObject
+from logic.universe import events
 
 
 class Ship(DeepSpaceObject):
@@ -70,10 +71,10 @@ class Ship(DeepSpaceObject):
         if self.thrust == 0:
             logger.debug(f'{self} ignoring order_patrol since we have no thrust')
             return
-        self.current_order_uid = uid = random.random()
+        self.current_order_uid = uid = events.get_event_uid() 
         self.patrol_cycle = itertools.cycle(oids)
-        self.universe.add_event(uid, None, self._next_patrol,
-            f'{self.label} start patrol.')
+        self.universe.add_event(None, self._next_patrol,
+            f'{self.label} start patrol.', uid)
 
     def _next_patrol(self, uid):
         if 0 != uid != self.current_order_uid:
@@ -83,8 +84,8 @@ class Ship(DeepSpaceObject):
         self.fly_to(oid, self.patrol_look, uid)
         assert self.navigation is not None
         next_patrol = self.universe.tick + self.navigation.total_ticks + 200
-        self.universe.add_event(uid, next_patrol, self._next_patrol,
-            f'{self.label} next patrol.')
+        self.universe.add_event(next_patrol, self._next_patrol,
+            f'{self.label} next patrol.', uid)
 
     # Navigation
     def fly_to(self, oid, look=False, uid=0):
@@ -109,8 +110,8 @@ class Ship(DeepSpaceObject):
             target_vector, self.thrust, self.velocity,
             uid=uid, starting_tick=self.universe.tick,
             description=f'Flying to {oid}')
-        self.universe.add_event(uid, None, self._start_navigation,
-            f'{self.label} start flight to: {oid}.')
+        self.universe.add_event(None, self._start_navigation,
+            f'{self.label} start flight to: {oid}.', uid)
 
     def _start_navigation(self, uid):
         assert not self.navigation.started
@@ -132,8 +133,8 @@ class Ship(DeepSpaceObject):
             # Queue up next event
             next_tick = self.universe.tick + self.navigation.stage.ticks
             next_desc = self.navigation.next_stage.description
-            self.universe.add_event(uid, next_tick, self._do_next_navstage,
-                f'{self.label} {next_desc}')
+            self.universe.add_event(next_tick, self._do_next_navstage,
+                f'{self.label} {next_desc}', uid)
         else:
             # Increment to show the navigation has ended
             self.navigation.increment_stage()
@@ -191,8 +192,8 @@ class Ship(DeepSpaceObject):
         self.engine_burn(-v, throttle)
         if auto_cutoff:
             cutoff = self.universe.tick + mag / self.thrust
-            self.universe.add_event(0, cutoff, lambda uid: self.engine_cut_burn(),
-                f'Auto cutoff engine burn: {mag} v')
+            self.universe.add_event(cutoff, lambda uid: self.engine_cut_burn(),
+                f'Auto cutoff engine burn: {mag} v', 0)
 
     # Properties
     def __repr__(self):
