@@ -55,10 +55,10 @@ class CharMap:
             self.write_label(x, y, label(i))
 
     def add_object(self, point, icon, tag=None, label=None):
-        pix_pos = self.get_projected_pixels(np.asarray([point]))
-        if len(pix_pos) == 0:
-            return False
-        x, y = pix_pos[0, 1:]
+        pix_pos = self.get_projected_pixel(point)
+        if pix_pos is None:
+            return
+        x, y = pix_pos
         self.write_char(x, y, icon, tag)
         if label:
             self.write_label(x, y, label)
@@ -71,8 +71,14 @@ class CharMap:
             self.write_char(x, y, '╬', 'bold')
             self.write_label(x, y, labels[i])
 
-    def add_crosshair(self):
-        cx, cy = self.center
+    def add_crosshair(self, point=None, color=CONFIG_DATA['CROSSHAIR_COLOR']):
+        if point is None:
+            cx, cy = self.center
+        else:
+            pix_pos = self.get_projected_pixel(point)
+            if pix_pos is None:
+                return
+            cx, cy = pix_pos
         scoords = (cx, cy-1), (cx, cy+1), (cx-1, cy), (cx+1, cy)  # 2 vertical, 2 horizontal
         dcoords = (cx+1, cy+1), (cx-1, cy-1), (cx-1, cy+1), (cx+1, cy-1)  # 2 left diag, 2 right diag
         straight = sum(self.check_empty(*c) for c in scoords)
@@ -80,11 +86,11 @@ class CharMap:
         if diagonal >= straight:
             diag_chars = '\\\\//'
             for i, (cx, cy) in enumerate(dcoords):
-                self.write_char(cx, cy, diag_chars[i], CONFIG_DATA['CROSSHAIR_COLOR'])
+                self.write_char(cx, cy, diag_chars[i], color)
         else:
             straight_chars = '││──'
             for i, (cx, cy) in enumerate(scoords):
-                self.write_char(cx, cy, straight_chars[i], CONFIG_DATA['CROSSHAIR_COLOR'])
+                self.write_char(cx, cy, straight_chars[i], color)
 
     def add_prograde_retrograde(self, velocity, show_labels=False, show_speed=False):
         mag = np.linalg.norm(velocity)
@@ -98,7 +104,9 @@ class CharMap:
             pro_label = f'PRO ({mag:.3f})'
             ret_label = f'RET ({mag:.3f})'
         self.add_object(velocity, '×', 'green', pro_label)
+        self.add_crosshair(velocity, color='green')
         self.add_object(-velocity, '+', 'red', ret_label)
+        self.add_crosshair(-velocity, color='red')
 
     def get_projected_pixels(self, points):
         # Convert 3d position to mercator projection (latitude, longitude)
@@ -120,6 +128,12 @@ class CharMap:
         # Round to nearest pixel
         r = np.asarray(np.round(r), dtype=np.int32)
         return r
+
+    def get_projected_pixel(self, point):
+        pix_pos = self.get_projected_pixels(np.asarray([point]))
+        if len(pix_pos) == 0:
+            return None
+        return pix_pos[0, 1:]
 
     def write_label(self, x, y, label):
         x += 1  # Offset label to the right of object
@@ -158,7 +172,9 @@ class CharMap:
         return total
 
     def check_empty(self, x, y):
-        return self.charmap[y][x] == ' '
+        if 0 <= y < self.height and 0 <= x < self.width:
+            return self.charmap[y][x] == ' '
+        return False
 
     def write_char(self, x, y, char, tags=None, overwrite=False):
         assert len(char) == 1
