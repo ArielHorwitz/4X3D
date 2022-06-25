@@ -31,6 +31,8 @@ DEFAULT_CONFIG_DATA = {
     # Custom commands
     'CUSTOM_COMMANDS': {
         'debug': 'gui.debug && uni.debug',
+        'test': 'gui.layout.screen cockpit && browse objects . && sim.rate 1000 && ship.cancel && ship.patrol && cockpit.track 0',
+        'tour': 'gui.layout.screen cockpit && browse objects . && sim.rate 300 && ship.cancel && ship.patrol -look',
     },
     # Hotkeys
     'HOTKEY_COMMANDS': {

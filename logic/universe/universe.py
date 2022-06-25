@@ -648,6 +648,7 @@ class Universe:
 HELP = """<orange><bold>Welcome to space.</bold></orange>
 
 To show this help, press enter to activate the prompt and use the command: <code>help</code>
+For a quick tour of the galaxy, use: <code>tour</code>
 
 To see available commands, use: <code>print commands</code>
 To learn about a command (e.g. <i>cockpit.rotate</i>), use: <code>print command cockpit.rotate</code>
