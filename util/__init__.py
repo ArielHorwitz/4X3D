@@ -4,7 +4,7 @@ import numpy as np
 from prompt_toolkit.formatted_text import HTML
 
 RNG = np.random.default_rng()
-EPSILON = 10**-10
+EPSILON = 10**-6
 RADIANS_IN_DEGREES = 57.29577951308
 GOOGOL = 10**100
 
