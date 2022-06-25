@@ -101,10 +101,12 @@ class Ship(DeepSpaceObject):
             return
         # Look at the target
         if look:
-            self.cockpit.look(oid)
+            self.cockpit.track(oid)
         # Plan navigation
         target = self.universe.ds_objects[oid]
-        target_vector = target.position - self.position
+        offset = np.random.normal(size=3)
+        offset = 100 * offset / np.linalg.norm(offset)
+        target_vector = target.position + offset - self.position
         self.navigation = Navigation(
             target_vector, self.thrust, self.velocity,
             uid=uid, starting_tick=self.universe.tick,
