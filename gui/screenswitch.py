@@ -49,10 +49,14 @@ class ScreenSwitcher(VSplit):
         ___
         INDEX screen number/name
         """
-        with arg_validation(f'Index must be an integer between 1 and {len(self.screens)}, got {index}'):
-            index -= 1
-            assert isinstance(index, int)
-            assert 0 <= index < len(self.screens)
+        with arg_validation(f'Index must be an integer between 1 and {len(self.screens)} or one of screen names: {self.screen_names}, got {index}'):
+            assert isinstance(index, int) or isinstance(index, str)
+            if isinstance(index, int):
+                index -= 1
+                assert 0 <= index < len(self.screens)
+            else:
+                assert index in self.screen_names
+                index = self.screen_names.index(index)
         self.current_index = index
 
     def update(self):
