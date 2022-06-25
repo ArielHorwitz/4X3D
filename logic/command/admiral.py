@@ -98,7 +98,7 @@ class Player(Admiral):
                 assert self.universe.is_oid(check_oid)
 
         ship = self.universe.ds_objects[oid]
-        ship.command_order_patrol(target_oids, auto_look)
+        ship.order_patrol(target_oids, auto_look)
 
     def order_fly(self, oid, target_oid, cruise_speed=10**10):
         """ArgSpec
