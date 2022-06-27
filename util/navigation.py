@@ -10,7 +10,7 @@ Stage = namedtuple('NavigationStage', ['acceleration', 'ticks', 'description'])
 
 
 class Navigation:
-    NAV_METHODS = ['naive_fastest']
+    NAV_METHODS = ['naive_fastest', 'break_velocity']
 
     def __init__(self, target_vector, thrust, initial_velocity,
             method=None, uid=None, starting_tick=0, description=None):
@@ -70,6 +70,24 @@ class Navigation:
                 acceleration=0, ticks=0,
                 description=f'Arrival, cut engine'),
         ])
+        return tuple(stages)
+
+    @staticmethod
+    def break_velocity(target_vector, thrust, initial_velocity):
+        stages = []
+        initial_velocity_size = magnitude(initial_velocity)
+        # Break burn
+        if initial_velocity_size > EPSILON:
+            burn_vector = normalize(-initial_velocity) * thrust
+            burn_duration = initial_velocity_size / thrust
+            stages.append(Stage(
+                acceleration=burn_vector, ticks=burn_duration,
+                description=f'Rest burn ({burn_duration:.2f} t)',
+            ))
+        # Cut the engine
+        stages.append(Stage(
+            acceleration=0, ticks=0,
+            description=f'Arrival, cut engine'))
         return tuple(stages)
 
     # Properties
