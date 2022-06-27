@@ -64,7 +64,7 @@ DEFAULT_CONFIG_DATA = {
         # ship window controls
         'I': 'ship.burn',
         'J': 'ship.cut',
-        'K': 'ship.break --cut',
+        'K': 'ship.break',
         '^ l': 'cockpit.labels',
         '^ d': 'cockpit.dbar',
         'up': 'cockpit.move +100',

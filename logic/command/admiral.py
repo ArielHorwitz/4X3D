@@ -63,6 +63,7 @@ class Player(Admiral):
         d = {
             ('order.fly', self.order_fly),
             ('order.patrol', self.order_patrol),
+            ('order.cancel', self.order_cancel),
             *[(f'ship.{n}', *a) for n, *a in self.my_ship.commands],
             *[(f'cockpit.{n}', *a) for n, *a in self.my_ship.cockpit.commands],
         }
@@ -83,13 +84,12 @@ class Player(Admiral):
             ship_name = random.choice(CELESTIAL_NAMES)
             self.add_ship(cls, name=ship_name, parent=self.my_ship)
 
-    def order_patrol(self, oid, target_oids, auto_look=False):
+    def order_patrol(self, oid, target_oids):
         """ArgSpec
-        Order a ship to patrol between celestial objects
+        Order a ship to patrol between celestial objects.
         ___
         OID Ship ID to order
         *TARGET_OIDS Objects to patrol between
-        -+look AUTO_LOOK Automatically turn camera to look at target before flying
         """
         with arg_validation(f'Ordered ship must be in fleet, instead ordered ID: {oid}'):
             assert oid in self.fleet_oids
@@ -98,25 +98,33 @@ class Player(Admiral):
                 assert self.universe.is_oid(check_oid)
 
         ship = self.universe.ds_objects[oid]
-        ship.order_patrol(target_oids, auto_look)
+        ship.order_patrol(target_oids)
 
-    def order_fly(self, oid, target_oid, cruise_speed=10**10):
+    def order_fly(self, oid, target_oid):
         """ArgSpec
-        Order a ship to fly to a deep space object
+        Order a ship to fly to a deep space object.
         ___
         OID Ship ID to order
         TARGET_OID Target ID to fly to
-        -+s CRUISE_SPEED Maximum cruising speed
         """
         with arg_validation(f'Ordered ship must be in fleet, instead ordered ID: {oid}'):
             assert oid in self.fleet_oids
         with arg_validation(f'Invalid target ID: {target_oid}'):
             assert self.universe.is_oid(target_oid)
-        with arg_validation(f'Cruise speed must be a positive number'):
-            assert cruise_speed > 0
 
         ship = self.universe.ds_objects[oid]
-        ship.fly_to(target_oid)
+        ship.order_fly(target_oid)
+
+    def order_cancel(self, oid):
+        """ArgSpec
+        Cancel ship orders.
+        ___
+        OID Ship ID to order
+        """
+        with arg_validation(f'Ordered ship must be in fleet, instead ordered ID: {oid}'):
+            assert oid in self.fleet_oids
+        ship = self.universe.ds_objects[oid]
+        ship.order_cancel()
 
 
 class Agent(Admiral):
